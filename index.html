@@ -369,6 +369,7 @@ footer{text-align:center;color:#6d6975;font-size:12px;padding:20px;line-height:1
 .cmem{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:10px;font-size:13px}
 .cm{display:inline-flex;align-items:center;gap:6px;color:var(--muted)}.cm b{color:var(--text)}
 .mrow{border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:linear-gradient(90deg,rgba(255,179,64,.14) var(--pc),transparent var(--pc))}
+.wn{margin:0;padding-left:20px;line-height:1.7}
 </style>
 </head>
 <body>
@@ -761,7 +762,8 @@ function setCards(sets, own, readOnly) {
     const n = x.p.level_keys.length, away = x.missing.length;
     const hk = hardestKey(x.p.level_keys), tier = S.byKey[hk]?.tier || 'common', bg = thumbUrl(hk);
     const status = x.done
-      ? (x.claimed ? `<span class="sdone">✓ +${fmt(x.bonus)} pts</span>` : readOnly ? '<span class="sdone">Complete</span>' : `<button class="btn primary sm redeem" data-claim="${esc(x.p.name)}">Redeem +${fmt(x.bonus)} & ${x.reward} packs</button>`)
+      ? (x.claimed ? `<span class="sdone">✓ Already redeemed · +${fmt(x.bonus)} pts</span>` : readOnly ? '<span class="sdone">Complete</span>' : `<button class="btn primary sm redeem" data-claim="${esc(x.p.name)}">Redeem +${fmt(x.bonus)} & ${x.reward} packs</button>`)
+      : x.claimed ? `<span class="saway">${away} away</span><span class="muted">Already redeemed · get it back for +${fmt(x.bonus)}</span>`
       : `<span class="saway">${away === 1 ? '1 away!' : `${away} away`}</span><span class="muted">+${fmt(x.bonus)} · ${x.reward} packs</span>`;
     return `<div class="stile st-${tier} ${x.done && x.claimed ? 'won' : ''} ${x.done && !x.claimed ? 'ready' : ''}" style="--sc:${esc(x.p.colour || '#888')}${bg ? `;--bn:url('${bg}')` : ''}" data-set="${esc(x.p.name)}">
       <div class="stin"><div class="row between"><b class="sname">${esc(x.p.name)}</b><span class="scount">${x.have}/${n}</span></div>
@@ -776,7 +778,7 @@ function creatorBlocks(list, own) {
     + (small.length ? `<div class="sets" style="margin-top:14px">${small.map(x => creatorBox(x, own)).join('')}</div>` : '');
 }
 function creatorProgress(x) {
-  const right = x.claimed && x.done ? `<span class="sdone">✓ +${fmt(x.full)}</span>`
+  const right = x.claimed && x.done ? `<span class="sdone">✓ Already redeemed · +${fmt(x.full)}</span>`
     : x.redeemable ? `<button class="btn primary sm redeem" data-cclaim="${esc(x.c.key)}">Redeem +${fmt(x.full)}</button>`
     : `<span>+${fmt(x.bonus)} <span class="muted">/ ${fmt(x.full)}</span></span>`;
   return `<div class="cprog"><div class="row between"><b>${x.have}/${x.n}</b>${right}</div>
@@ -1383,7 +1385,10 @@ function renderAdmin() {
     await loadBoard();
     $('#users').innerHTML = S.board.map(r => `<div class="row" style="border:1px solid var(--line);border-radius:10px;padding:8px 10px">${avatarHTML(r, 32)}<b>${esc(r.username)}</b><span class="muted">${r.owned.reduce((s, x) => s + x[2], 0)} cards</span><span class="spacer"></span>
       ${r.avatar ? `<button class="btn sm" data-ua="clear_picture" data-un="${esc(r.username)}">Clear picture</button>` : ''}
+      <button class="btn sm" data-give="${esc(r.username)}">Give…</button><button class="btn sm" data-tl="${esc(r.username)}">Trades</button>
       <button class="btn sm" data-ua="reset" data-un="${esc(r.username)}">Reset</button><button class="btn sm" style="color:#ff8080" data-ua="delete" data-un="${esc(r.username)}">Delete</button></div>`).join('');
+    document.querySelectorAll('[data-give]').forEach(b => b.onclick = () => adminGive(b.dataset.give));
+    document.querySelectorAll('[data-tl]').forEach(b => b.onclick = () => adminTrades(b.dataset.tl));
     document.querySelectorAll('[data-ua]').forEach(b => b.onclick = async () => {
       const act = b.dataset.ua, un = b.dataset.un;
       if (!confirm(`${act === 'delete' ? 'DELETE the account' : act === 'reset' ? 'Reset all progress for' : 'Clear the picture of'} ${un}?`)) return;
@@ -1400,6 +1405,35 @@ function renderAdmin() {
     try { await rpc('admin_reset_pin', {p_token: S.token, p_username: $('#rUser').value, p_new_pin: $('#rPin').value}); toast('PIN reset'); }
     catch (e) { toast(e.message, true); }
   };
+}
+
+function adminGive(un) {
+  const m = document.createElement('div'); m.className = 'modal';
+  m.innerHTML = `<div class="box"><h2 style="margin-top:0">Give to ${esc(un)}</h2>
+    <h3>A card</h3><div class="row"><select class="field" id="gL" style="flex:1"><option value="">— none —</option>${S.levels.map(l => `<option value="${esc(l.key)}">${l.rank ? '#' + l.rank : 'vaulted'} ${esc(l.name)}</option>`).join('')}</select>
+      <label class="row" style="gap:4px"><input type="checkbox" id="gH"> holo</label></div>
+    <h3 style="margin-top:14px">Bonus packs</h3><input class="field" id="gP" type="number" value="0" style="width:100px"> <span class="muted" style="font-size:13px">use a negative number to take packs away</span>
+    <div class="row" style="margin-top:16px"><button class="btn primary" id="gGo">Give</button><button class="btn" id="gX">Cancel</button></div></div>`;
+  document.body.appendChild(m);
+  m.querySelector('#gX').onclick = () => m.remove();
+  m.querySelector('#gGo').onclick = async () => {
+    try { await rpc('admin_give', {p_token: S.token, p_username: un, p_level_key: m.querySelector('#gL').value, p_holo: m.querySelector('#gH').checked, p_packs: +m.querySelector('#gP').value || 0});
+      toast('Given to ' + un); m.remove(); if (un.toLowerCase() === S.me.username.toLowerCase()) { await loadMyCards(); await refreshState(); } }
+    catch (e) { toast(e.message, true); }
+  };
+}
+async function adminTrades(un) {
+  let list; try { list = await rpc('admin_trades', {p_token: S.token, p_username: un}); } catch (e) { toast(e.message, true); return; }
+  const nm = k => S.byKey[k]?.name || k;
+  const side = (arr, n) => arr.map(([k, h, o]) => `${esc(nm(k))}${h ? ' ✦' : ''} <span class="muted">(now: ${esc(o || '?')})</span>`).join(', ') + (n > arr.length ? ` <b style="color:#ff8080">+${n - arr.length} card(s) no longer exist</b>` : '') || '<span class="muted">nothing</span>';
+  const m = document.createElement('div'); m.className = 'modal';
+  m.innerHTML = `<div class="box" style="max-width:640px"><h2 style="margin-top:0">${esc(un)}'s trades</h2>
+    ${list.length ? list.map(t => `<div class="trade"><div class="row between"><b>${esc(t.from)} → ${esc(t.to)}</b><span class="status ${t.status}">${t.status}</span></div>
+      <div style="font-size:13px;margin-top:6px"><b>${esc(t.from)} gives:</b> ${side(t.offer, t.offer_n)}<br><b>${esc(t.to)} gives:</b> ${side(t.request, t.request_n)}</div>
+      <div class="muted" style="font-size:12px;margin-top:4px">${new Date(t.created_at).toLocaleString()}</div></div>`).join('') : '<p class="muted">No trades.</p>'}
+    <button class="btn" onclick="this.closest('.modal').remove()">Close</button></div>`;
+  m.addEventListener('click', e => { if (e.target === m) m.remove(); });
+  document.body.appendChild(m);
 }
 
 // ---------------- router / boot ----------------
@@ -1443,6 +1477,24 @@ async function boot() {
   rpc('my_clan', {p_token: S.token}).then(updateClanDot).catch(() => {});
 }
 setInterval(() => { if (S.token && S.me) { rpc('my_trades', {p_token: S.token}).then(updateTradeDot).catch(() => {}); rpc('my_clan', {p_token: S.token}).then(updateClanDot).catch(() => {}); } }, 30000);
+// ---- What's new: add a new entry at the TOP for each update ----
+const CHANGELOG = [
+  {v: 2, title: 'Update', items: [
+    'Clans can now have up to 8 members',
+    'Sets and creators you already redeemed now say "Already redeemed"',
+    'You can see what changed in each update (this box!)'
+  ]}
+];
+function whatsNew() {
+  const latest = CHANGELOG[0].v, seen = +(localStorage.getItem('gacha_seen_v') || 0);
+  if (localStorage.getItem('gacha_disclaimer') !== '1' || seen >= latest) { localStorage.setItem('gacha_seen_v', latest); return; }
+  const items = CHANGELOG.filter(c => c.v > seen).flatMap(c => c.items);
+  const m = document.createElement('div'); m.className = 'modal'; m.style.zIndex = 300;
+  m.innerHTML = `<div class="box"><h2 style="margin:0 0 10px">✦ What's new</h2><ul class="wn">${items.map(i => `<li>${esc(i)}</li>`).join('')}</ul>
+    <button class="btn primary" style="width:100%;margin-top:6px">Nice</button></div>`;
+  m.querySelector('button').onclick = () => { localStorage.setItem('gacha_seen_v', latest); m.remove(); };
+  document.body.appendChild(m);
+}
 function disclaimer() {
   if (localStorage.getItem('gacha_disclaimer') === '1') return;
   const m = document.createElement('div'); m.className = 'modal'; m.style.zIndex = 300;
@@ -1453,9 +1505,10 @@ function disclaimer() {
     <p><b>Goldenfyre101 has no relation to this.</b></p>
     <p><a href="${esc(CFG.PROTEST_LINK)}" target="_blank" rel="noopener">Ways to protest against AI ↗</a></p>
     <button class="btn primary" style="margin-top:8px">Got it</button></div>`;
-  m.querySelector('button').onclick = () => { localStorage.setItem('gacha_disclaimer', '1'); m.remove(); };
+  m.querySelector('button').onclick = () => { localStorage.setItem('gacha_disclaimer', '1'); localStorage.setItem('gacha_seen_v', CHANGELOG[0].v); m.remove(); };
   document.body.appendChild(m);
 }
+whatsNew();
 disclaimer();
 boot();
 </script>
