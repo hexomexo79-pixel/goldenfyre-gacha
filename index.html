@@ -1050,8 +1050,12 @@ async function resumePicks() {
 function pickHints(lk, holo) {
   const own = ownership(S.myCards), l = S.byKey[lk], o = own[lk], hints = [];
   if (!o) hints.push(['new', '✦ NEW']);
-  else if (holo && !o.holo) hints.push(['new', '✦ NEW HOLO']);
-  else hints.push(['dupe', `Dupe (you have ${o.count})`]);
+  else {
+    const nrm = o.count - o.holo, have = [nrm ? `${nrm} normal` : '', o.holo ? `${o.holo} ✦ holo` : ''].filter(Boolean).join(', ');
+    if (holo && !o.holo) hints.push(['new', `✦ NEW HOLO (you have ${have})`]);
+    else hints.push(['dupe', `Dupe (you have ${have})`]);
+    if (!holo && !o.holo && l.tier !== 'unverified' && nrm + 1 >= craftCost(l.tier)) hints.push(['set', `${nrm + 1} normal: can combine into a holo`]);
+  }
   if (S.me && creatorsOf(l).some(a => ckey(a) === ckey(S.me.username))) hints.push(['mine', '★ Your level!']);
   if (!o) {
     for (const p of S.packs) if (p.level_keys.includes(lk)) {
