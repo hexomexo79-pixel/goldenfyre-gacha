@@ -356,6 +356,16 @@ footer{text-align:center;color:#6d6975;font-size:12px;padding:20px;line-height:1
 .scodds{color:#fff;font-weight:700;font-size:17px;opacity:.9}
 .ctag{color:var(--accent2);font-weight:900}
 .avs{display:flex}.avs .avatar{margin-left:-10px;box-shadow:0 0 0 2px var(--panel)}.avs .avatar:first-child{margin-left:0}
+.clicon{flex:none;border-radius:18px;padding:3px;background:linear-gradient(135deg,var(--cc),color-mix(in srgb,var(--cc) 35%,#000));box-shadow:0 0 18px color-mix(in srgb,var(--cc) 45%,transparent);display:grid}
+.clicon>*{width:100%;height:100%;border-radius:15px;object-fit:cover}
+.clicon:not(:has(img)){place-items:center;font-weight:900;color:#fff;text-shadow:0 2px 6px #0008}
+.clrow{display:flex;align-items:center;gap:16px;padding:20px 20px;min-height:120px;border-radius:16px;cursor:pointer;
+  border:2px solid color-mix(in srgb,var(--cc) 70%,transparent);box-shadow:0 0 22px color-mix(in srgb,var(--cc) 20%,transparent);
+  background:linear-gradient(90deg,rgba(20,19,23,.95) 0%,rgba(20,19,23,.8) 50%,rgba(20,19,23,.4) 100%),var(--bn,none) center/cover,var(--panel2)}
+.clrow.me{box-shadow:0 0 0 1px #fff4,0 0 26px color-mix(in srgb,var(--cc) 35%,transparent)}
+.clname{font-size:22px;font-weight:900}.cldesc{color:#ddd;font-size:14px;margin-top:2px}
+.cedit summary{cursor:pointer}
+@media (max-width:600px){.clrow{gap:10px;padding:14px}.clname{font-size:17px}.clrow .clicon{width:54px!important;height:54px!important}}
 </style>
 </head>
 <body>
@@ -517,7 +527,11 @@ function scoreInfo(own, claimed = [], cclaimed = []) {
 const myInfo = () => scoreInfo(ownership(S.myCards), S.me.claimed_sets || [], S.me.claimed_creators || []);
 async function loadBoard() { [S.board, S.clans] = await Promise.all([rpc('leaderboard'), rpc('clans_list')]); return S.board; }
 const clanOf = r => r && r.clan_id ? S.clans.find(c => c.id === r.clan_id) : null;
-const tagHTML = r => { const c = clanOf(r); return c ? `<span class="ctag">[${esc(c.tag)}]</span> ` : ''; };
+function clanIcon(c, size = 64) {
+  const col = c.color || '#ffb340';
+  return `<div class="clicon" style="width:${size}px;height:${size}px;--cc:${esc(col)};font-size:${size * .38}px">${c.icon ? `<img src="${esc(c.icon)}" alt="">` : esc(c.tag)}</div>`;
+}
+const tagHTML = r => { const c = clanOf(r); return c ? `<span class="ctag" ${c.color ? `style="color:${esc(c.color)}"` : ''}>[${esc(c.tag)}]</span> ` : ''; };
 function boardRows() {
   return S.board.map(r => ({...r, info: scoreInfo(ownFromRows(r.owned), r.claimed_sets, r.claimed_creators || [])})).sort((a, b) => b.info.total - a.info.total);
 }
@@ -1065,10 +1079,7 @@ async function renderBoard(tab = 'players') {
       const mem = rows.filter(r => r.clan_id === c.id);
       return {c, mem, total: mem.reduce((s, r) => s + r.info.total, 0)};
     }).sort((a, b) => b.total - a.total);
-    $('#lb').innerHTML = cl.length ? `<div class="lbl">${cl.map((x, i) => `<div class="lbrow ${i < 3 ? 'p' + (i + 1) : ''} ${x.mem.some(r => r.user_id === S.me.user_id) ? 'me' : ''}" data-c="${x.c.id}">
-      <div class="lbpos">${i + 1}</div><div class="avs">${x.mem.slice(0, 5).map(r => avatarHTML(r, 34)).join('')}</div>
-      <div class="lbname"><b><span class="ctag">[${esc(x.c.tag)}]</span> ${esc(x.c.name)}</b><div class="muted" style="font-size:12px">${x.mem.length} member${x.mem.length === 1 ? '' : 's'}</div></div>
-      <div class="lbscore">${fmt(x.total)}<small>pts</small></div></div>`).join('')}</div>`
+    $('#lb').innerHTML = cl.length ? `<div class="lbl">${cl.map((x, i) => clanRow(x, i)).join('')}</div>`
       : `<p class="muted">No clans yet. <a href="#/clans">Make one</a></p>`;
     document.querySelectorAll('.lbrow[data-c]').forEach(r => r.onclick = () => go('#/clans'));
     return;
@@ -1081,6 +1092,15 @@ async function renderBoard(tab = 'players') {
       <div class="lbscore">${fmt(r.info.total)}<small>pts</small></div></div>`;
   }).join('')}</div>`;
   document.querySelectorAll('.lbrow[data-u]').forEach(tr => tr.onclick = () => go('#/player/' + encodeURIComponent(tr.dataset.u)));
+}
+function clanRow(x, i) {
+  const b = thumbUrl(x.c.banner_key), col = x.c.color || '#ffb340';
+  return `<div class="clrow ${x.mem.some(r => r.user_id === S.me.user_id) ? 'me' : ''}" data-c="${x.c.id}" style="--cc:${esc(col)}${b ? `;--bn:url('${b}')` : ''}">
+    ${i != null ? `<div class="lbpos">${i + 1}</div>` : ''}${clanIcon(x.c, 76)}
+    <div class="lbname"><div class="clname"><span class="ctag" style="color:${esc(col)}">[${esc(x.c.tag)}]</span> ${esc(x.c.name)}</div>
+      ${x.c.description ? `<div class="cldesc">${esc(x.c.description)}</div>` : ''}
+      <div class="row" style="gap:8px;margin-top:8px"><div class="avs">${x.mem.slice(0, 8).map(r => avatarHTML(r, 28)).join('')}</div><span class="muted" style="font-size:12px">${x.mem.length} member${x.mem.length === 1 ? '' : 's'}</span></div></div>
+    <div class="lbscore">${fmt(x.total)}<small>pts</small></div></div>`;
 }
 async function renderClans() {
   app.innerHTML = '<div class="panel">Loading…</div>';
@@ -1096,8 +1116,15 @@ async function renderClans() {
   if (my) {
     const lead = my.leader === S.me.user_id;
     const mem = my.members.map(scoreOf).filter(Boolean).sort((a, b) => b.info.total - a.info.total);
-    html += `<div class="panel"><div class="row between"><h2 style="margin:0"><span class="ctag">[${esc(my.tag)}]</span> ${esc(my.name)}</h2>
-      <b style="font-size:20px">${fmt(mem.reduce((s, r) => s + r.info.total, 0))} pts</b></div>
+    html += clanRow({c: my, mem, total: mem.reduce((s, r) => s + r.info.total, 0)}, null) + `<div class="panel" style="margin-top:18px">
+      ${lead ? `<details class="cedit"><summary><b>Customize clan</b></summary>
+        <div class="row" style="margin-top:12px"><input class="field" id="ceDesc" maxlength="80" placeholder="Description" style="flex:1;min-width:200px" value="${esc(my.description || '')}">
+        <label class="row" style="gap:6px">Color <input type="color" id="ceCol" value="${esc(my.color || '#ffb340')}"></label>
+        <label class="btn sm">Upload icon<input type="file" id="ceIcon" accept="image/*" hidden></label>${my.icon ? '<button class="btn sm" id="ceNoIcon">Remove icon</button>' : ''}</div>
+        <h3 style="margin-top:14px">Banner</h3>
+        <div class="minis bpick" id="ceBan">${(() => { const ks = new Set(); mem.forEach(r => r.owned.forEach(o => ks.add(o[0])));
+          return S.levels.filter(l => ks.has(l.key)).map(l => `<div data-cb="${esc(l.key)}" class="${my.banner_key === l.key ? 'bsel' : ''}">${cardHTML(l, {mini: true})}</div>`).join(''); })()}</div>
+        <div class="row" style="margin-top:10px"><button class="btn primary" id="ceSave">Save</button></div></details>` : ''}
       ${lead && mine.requests.length ? `<h3 style="margin-top:16px">Wants to join</h3><div class="feed">${mine.requests.map(r => `<div class="row" style="border:1px solid var(--line);border-radius:10px;padding:8px 10px">
         <b>${esc(r.username)}</b><span class="spacer"></span><button class="btn primary sm" data-ok="${r.user_id}">Accept</button><button class="btn sm" data-no="${r.user_id}">Decline</button></div>`).join('')}</div>` : ''}
       <h3 style="margin-top:16px">Members</h3><div class="feed">${mem.map(r => `<div class="row" style="border:1px solid var(--line);border-radius:10px;padding:8px 10px">
@@ -1110,12 +1137,10 @@ async function renderClans() {
       <button class="btn primary" id="mk">Create</button></div></div>`;
   }
   const others = S.clans.filter(c => !my || c.id !== my.id).map(c => ({c, total: c.members.reduce((s, id) => s + (scoreOf(id)?.info.total || 0), 0)})).sort((a, b) => b.total - a.total);
-  html += `<div class="panel"><h2>All clans</h2>${others.length ? `<div class="feed">${others.map(x => {
+  html += `<div class="panel"><h2>All clans</h2>${others.length ? `<div class="lbl">${others.map(x => {
     const applied = mine.applied.includes(x.c.id);
-    return `<div class="row" style="border:1px solid var(--line);border-radius:10px;padding:10px 12px">
-      <div class="avs">${x.c.members.slice(0, 5).map(id => scoreOf(id) ? avatarHTML(scoreOf(id), 30) : '').join('')}</div>
-      <div style="flex:1"><b><span class="ctag">[${esc(x.c.tag)}]</span> ${esc(x.c.name)}</b><div class="muted" style="font-size:12px">${x.c.members.length} member${x.c.members.length === 1 ? '' : 's'} · ${fmt(x.total)} pts</div></div>
-      ${my ? '' : applied ? `<button class="btn sm" data-unapply="${x.c.id}">Cancel request</button>` : `<button class="btn primary sm" data-apply="${x.c.id}">Ask to join</button>`}</div>`;
+    const mem = x.c.members.map(scoreOf).filter(Boolean);
+    return clanRow({c: x.c, mem, total: x.total}, null) + (my ? '' : `<div style="text-align:right;margin:-4px 0 6px">${applied ? `<button class="btn sm" data-unapply="${x.c.id}">Cancel request</button>` : `<button class="btn primary sm" data-apply="${x.c.id}">Ask to join</button>`}</div>`);
   }).join('')}</div>` : '<p class="muted">None yet.</p>'}</div>`;
   app.innerHTML = html;
   if ($('#mk')) $('#mk').onclick = async () => {
@@ -1123,6 +1148,16 @@ async function renderClans() {
     catch (e) { toast(e.message, true); }
   };
   if ($('#leave')) $('#leave').onclick = () => { if (confirm('Leave your clan?')) act('leave', my.id); };
+  if ($('#ceSave')) {
+    let icon = my.icon || '', ban = my.banner_key || '';
+    $('#ceIcon').onchange = async e => { const f = e.target.files[0]; if (!f) return; try { icon = await shrinkImage(f); toast('Icon ready, press Save'); } catch (er) { toast(er.message, true); } };
+    if ($('#ceNoIcon')) $('#ceNoIcon').onclick = () => { icon = ''; toast('Icon removed, press Save'); };
+    document.querySelectorAll('[data-cb]').forEach(d => d.onclick = e => { e.stopPropagation(); ban = ban === d.dataset.cb ? '' : d.dataset.cb; document.querySelectorAll('[data-cb]').forEach(x => x.classList.toggle('bsel', x.dataset.cb === ban)); });
+    $('#ceSave').onclick = async () => {
+      try { await rpc('clan_update', {p_token: S.token, p_clan_id: my.id, p_description: $('#ceDesc').value, p_banner_key: ban, p_icon: icon, p_color: $('#ceCol').value}); toast('Clan saved'); renderClans(); }
+      catch (er) { toast(er.message, true); }
+    };
+  }
   document.querySelectorAll('[data-apply]').forEach(b => b.onclick = () => act('apply', +b.dataset.apply));
   document.querySelectorAll('[data-unapply]').forEach(b => b.onclick = () => act('unapply', +b.dataset.unapply));
   document.querySelectorAll('[data-ok]').forEach(b => b.onclick = () => act('accept', my.id, b.dataset.ok));
