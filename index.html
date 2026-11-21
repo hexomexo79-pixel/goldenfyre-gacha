@@ -366,6 +366,9 @@ footer{text-align:center;color:#6d6975;font-size:12px;padding:20px;line-height:1
 .clname{font-size:22px;font-weight:900}.cldesc{color:#ddd;font-size:14px;margin-top:2px}
 .cedit summary{cursor:pointer}
 @media (max-width:600px){.clrow{gap:10px;padding:14px}.clname{font-size:17px}.clrow .clicon{width:54px!important;height:54px!important}}
+.cmem{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:10px;font-size:13px}
+.cm{display:inline-flex;align-items:center;gap:6px;color:var(--muted)}.cm b{color:var(--text)}
+.mrow{border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:linear-gradient(90deg,rgba(255,179,64,.14) var(--pc),transparent var(--pc))}
 </style>
 </head>
 <body>
@@ -529,7 +532,7 @@ async function loadBoard() { [S.board, S.clans] = await Promise.all([rpc('leader
 const clanOf = r => r && r.clan_id ? S.clans.find(c => c.id === r.clan_id) : null;
 function clanIcon(c, size = 64) {
   const col = c.color || '#ffb340';
-  return `<div class="clicon" style="width:${size}px;height:${size}px;--cc:${esc(col)};font-size:${size * .38}px">${c.icon ? `<img src="${esc(c.icon)}" alt="">` : esc(c.tag)}</div>`;
+  return `<div class="clicon" style="width:${size}px;height:${size}px;--cc:${esc(col)};font-size:${Math.min(size * .38, size * 1.25 / Math.max(c.tag.length, 1))}px">${c.icon ? `<img src="${esc(c.icon)}" alt="">` : esc(c.tag)}</div>`;
 }
 const tagHTML = r => { const c = clanOf(r); return c ? `<span class="ctag" ${c.color ? `style="color:${esc(c.color)}"` : ''}>[${esc(c.tag)}]</span> ` : ''; };
 function boardRows() {
@@ -1099,7 +1102,7 @@ function clanRow(x, i) {
     ${i != null ? `<div class="lbpos">${i + 1}</div>` : ''}${clanIcon(x.c, 76)}
     <div class="lbname"><div class="clname"><span class="ctag" style="color:${esc(col)}">[${esc(x.c.tag)}]</span> ${esc(x.c.name)}</div>
       ${x.c.description ? `<div class="cldesc">${esc(x.c.description)}</div>` : ''}
-      <div class="row" style="gap:8px;margin-top:8px"><div class="avs">${x.mem.slice(0, 8).map(r => avatarHTML(r, 28)).join('')}</div><span class="muted" style="font-size:12px">${x.mem.length} member${x.mem.length === 1 ? '' : 's'}</span></div></div>
+      <div class="cmem">${[...x.mem].sort((a, b) => b.info.total - a.info.total).map((r, j) => `<span class="cm">${avatarHTML(r, 22)}<b>${esc(r.username)}</b> ${fmt(r.info.total)}</span>`).join('')}</div></div>
     <div class="lbscore">${fmt(x.total)}<small>pts</small></div></div>`;
 }
 async function renderClans() {
@@ -1127,11 +1130,15 @@ async function renderClans() {
         <div class="row" style="margin-top:10px"><button class="btn primary" id="ceSave">Save</button></div></details>` : ''}
       ${lead && mine.requests.length ? `<h3 style="margin-top:16px">Wants to join</h3><div class="feed">${mine.requests.map(r => `<div class="row" style="border:1px solid var(--line);border-radius:10px;padding:8px 10px">
         <b>${esc(r.username)}</b><span class="spacer"></span><button class="btn primary sm" data-ok="${r.user_id}">Accept</button><button class="btn sm" data-no="${r.user_id}">Decline</button></div>`).join('')}</div>` : ''}
-      <h3 style="margin-top:16px">Members</h3><div class="feed">${mem.map(r => `<div class="row" style="border:1px solid var(--line);border-radius:10px;padding:8px 10px">
-        ${avatarHTML(r, 32)}<b>${esc(r.username)}</b>${r.user_id === my.leader ? '<span class="cbadge">LEADER</span>' : ''}<span class="spacer"></span><span>${fmt(r.info.total)}</span>
-        ${lead && r.user_id !== S.me.user_id ? `<button class="btn sm" data-lead="${r.user_id}">Make leader</button><button class="btn sm" style="color:#ff8080" data-kick="${r.user_id}">Kick</button>` : ''}</div>`).join('')}</div>
+      <h3 style="margin-top:16px">Members (${mem.length}/${mine.max_members})</h3><div class="feed">${mem.map((r, j) => { const tot = mem.reduce((s, x) => s + x.info.total, 0) || 1; return `<div class="row mrow" style="--pc:${(r.info.total / tot * 100).toFixed(1)}%">
+        <span class="lbpos" style="font-size:16px;width:22px">${j + 1}</span>${avatarHTML(r, 32)}<b>${esc(r.username)}</b>${r.user_id === my.leader ? '<span class="cbadge">LEADER</span>' : ''}<span class="spacer"></span><span><b>${fmt(r.info.total)}</b> <span class="muted">${Math.round(r.info.total / tot * 100)}%</span></span>
+        ${lead && r.user_id !== S.me.user_id ? `<button class="btn sm" data-lead="${r.user_id}">Make leader</button><button class="btn sm" style="color:#ff8080" data-kick="${r.user_id}">Kick</button>` : ''}</div>`; }).join('')}</div>
+      ${lead && mem.length < mine.max_members ? `<h3 style="margin-top:16px">Invite</h3><div class="row"><select class="field" id="invSel"><option value="">Pick a player…</option>${rows.filter(r => !r.clan_id && !mine.invited.includes(r.user_id)).map(r => `<option value="${r.user_id}">${esc(r.username)}</option>`).join('')}</select><button class="btn primary sm" id="invGo">Invite</button></div>
+        ${mine.invited.length ? `<div class="muted" style="margin-top:8px;font-size:13px">Invited: ${mine.invited.map(id => { const r = scoreOf(id); return r ? `${esc(r.username)} <a href="javascript:void 0" data-uninv="${id}">cancel</a>` : ''; }).join(' · ')}</div>` : ''}` : ''}
       <p style="margin-top:16px"><button class="btn sm" id="leave">Leave clan</button></p></div>`;
   } else {
+    if (mine.invites.length) html += `<div class="panel"><h2>Clan invites</h2><div class="feed">${mine.invites.map(i => `<div class="row" style="border:1px solid var(--line);border-radius:10px;padding:8px 10px">
+      <b><span class="ctag">[${esc(i.tag)}]</span> ${esc(i.name)}</b><span class="spacer"></span><button class="btn primary sm" data-ia="${i.clan_id}">Join</button><button class="btn sm" data-idc="${i.clan_id}">Decline</button></div>`).join('')}</div></div>`;
     html += `<div class="panel"><h2>Make a clan</h2><div class="row">
       <input class="field" id="cName" placeholder="Clan name" maxlength="24"><input class="field" id="cTag" placeholder="TAG" maxlength="5" style="width:90px;text-transform:uppercase">
       <button class="btn primary" id="mk">Create</button></div></div>`;
@@ -1140,7 +1147,7 @@ async function renderClans() {
   html += `<div class="panel"><h2>All clans</h2>${others.length ? `<div class="lbl">${others.map(x => {
     const applied = mine.applied.includes(x.c.id);
     const mem = x.c.members.map(scoreOf).filter(Boolean);
-    return clanRow({c: x.c, mem, total: x.total}, null) + (my ? '' : `<div style="text-align:right;margin:-4px 0 6px">${applied ? `<button class="btn sm" data-unapply="${x.c.id}">Cancel request</button>` : `<button class="btn primary sm" data-apply="${x.c.id}">Ask to join</button>`}</div>`);
+    return clanRow({c: x.c, mem, total: x.total}, null) + (my ? '' : x.c.members.length >= mine.max_members ? '<div class="muted" style="text-align:right;margin:-4px 0 6px;font-size:13px">Full</div>' : `<div style="text-align:right;margin:-4px 0 6px">${applied ? `<button class="btn sm" data-unapply="${x.c.id}">Cancel request</button>` : `<button class="btn primary sm" data-apply="${x.c.id}">Ask to join</button>`}</div>`);
   }).join('')}</div>` : '<p class="muted">None yet.</p>'}</div>`;
   app.innerHTML = html;
   if ($('#mk')) $('#mk').onclick = async () => {
@@ -1159,6 +1166,10 @@ async function renderClans() {
     };
   }
   document.querySelectorAll('[data-apply]').forEach(b => b.onclick = () => act('apply', +b.dataset.apply));
+  document.querySelectorAll('[data-ia]').forEach(b => b.onclick = () => act('accept_invite', +b.dataset.ia));
+  document.querySelectorAll('[data-idc]').forEach(b => b.onclick = () => act('decline_invite', +b.dataset.idc));
+  document.querySelectorAll('[data-uninv]').forEach(b => b.onclick = () => act('uninvite', my.id, b.dataset.uninv));
+  if ($('#invGo')) $('#invGo').onclick = () => { const v = $('#invSel').value; if (v) act('invite', my.id, v); else toast('Pick a player', true); };
   document.querySelectorAll('[data-unapply]').forEach(b => b.onclick = () => act('unapply', +b.dataset.unapply));
   document.querySelectorAll('[data-ok]').forEach(b => b.onclick = () => act('accept', my.id, b.dataset.ok));
   document.querySelectorAll('[data-no]').forEach(b => b.onclick = () => act('decline', my.id, b.dataset.no));
@@ -1166,7 +1177,7 @@ async function renderClans() {
   document.querySelectorAll('[data-lead]').forEach(b => b.onclick = () => { if (confirm('Make them leader? You won\'t be leader anymore.')) act('make_leader', my.id, b.dataset.lead); });
   updateClanDot(mine);
 }
-function updateClanDot(mine) { const n = mine && mine.requests ? mine.requests.length : 0; $('#navClans').innerHTML = 'Clans' + (n ? `<span class="dot">${n}</span>` : ''); }
+function updateClanDot(mine) { const n = mine ? (mine.requests || []).length + (mine.clan_id ? 0 : (mine.invites || []).length) : 0; $('#navClans').innerHTML = 'Clans' + (n ? `<span class="dot">${n}</span>` : ''); }
 function profileHead(r) {
   const b = thumbUrl(r.banner_key);
   return `<div class="phead" ${b ? `style="--bn:url('${b}')"` : ''}>${avatarHTML(r, 76)}
