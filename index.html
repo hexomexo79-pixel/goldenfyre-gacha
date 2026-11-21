@@ -196,6 +196,8 @@ h3{margin:0 0 10px;font-size:16px}
 .opt{transition:transform .35s ease,opacity .35s ease,filter .35s}
 .opt.choosable .flip{cursor:pointer}
 .opt.choosable:hover{transform:translateY(-8px)}
+.opt.chosen{transform:translateY(-14px) scale(1.04)}
+.opt.chosen .card{outline:3px solid #fff;outline-offset:3px}
 .opt.kept{transform:translateY(-14px) scale(1.06)}
 .opt.kept .card{box-shadow:0 0 30px color-mix(in srgb,var(--c) 70%,transparent)}
 .opt.gone{opacity:.18;filter:grayscale(1);transform:scale(.92)}
@@ -303,6 +305,34 @@ footer{text-align:center;color:#6d6975;font-size:12px;padding:20px;line-height:1
   .minis{grid-template-columns:repeat(auto-fill,minmax(50px,1fr))}
   .cstack .many{font-size:14px}
 }
+.kbd{font-size:10px;font-weight:800;border:1px solid currentColor;border-radius:4px;padding:1px 4px;opacity:.6;margin-left:6px}
+.itoggle{display:inline-flex;gap:6px;align-items:center;margin-top:22px;color:var(--muted);font-size:13px;cursor:pointer}
+/* set tiles */
+.stile{--fr:linear-gradient(160deg,var(--sc),color-mix(in srgb,var(--sc) 40%,#000));border-radius:14px;padding:2px;background:var(--fr);background-size:300% 300%;position:relative;transition:transform .3s}
+.stile.st-legendary,.stile.st-mythic,.stile.st-apex{--fr:linear-gradient(120deg,var(--sc),#fff3b0,var(--sc),color-mix(in srgb,var(--sc) 40%,#000),var(--sc));animation:frame2 5s linear infinite}
+.stile .stin{border-radius:12px;padding:12px;height:100%;
+  background:linear-gradient(180deg,rgba(20,19,23,.78),rgba(20,19,23,.96) 60%),var(--bn,none) center/cover,var(--panel2)}
+.stile .sname{font-size:16px}.stile .scount{font-weight:900;color:var(--sc)}
+.stile.ready{box-shadow:0 0 22px color-mix(in srgb,var(--sc) 60%,transparent);animation:readyp 1.6s ease-in-out infinite}
+@keyframes readyp{50%{transform:scale(1.015)}}
+.stile.won .stin{background:linear-gradient(180deg,color-mix(in srgb,var(--sc) 22%,rgba(20,19,23,.75)),rgba(20,19,23,.95) 65%),var(--bn,none) center/cover,var(--panel2)}
+.stile .saway{margin-right:6px}
+.redeem{animation:rglow 1.2s ease-in-out infinite}
+@keyframes rglow{50%{box-shadow:0 0 18px #ffb340}}
+.crows{display:grid!important;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:900px){.crows{grid-template-columns:1fr}}
+.crow{min-width:0}
+.crow.won .chead::after{content:"COLLECTED";position:absolute;right:12px;top:10px;font-size:11px;font-weight:900;letter-spacing:1px;color:#1a1208;background:linear-gradient(90deg,#fff3b0,#f5a524);padding:2px 8px;border-radius:6px}
+.chead .cname{font-size:20px}
+.pop{animation:popfx .9s cubic-bezier(.2,1.6,.4,1)}
+@keyframes popfx{30%{transform:scale(1.08)}100%{transform:none}}
+.fx{position:fixed;inset:0;pointer-events:none;z-index:200}
+.fx i{position:fixed;border-radius:2px;animation:burst 1.4s cubic-bezier(.15,.7,.3,1) both}
+@keyframes burst{0%{transform:translate(-50%,-50%) scale(.4);opacity:1}100%{transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy) + 140px)) rotate(var(--r)) scale(1);opacity:0}}
+.fxpts{position:fixed;left:50%;top:42%;transform:translate(-50%,-50%);text-align:center;animation:fxin 2.4s ease both}
+.fxpts .fxl{font-weight:800;font-size:18px;color:#fff;text-shadow:0 2px 10px #000}
+.fxpts .fxn{font-size:64px;font-weight:900;color:var(--c);text-shadow:0 0 30px var(--c),0 4px 0 rgba(0,0,0,.4)}
+@keyframes fxin{0%{opacity:0;transform:translate(-50%,-30%) scale(.6)}15%{opacity:1;transform:translate(-50%,-50%) scale(1.1)}25%{transform:translate(-50%,-50%) scale(1)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-70%)}}
 </style>
 </head>
 <body>
@@ -318,7 +348,7 @@ footer{text-align:center;color:#6d6975;font-size:12px;padding:20px;line-height:1
   </nav>
   <div class="spacer"></div>
   <span class="pill" id="packPill" title="Packs"><img src="data:image/png;base64,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" alt=""><span id="pillCount">0</span>/<span id="pillCap">10</span></span>
-  <span class="user" id="who" title="Log out"></span>
+  <span class="user" id="who" title="Profile"></span>
 </div>
 <main id="app"></main>
 <footer>Fan-made card game for the Goldenfyre GDPS demonlist · Built with AI assistance (Claude), not hand-made ·
@@ -431,13 +461,16 @@ function ownFromRows(rows) { const o = {}; for (const [k, h, n] of rows) o[k] = 
 function rewardPacks(keys) { return keys.some(k => ['apex','mythic','legendary'].includes(S.byKey[k]?.tier)) ? RULES.setPacksBig : RULES.setPacks; }
 function setValue(keys) { return Math.max(RULES.setMin, keys.reduce((s, k) => s + (S.byKey[k]?.points || 0), 0)); }
 function creatorBonusAt(c, have) { return Math.round(c.value * RULES.creatorFull * (have / c.keys.length) ** 2); }
-function creatorStatus(c, own) {
+function creatorStatus(c, own, claimed = []) {
   const have = c.keys.filter(k => own[k]).length, n = c.keys.length;
-  const full = creatorBonusAt(c, n), bonus = creatorBonusAt(c, have);
+  const isClaimed = claimed.includes(c.key);
+  const full = creatorBonusAt(c, n);
+  // partial bonus is automatic; the full 100% needs a redeem (and keeps counting only while complete)
+  const bonus = have >= n && !isClaimed ? creatorBonusAt(c, n - 1) : creatorBonusAt(c, have);
   const nextGain = have < n ? creatorBonusAt(c, have + 1) - bonus : 0;
-  return {c, have, n, full, bonus, nextGain, pct: Math.round((have / n) ** 2 * 100), done: have >= n, missing: c.keys.filter(k => !own[k])};
+  return {c, have, n, full, bonus, nextGain, pct: Math.round((have / n) ** 2 * 100), done: have >= n, claimed: isClaimed, redeemable: have >= n && !isClaimed, missing: c.keys.filter(k => !own[k])};
 }
-function scoreInfo(own, claimed = []) {
+function scoreInfo(own, claimed = [], cclaimed = []) {
   const byTier = {}; let base = 0, holoBonus = 0, uniq = 0, holos = 0;
   for (const [k, o] of Object.entries(own)) {
     const l = S.byKey[k]; if (!l) continue;
@@ -451,16 +484,16 @@ function scoreInfo(own, claimed = []) {
     return {p, have: p.level_keys.length - missing.length, missing, done: !missing.length, bonus: setValue(p.level_keys), reward: rewardPacks(p.level_keys), claimed: claimed.includes(p.name)};
   });
   sets.sort((a, b) => (b.done && !b.claimed) - (a.done && !a.claimed) || a.done - b.done || a.missing.length - b.missing.length || b.bonus - a.bonus);
-  const creators = S.creators.map(c => creatorStatus(c, own));
-  const setBonus = sets.filter(x => x.done).reduce((s, x) => s + x.bonus, 0);
+  const creators = S.creators.map(c => creatorStatus(c, own, cclaimed));
+  const setBonus = sets.filter(x => x.done && x.claimed).reduce((s, x) => s + x.bonus, 0);
   const creatorBonus = creators.reduce((s, x) => s + x.bonus, 0);
   return {byTier, base, holoBonus, setBonus, creatorBonus, uniq, holos, sets, creators,
-          setsDone: sets.filter(x => x.done).length, creatorsDone: creators.filter(x => x.done).length,
+          setsDone: sets.filter(x => x.done && x.claimed).length, creatorsDone: creators.filter(x => x.done && x.claimed).length,
           total: base + holoBonus + setBonus + creatorBonus};
 }
-const myInfo = () => scoreInfo(ownership(S.myCards), S.me.claimed_sets || []);
+const myInfo = () => scoreInfo(ownership(S.myCards), S.me.claimed_sets || [], S.me.claimed_creators || []);
 function boardRows() {
-  return S.board.map(r => ({...r, info: scoreInfo(ownFromRows(r.owned), r.claimed_sets)})).sort((a, b) => b.info.total - a.info.total);
+  return S.board.map(r => ({...r, info: scoreInfo(ownFromRows(r.owned), r.claimed_sets, r.claimed_creators || [])})).sort((a, b) => b.info.total - a.info.total);
 }
 
 // ---------------- card rendering ----------------
@@ -575,11 +608,12 @@ function renderAuth(mode = 'login') {
   $('#pin').onkeydown = e => { if (e.key === 'Enter') submit(); };
 }
 function logoutLocal() { localStorage.removeItem('gacha_token'); S.token = null; S.me = null; }
-$('#who').onclick = async () => {
-  if (!confirm('Log out? (To edit your profile, go to Leaderboard → Edit your profile)')) return;
+$('#who').onclick = () => go('#/profile');
+async function doLogout() {
+  if (!confirm('Log out?')) return;
   try { await rpc('logout', {p_token: S.token}); } catch {}
   logoutLocal(); renderAuth();
-};
+}
 
 // ---------------- home ----------------
 function packHTML(kind = 'normal', cls = '', style = '') {
@@ -604,7 +638,6 @@ function renderHome() {
       <div class="label">Packs available</div>
       <div class="big">${st.packs}<small> / ${st.pack_cap}</small></div>
       ${st.bonus_packs ? `<div style="margin-top:6px;font-weight:800;color:var(--accent2)">+${st.bonus_packs} bonus</div>` : ''}
-      <p class="muted">One pack every ${st.pack_minutes} minutes, up to ${st.pack_cap} stored. Each pack shows ${st.cards_per_pack} cards and you keep one.</p>
     </div>
     <div>
       <div class="stack" id="stack">${stack}</div>
@@ -614,7 +647,7 @@ function renderHome() {
       </div>
     </div>
     <div style="text-align:center">
-      ${st.packs >= st.pack_cap ? `<div class="full">PACK STORAGE FULL</div><p class="muted">Open a pack to resume earning.</p>`
+      ${st.packs >= st.pack_cap ? `<div class="full">PACK STORAGE FULL</div>`
         : `<div class="label">Next pack in</div><div style="font-size:34px;font-weight:900" id="timer">--:--</div>`}
       <div class="row" style="justify-content:center;margin-top:14px">
         <input class="field" id="code" placeholder="Have a code?" style="width:150px">
@@ -633,19 +666,17 @@ function renderHome() {
       <div class="stat"><b>${info.setsDone}/${S.packs.length}</b><span class="muted">Sets complete</span></div>
       <div class="stat"><b>${fmt(info.total)}</b><span class="muted">Score</span></div>
     </div>
-    <h3 style="margin-top:18px">Where your points come from</h3>
+    <h3 style="margin-top:18px">Points</h3>
     ${scoreTable(info)}
   </div>
 
   <div class="panel">
     <div class="row between"><h2 style="margin:0">GDPS pack sets</h2><a href="#/collection">All ${S.packs.length} sets →</a></div>
-    <p class="muted" style="margin:6px 0 14px">Own every level in a set to earn its bonus points, plus one-time bonus packs.</p>
     ${setCards(info.sets.slice(0, 4))}
   </div>
 
   <div class="panel">
     <div class="row between"><h2 style="margin:0">Creator bonuses</h2><a href="#/creators">All creators →</a></div>
-    <p class="muted" style="margin:6px 0 14px">The more of a creator's levels you own, the bigger the bonus. It grows faster the closer you get to all of them.</p>
     ${creatorBlocks(nearCreators)}
   </div>
 
@@ -670,62 +701,102 @@ function scoreTable(info) {
     return `<tr><td><span style="color:var(--${t});font-weight:800">${t.toUpperCase()}</span></td><td>${x.n} level${x.n > 1 ? 's' : ''}</td><td style="text-align:right">${fmt(x.pts)}</td></tr>`;
   }).join('');
   return `<table class="scoretbl"><tbody>${rows || '<tr><td class="muted" colspan="3">No cards yet. Open a pack!</td></tr>'}
-    <tr><td><b>✦ Holo bonus</b></td><td class="muted">${info.holos} holo level${info.holos === 1 ? '' : 's'}, each counts ${RULES.holoMult}×</td><td style="text-align:right">+${fmt(info.holoBonus)}</td></tr>
-    <tr><td><b>Set bonuses</b></td><td class="muted">${info.setsDone} of ${S.packs.length} sets complete</td><td style="text-align:right">+${fmt(info.setBonus)}</td></tr>
-    <tr><td><b>Creator bonuses</b></td><td class="muted">${info.creatorsDone} creator${info.creatorsDone === 1 ? '' : 's'} collected</td><td style="text-align:right">+${fmt(info.creatorBonus)}</td></tr>
-    <tr class="tot"><td><b>Total</b></td><td class="muted">harder levels are worth more · dupes don't count</td><td style="text-align:right"><b>${fmt(info.total)}</b></td></tr>
+    <tr><td><b>✦ Holo bonus</b></td><td class="muted">${info.holos} × ${RULES.holoMult}</td><td style="text-align:right">+${fmt(info.holoBonus)}</td></tr>
+    <tr><td><b>Set bonuses</b></td><td class="muted">${info.setsDone}/${S.packs.length}</td><td style="text-align:right">+${fmt(info.setBonus)}</td></tr>
+    <tr><td><b>Creator bonuses</b></td><td class="muted">${info.creatorsDone} collected · partial bonuses included</td><td style="text-align:right">+${fmt(info.creatorBonus)}</td></tr>
+    <tr class="tot"><td><b>Total</b></td><td></td><td style="text-align:right"><b>${fmt(info.total)}</b></td></tr>
   </tbody></table>`;
 }
 function minisHTML(keys, own) {
   return `<div class="minis">${keys.map(k => S.byKey[k] ? cardHTML(S.byKey[k], {mini: true, missing: !own[k], holo: own[k] && own[k].holo}) : '').join('')}</div>`;
 }
+function hardestKey(keys) { return [...keys].filter(k => S.byKey[k]).sort((a, b) => (S.byKey[a].rank ?? 999) - (S.byKey[b].rank ?? 999))[0]; }
 function setCards(sets, own, readOnly) {
   own = own || ownership(S.myCards);
-  if (!sets.length) return '<p class="muted">No sets.</p>';
+  if (!sets.length) return '';
   return `<div class="sets">${sets.map(x => {
     const n = x.p.level_keys.length, away = x.missing.length;
-    const status = x.done ? (x.claimed || readOnly ? '<span class="sdone">✓ Complete</span>' : `<button class="btn primary sm" data-claim="${esc(x.p.name)}">Claim ${x.reward} packs</button>`)
-      : `<span class="saway">${away === 1 ? '1 level away!' : `${away} levels away`}</span>`;
-    return `<div class="setbox ${x.done ? 'done' : ''}" style="--sc:${esc(x.p.colour || '#888')}">
-      <div class="row between"><b>${esc(x.p.name)}</b><span class="muted">${x.have}/${n}</span></div>
+    const hk = hardestKey(x.p.level_keys), tier = S.byKey[hk]?.tier || 'common', bg = thumbUrl(hk);
+    const status = x.done
+      ? (x.claimed ? `<span class="sdone">✓ +${fmt(x.bonus)} pts</span>` : readOnly ? '<span class="sdone">Complete</span>' : `<button class="btn primary sm redeem" data-claim="${esc(x.p.name)}">Redeem +${fmt(x.bonus)} & ${x.reward} packs</button>`)
+      : `<span class="saway">${away === 1 ? '1 away!' : `${away} away`}</span><span class="muted">+${fmt(x.bonus)} · ${x.reward} packs</span>`;
+    return `<div class="stile st-${tier} ${x.done && x.claimed ? 'won' : ''} ${x.done && !x.claimed ? 'ready' : ''}" style="--sc:${esc(x.p.colour || '#888')}${bg ? `;--bn:url('${bg}')` : ''}" data-set="${esc(x.p.name)}">
+      <div class="stin"><div class="row between"><b class="sname">${esc(x.p.name)}</b><span class="scount">${x.have}/${n}</span></div>
       ${minisHTML(x.p.level_keys, own)}
-      <div class="srew">Reward: <b>+${fmt(x.bonus)} pts</b> & <b class="rp">${x.reward} bonus packs</b>${x.claimed ? ' <span class="muted">(claimed)</span>' : ''}</div>
-      <div style="margin-top:8px">${status}</div></div>`;
+      <div class="row between" style="gap:6px">${status}</div></div></div>`;
   }).join('')}</div>`;
 }
 function creatorBlocks(list, own) {
   own = own || ownership(S.myCards);
-  const rows = list.filter(x => x.n >= 3), small = list.filter(x => x.n < 3);
+  const rows = list.filter(x => x.n >= 4), small = list.filter(x => x.n < 4);
   return (rows.length ? `<div class="crows">${rows.map(x => creatorRow(x, own)).join('')}</div>` : '')
-    + (small.length ? `<h3 style="margin-top:20px">Other creators</h3><div class="sets">${small.map(x => creatorBox(x, own)).join('')}</div>` : '');
+    + (small.length ? `<div class="sets" style="margin-top:14px">${small.map(x => creatorBox(x, own)).join('')}</div>` : '');
 }
 function creatorProgress(x) {
-  return `<div class="cprog"><div class="row between"><span><b>${x.have}/${x.n}</b> levels · <b>${x.pct}%</b> of bonus</span>
-    <span>${x.done ? '<span class="sdone">✓ Collected · +' + fmt(x.full) + '</span>' : `earning <b>+${fmt(x.bonus)}</b> / ${fmt(x.full)}`}</span></div>
-    <div class="bar" style="margin:6px 0"><i style="width:${x.pct}%"></i></div>
-    ${x.done ? '' : `<div class="saway">Next level: +${fmt(x.nextGain)} bonus</div>`}</div>`;
+  const right = x.claimed && x.done ? `<span class="sdone">✓ +${fmt(x.full)}</span>`
+    : x.redeemable ? `<button class="btn primary sm redeem" data-cclaim="${esc(x.c.key)}">Redeem +${fmt(x.full)}</button>`
+    : `<span>+${fmt(x.bonus)} <span class="muted">/ ${fmt(x.full)}</span></span>`;
+  return `<div class="cprog"><div class="row between"><b>${x.have}/${x.n}</b>${right}</div>
+    <div class="bar" style="margin:6px 0 0"><i style="width:${x.pct}%"></i></div></div>`;
 }
 function creatorRow(x, own) {
   const b = thumbUrl(x.c.banner);
-  return `<div class="crow s-${x.c.style} ${x.done ? 'done' : ''}">
+  return `<div class="crow s-${x.c.style} ${x.done && x.claimed ? 'won' : ''}" data-creator="${esc(x.c.key)}">
     <div class="chead" ${b ? `style="--bn:url('${b}')"` : ''}>
       ${creatorIcon(x.c, true)}
-      <div class="cinfo"><div class="row" style="gap:8px"><span class="cname">${esc(x.c.name)}</span>${x.done ? '<span class="cbadge">COLLECTED</span>' : ''}</div>
-        <div class="muted" style="font-size:13px">${x.n} levels on the list</div>${creatorProgress(x)}</div>
+      <div class="cinfo"><div class="cname">${esc(x.c.name)}</div>${creatorProgress(x)}</div>
     </div>
     <div class="hscroll">${x.c.keys.map(k => cardHTML(S.byKey[k], {missing: !own[k], holo: own[k] && own[k].holo})).join('')}</div>
   </div>`;
 }
 function creatorBox(x, own) {
-  return `<div class="cbox ${x.done ? 'done' : ''}">
-    <div class="row">${creatorIcon(x.c)}<div style="flex:1"><b>${esc(x.c.name)}</b>${x.done ? ' <span class="cbadge">COLLECTED</span>' : ''}</div></div>
+  return `<div class="cbox ${x.done && x.claimed ? 'done' : ''}" data-creator="${esc(x.c.key)}">
+    <div class="row">${creatorIcon(x.c)}<b style="flex:1">${esc(x.c.name)}</b></div>
     ${minisHTML(x.c.keys, own)}${creatorProgress(x)}</div>`;
 }
+// Redeem celebration: particles in the item's color + score counting up
+function celebrate(el, color, pts, label) {
+  const r = el ? el.getBoundingClientRect() : {left: innerWidth / 2, top: innerHeight / 2, width: 0, height: 0};
+  const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+  const fx = document.createElement('div'); fx.className = 'fx';
+  const cols = [color, '#ffd36b', '#ffffff', color];
+  for (let i = 0; i < 70; i++) {
+    const p = document.createElement('i');
+    const ang = Math.random() * Math.PI * 2, dist = 120 + Math.random() * 260;
+    p.style.cssText = `left:${cx}px;top:${cy}px;background:${cols[i % 4]};--dx:${Math.cos(ang) * dist}px;--dy:${Math.sin(ang) * dist - 80}px;--r:${Math.random() * 720}deg;animation-delay:${Math.random() * 120}ms;width:${4 + Math.random() * 8}px;height:${4 + Math.random() * 8}px`;
+    fx.appendChild(p);
+  }
+  const big = document.createElement('div'); big.className = 'fxpts'; big.style.setProperty('--c', color);
+  big.innerHTML = `<div class="fxl">${esc(label)}</div><div class="fxn">+0</div>`;
+  fx.appendChild(big); document.body.appendChild(fx);
+  if (el) { el.classList.add('pop'); setTimeout(() => el.classList.remove('pop'), 900); }
+  const t0 = performance.now(), dur = 1100, n = big.querySelector('.fxn');
+  const tick = t => { const k = Math.min(1, (t - t0) / dur); n.textContent = '+' + fmt(pts * (1 - (1 - k) ** 3)); if (k < 1) requestAnimationFrame(tick); };
+  requestAnimationFrame(tick);
+  setTimeout(() => fx.remove(), 2600);
+}
 function bindClaims() {
-  document.querySelectorAll('[data-claim]').forEach(b => b.onclick = async () => {
-    b.disabled = true;
-    try { const r = await rpc('claim_set', {p_token: S.token, p_set_name: b.dataset.claim}); setState(r.state); toast(`Set complete! +${r.packs} bonus packs`); route(); }
-    catch (e) { toast(e.message, true); b.disabled = false; }
+  document.querySelectorAll('[data-claim]').forEach(b => b.onclick = async e => {
+    e.stopPropagation(); b.disabled = true;
+    const tile = b.closest('[data-set]'), x = myInfo().sets.find(s => s.p.name === b.dataset.claim);
+    try {
+      const r = await rpc('claim_set', {p_token: S.token, p_set_name: b.dataset.claim});
+      setState(r.state);
+      celebrate(tile, x?.p.colour || '#ffb340', x?.bonus || 0, `${b.dataset.claim} complete! +${r.packs} packs`);
+      setTimeout(route, 1700);
+    } catch (er) { toast(er.message, true); b.disabled = false; }
+  });
+  document.querySelectorAll('[data-cclaim]').forEach(b => b.onclick = async e => {
+    e.stopPropagation(); b.disabled = true;
+    const el = b.closest('[data-creator]'), x = myInfo().creators.find(c => c.c.key === b.dataset.cclaim);
+    try {
+      const r = await rpc('claim_creator', {p_token: S.token, p_creator: b.dataset.cclaim});
+      const before = x ? x.bonus : 0;
+      setState(r.state);
+      const colors = {apex: '#ffd36b', mythic: '#e5484d', legendary: '#f5a524', epic: '#a463f2', plain: '#3fca6b'};
+      celebrate(el, colors[x?.c.style] || '#ffb340', x ? x.full - before : 0, `${x?.c.name || ''} collected!`);
+      setTimeout(route, 1700);
+    } catch (er) { toast(er.message, true); b.disabled = false; }
   });
 }
 async function loadFeeds() {
@@ -785,63 +856,84 @@ function pickHints(lk, holo) {
 }
 function runPicks(picks) {
   if (!picks.length) return;
-  let idx = 0;
+  let idx = 0, keyHandler = null;
   const ov = document.createElement('div'); ov.className = 'overlay';
   document.body.appendChild(ov);
-  const closeAll = () => { ov.remove(); route(); };
+  const closeAll = () => { document.removeEventListener('keydown', onKey); ov.remove(); route(); };
+  const onKey = e => { if (keyHandler && (e.key === ' ' || e.key === 'Enter')) { e.preventDefault(); keyHandler(); } };
+  document.addEventListener('keydown', onKey);
   const showPick = async () => {
     const pk = picks[idx];
     const lv = o => S.byKey[o.level_key];
     const left = picks.length - idx - 1;
-    const kindName = pk.kind === 'normal' ? 'Demon ' : pk.kind[0].toUpperCase() + pk.kind.slice(1) + ' ';
+    const instant = localStorage.getItem('gacha_instant') === '1';
     ov.innerHTML = `<div class="inner">
-      <div class="muted">${kindName}pack ${picks.length > 1 ? `${idx + 1} of ${picks.length}` : ''}</div>
-      <h1 id="pTitle">Revealing…</h1>
-      <div class="muted" id="pSub">You can keep one of these ${pk.options.length} cards.</div>
-      <div class="pickrow">${pk.options.map((o, i) => `<div class="opt deal" data-i="${i}" style="animation-delay:${i * 130}ms">
+      <div class="muted">${picks.length > 1 ? `Pack ${idx + 1} of ${picks.length}` : '&nbsp;'}</div>
+      <h1 id="pTitle">${instant ? 'Pick 1 to keep' : 'Revealing…'}</h1>
+      <div class="pickrow">${pk.options.map((o, i) => `<div class="opt ${instant ? '' : 'deal'}" data-i="${i}" style="animation-delay:${i * 130}ms">
         <div class="flip t-${lv(o).tier}"><div class="flip-in"><div class="fr">${cardHTML(lv(o), {holo: o.holo})}</div><div class="cback"><img src="${LOGO}" alt=""></div></div></div>
         <div class="hints">${pickHints(o.level_key, o.holo)}</div></div>`).join('')}</div>
+      <label class="itoggle"><input type="checkbox" id="inst" ${instant ? 'checked' : ''}> Instant reveal</label>
     </div>
-    <div class="actions" id="pAct"><button class="btn light" id="revAll">Reveal all</button><button class="btn" id="later">Pick later</button></div>`;
+    <div class="actions" id="pAct"><button class="btn light" id="revAll">Reveal all <span class="kbd">Space</span></button><button class="btn" id="later">Later</button></div>`;
+    ov.querySelector('#inst').onchange = e => localStorage.setItem('gacha_instant', e.target.checked ? '1' : '0');
     const opts = [...ov.querySelectorAll('.opt')];
-    let skip = false, ready = false;
+    let skip = false, ready = false, chosen = null;
     const flip = o => { const f = o.querySelector('.flip'); f.classList.remove('charge'); f.classList.add('open'); o.classList.add('revealed'); };
+    const packsAfter = () => pk.kind === 'normal' ? S.me.packs + S.me.bonus_packs : pk.kind === 'epic' ? S.me.epic_packs : S.me.legendary_packs;
+    const confirmPick = async (thenNext) => {
+      if (chosen == null || ov.dataset.busy) return;
+      ov.dataset.busy = 1; keyHandler = null;
+      const o = opts[chosen];
+      let r;
+      try { r = await rpc('pick_card', {p_token: S.token, p_pick_id: pk.id, p_index: chosen}); }
+      catch (e) { toast(e.message, true); delete ov.dataset.busy; keyHandler = confirmPick; return; }
+      delete ov.dataset.busy;
+      setState(r.state);
+      S.myCards.push({id: r.card.id, level_key: r.card.level_key, holo: r.card.holo});
+      rpc('leaderboard').then(b => S.board = b).catch(() => {});
+      if (thenNext === true) {
+        if (left) { idx++; showPick(); return; }
+        if (packsAfter()) { document.removeEventListener('keydown', onKey); ov.remove(); renderHome(); openPacks(pk.kind, 1); return; }
+      }
+      opts.forEach(x => { x.classList.remove('choosable', 'chosen'); x.classList.add(x === o ? 'kept' : 'gone'); });
+      ov.querySelector('#pTitle').textContent = `Kept ${S.byKey[r.card.level_key].name}!`;
+      const packsLeft = pk.kind === 'normal' ? S.me.packs + S.me.bonus_packs : pk.kind === 'epic' ? S.me.epic_packs : S.me.legendary_packs;
+      ov.querySelector('#pAct').innerHTML = left
+        ? `<button class="btn primary" id="next">Next pack (${left}) <span class="kbd">Space</span></button><button class="btn light" id="cont">Done</button>`
+        : `${packsLeft ? `<button class="btn primary" id="again">Open another (${packsLeft}) <span class="kbd">Space</span></button>` : ''}<button class="btn light" id="toCol">Collection</button><button class="btn light" id="cont">Done</button>`;
+      ov.querySelector('#cont').onclick = closeAll;
+      if (left) { const nx = () => { idx++; showPick(); }; ov.querySelector('#next').onclick = nx; keyHandler = nx; }
+      else {
+        ov.querySelector('#toCol').onclick = () => { document.removeEventListener('keydown', onKey); ov.remove(); go('#/collection'); route(); };
+        if (packsLeft) { const ag = () => { document.removeEventListener('keydown', onKey); ov.remove(); renderHome(); openPacks(pk.kind, 1); }; ov.querySelector('#again').onclick = ag; keyHandler = ag; }
+        else keyHandler = closeAll;
+      }
+      rpc('leaderboard').then(b => S.board = b).catch(() => {});
+    };
     const allOpen = () => {
       if (ready) return; ready = true;
       opts.forEach(flip);
-      ov.querySelector('#pTitle').textContent = 'Pick one to keep';
-      ov.querySelector('#pSub').textContent = 'The other cards are lost.';
-      ov.querySelector('#pAct').innerHTML = `<button class="btn" id="later">Pick later</button>`;
+      ov.querySelector('#pTitle').textContent = 'Pick 1 to keep';
+      const more = left || packsAfter() - 0;
+      ov.querySelector('#pAct').innerHTML = `<button class="btn light" id="keep" disabled>Keep <span class="kbd">Enter</span></button>
+        ${more ? `<button class="btn primary" id="keepNext" disabled>Keep & ${left ? 'next pack' : 'open another'} (${left || packsAfter()})</button>` : ''}<button class="btn" id="later">Later</button>`;
       ov.querySelector('#later').onclick = closeAll;
+      ov.querySelector('#keep').onclick = () => confirmPick(false);
+      if (ov.querySelector('#keepNext')) ov.querySelector('#keepNext').onclick = () => confirmPick(true);
       opts.forEach(o => o.classList.add('choosable'));
+      keyHandler = confirmPick;
     };
+    keyHandler = () => { skip = true; allOpen(); };
     ov.querySelector('#revAll').onclick = () => { skip = true; allOpen(); };
     ov.querySelector('#later').onclick = closeAll;
-    opts.forEach(o => o.onclick = async () => {
+    opts.forEach((o, i) => o.onclick = () => {
       if (!o.classList.contains('revealed')) { flip(o); if (opts.every(x => x.classList.contains('revealed'))) allOpen(); return; }
-      if (!ready || o.dataset.busy) return;
-      opts.forEach(x => x.dataset.busy = 1);
-      let r;
-      try { r = await rpc('pick_card', {p_token: S.token, p_pick_id: pk.id, p_index: +o.dataset.i}); }
-      catch (e) { toast(e.message, true); opts.forEach(x => delete x.dataset.busy); return; }
-      setState(r.state);
-      S.myCards.push({id: r.card.id, level_key: r.card.level_key, holo: r.card.holo});
-      opts.forEach(x => { x.classList.remove('choosable'); x.classList.add(x === o ? 'kept' : 'gone'); });
-      const l = S.byKey[r.card.level_key];
-      ov.querySelector('#pTitle').textContent = `Kept ${l.name}!`;
-      ov.querySelector('#pSub').textContent = r.card.is_new ? 'New for your collection ✦' : r.card.is_new_holo ? 'Your first holo of this level ✦' : 'Added to your stack.';
-      const packsLeft = pk.kind === 'normal' ? S.me.packs + S.me.bonus_packs : pk.kind === 'epic' ? S.me.epic_packs : S.me.legendary_packs;
-      ov.querySelector('#pAct').innerHTML = left
-        ? `<button class="btn primary" id="next">Next pack (${left} left)</button><button class="btn light" id="cont">Stop for now</button>`
-        : `${packsLeft ? `<button class="btn primary" id="again">Open another (${packsLeft} left)</button>` : ''}<button class="btn light" id="toCol">View collection</button><button class="btn light" id="cont">Continue</button>`;
-      ov.querySelector('#cont').onclick = closeAll;
-      if (left) ov.querySelector('#next').onclick = () => { idx++; showPick(); };
-      else {
-        ov.querySelector('#toCol').onclick = () => { ov.remove(); go('#/collection'); route(); };
-        if (packsLeft) ov.querySelector('#again').onclick = () => { ov.remove(); renderHome(); openPacks(pk.kind, 1); };
-      }
-      rpc('leaderboard').then(b => S.board = b).catch(() => {});
+      if (!ready || ov.dataset.busy || o.classList.contains('kept') || o.classList.contains('gone')) return;
+      chosen = i; opts.forEach(x => x.classList.toggle('chosen', x === o));
+      ov.querySelectorAll('#keep,#keepNext').forEach(k => k.disabled = false);
     });
+    if (instant) { allOpen(); return; }
     // reveal sequence: worst first, best last; Epic or better glows before flipping
     await sleep(pk.options.length * 130 + 450);
     const order = [...opts].sort((a, b) => TIERS.indexOf(lv(pk.options[b.dataset.i]).tier) - TIERS.indexOf(lv(pk.options[a.dataset.i]).tier));
@@ -893,7 +985,7 @@ function renderCollection() {
   const info = myInfo(), listed = S.levels.filter(l => l.rank);
   app.innerHTML = `<div class="panel"><h2>Your collection · ${info.uniq}/${listed.length} · ${S.myCards.length} cards total</h2>
     ${filterChips(renderCollection)}${collectionGrid(S.myCards)}</div>
-    <div class="panel"><h2>GDPS pack sets</h2><p class="muted" style="margin-top:-6px">Own every level in a set (normal or holo) to earn its bonus points, plus a one-time reward pack.</p>${setCards(info.sets)}</div>
+    <div class="panel"><h2>GDPS pack sets</h2>${setCards(info.sets)}</div>
     <div class="panel"><h2>Your score</h2>${scoreTable(info)}</div>`;
   bindClaims();
 }
@@ -901,14 +993,14 @@ function renderCreators() {
   const info = myInfo();
   const list = [...info.creators].sort((a, b) => b.n - a.n || b.c.value - a.c.value);
   app.innerHTML = `<div class="panel"><h2>Creators · ${info.creatorsDone}/${S.creators.length} collected</h2>
-    <p class="muted" style="margin-top:-6px">Creators with ${RULES.creatorMinLevels}+ levels on the list. Bonus = ${RULES.creatorFull * 100}% of their levels' value × (owned ÷ total)². So 3/7 earns 18%, 5/7 earns 51%, and 7/7 earns all of it.</p>
     ${creatorBlocks(list)}</div>`;
+  bindClaims();
 }
 
 // ---------------- leaderboard / players ----------------
 async function renderBoard() {
-  app.innerHTML = `<div class="panel"><div class="row between"><h2 style="margin:0">Leaderboard</h2><a href="#/profile">Edit your profile →</a></div>
-    <p class="muted">Harder levels are worth more points. Holos count ${RULES.holoMult}×, plus set and creator bonuses. Dupes don't count, so trade them.</p><div id="lb">Loading…</div></div>`;
+  app.innerHTML = `<div class="panel"><div class="row between"><h2 style="margin:0">Leaderboard</h2><a href="#/profile">Edit profile</a></div>
+    <div id="lb" style="margin-top:14px">Loading…</div></div>`;
   S.board = await rpc('leaderboard');
   const n = S.levels.filter(l => l.rank).length;
   $('#lb').innerHTML = `<div class="lbl">${boardRows().map((r, i) => {
@@ -969,13 +1061,15 @@ async function renderProfile() {
     <div class="panel"><h2>Profile picture</h2>
       ${isCreator ? '<p class="muted">Your username matches a creator, so your creator icon is used automatically.</p>' : ''}
       <div class="row"><label class="btn sm">Upload image<input type="file" id="up" accept="image/*" hidden></label>
-      ${avatar ? '<button class="btn sm" id="rmAv">Remove</button>' : ''}<span class="muted" style="font-size:13px">It gets cropped to a square.</span></div>
+      ${avatar ? '<button class="btn sm" id="rmAv">Remove</button>' : ''}</div>
     </div>
-    <div class="panel"><h2>Banner</h2><p class="muted" style="margin-top:-6px">Pick any card you own. Its thumbnail becomes your banner on the leaderboard.</p>
+    <div class="panel"><h2>Banner</h2>
       <div class="minis bpick">${S.levels.filter(l => own[l.key]).map(l => `<div data-b="${esc(l.key)}" class="${banner === l.key ? 'bsel' : ''}">${cardHTML(l, {mini: true, holo: own[l.key].holo})}</div>`).join('') || '<span class="muted">Open some packs first!</span>'}</div>
       ${banner ? '<button class="btn sm" id="rmB">No banner</button>' : ''}
     </div>
-    <div class="row"><button class="btn primary" id="saveP">Save profile</button><a href="#/leaderboard">Back to leaderboard</a></div>`;
+    <div class="row"><button class="btn primary" id="saveP">Save profile</button></div>
+    <p style="margin-top:40px;text-align:right"><a href="javascript:void 0" id="lo" style="color:#6d6975;font-size:12px">log out</a></p>`;
+    $('#lo').onclick = doLogout;
     $('#up').onchange = async e => { const f = e.target.files[0]; if (!f) return; try { avatar = await shrinkImage(f); draw(); } catch (er) { toast(er.message, true); } };
     if ($('#rmAv')) $('#rmAv').onclick = () => { avatar = ''; draw(); };
     if ($('#rmB')) $('#rmB').onclick = () => { banner = ''; draw(); };
@@ -993,7 +1087,7 @@ function updateTopAvatar() { const w = $('#who'); if (w && S.me) w.innerHTML = a
 async function renderTrades() {
   app.innerHTML = `<div class="panel"><div class="row between"><h2 style="margin:0">Trades</h2>
     <div class="row"><select class="field" id="pickP"><option value="">Trade with…</option></select><button class="btn primary sm" id="newT">New trade</button></div></div>
-    <p class="muted">Both players must agree. Trades are final, so check the cards before accepting.</p><div id="tl">Loading…</div></div>`;
+    <div id="tl" style="margin-top:14px">Loading…</div></div>`;
   if (!S.board.length) S.board = await rpc('leaderboard');
   $('#pickP').innerHTML += S.board.filter(r => r.user_id !== S.me.user_id).map(r => `<option>${esc(r.username)}</option>`).join('');
   $('#newT').onclick = () => { const v = $('#pickP').value; if (v) go('#/trades/new/' + encodeURIComponent(v)); else toast('Pick a player first', true); };
@@ -1041,7 +1135,7 @@ async function renderNewTrade(name) {
   const draw = () => {
     const ys = [$('#pg')?.scrollTop, $('#pt')?.scrollTop];
     app.innerHTML = `<div class="panel"><div class="row between"><h2 style="margin:0">Trade with ${esc(row.username)}</h2><a href="#/trades">Back</a></div>
-      <p class="muted">Hover a stack to slide out a card, click to add it. Click a card in the tray to put it back.</p>
+
       <div class="tradecols">
         <div><h3>You give (${give.length})</h3><div class="tray" id="tg">${tray(give)}</div></div>
         <div><h3>You get (${get.length})</h3><div class="tray" id="tt">${tray(get)}</div></div>
