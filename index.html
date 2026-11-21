@@ -372,6 +372,7 @@ footer{text-align:center;color:#6d6975;font-size:12px;padding:20px;line-height:1
 .wn{margin:0;padding-left:20px;line-height:1.7}
 .locks{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}.lockb.on{background:#2a2110;border-color:#6b4a1f;color:#ffcf70}
 .lockic{position:absolute;right:6px;top:-6px;z-index:31;font-size:16px;filter:drop-shadow(0 2px 3px #000)}
+.owners{font-size:11px;color:var(--muted);margin-top:5px;line-height:1.3;text-align:center}
 </style>
 </head>
 <body>
@@ -1099,7 +1100,7 @@ async function renderBoard(tab = 'players') {
     }).sort((a, b) => b.total - a.total);
     $('#lb').innerHTML = cl.length ? `<div class="lbl">${cl.map((x, i) => clanRow(x, i)).join('')}</div>`
       : `<p class="muted">No clans yet. <a href="#/clans">Make one</a></p>`;
-    document.querySelectorAll('.lbrow[data-c]').forEach(r => r.onclick = () => go('#/clans'));
+    document.querySelectorAll('.clrow[data-c]').forEach(r => r.onclick = () => go('#/clan/' + r.dataset.c));
     return;
   }
   $('#lb').innerHTML = `<div class="lbl">${rows.map((r, i) => {
@@ -1165,6 +1166,7 @@ async function renderClans() {
     return clanRow({c: x.c, mem, total: x.total}, null) + (my ? '' : x.c.members.length >= mine.max_members ? '<div class="muted" style="text-align:right;margin:-4px 0 6px;font-size:13px">Full</div>' : `<div style="text-align:right;margin:-4px 0 6px">${applied ? `<button class="btn sm" data-unapply="${x.c.id}">Cancel request</button>` : `<button class="btn primary sm" data-apply="${x.c.id}">Ask to join</button>`}</div>`);
   }).join('')}</div>` : '<p class="muted">None yet.</p>'}</div>`;
   app.innerHTML = html;
+  document.querySelectorAll('.clrow[data-c]').forEach(r => r.onclick = e => { if (!e.target.closest('button,input,label,details')) go('#/clan/' + r.dataset.c); });
   if ($('#mk')) $('#mk').onclick = async () => {
     try { await rpc('create_clan', {p_token: S.token, p_name: $('#cName').value, p_tag: $('#cTag').value}); toast('Clan created!'); renderClans(); }
     catch (e) { toast(e.message, true); }
@@ -1191,6 +1193,32 @@ async function renderClans() {
   document.querySelectorAll('[data-kick]').forEach(b => b.onclick = () => { if (confirm('Kick them?')) act('kick', my.id, b.dataset.kick); });
   document.querySelectorAll('[data-lead]').forEach(b => b.onclick = () => { if (confirm('Make them leader? You won\'t be leader anymore.')) act('make_leader', my.id, b.dataset.lead); });
   updateClanDot(mine);
+}
+async function renderClanCollection(id) {
+  if (!S.board.length || !S.clans.length) await loadBoard();
+  const c = S.clans.find(x => x.id === id);
+  if (!c) { app.innerHTML = '<div class="panel">Clan not found.</div>'; return; }
+  const rows = boardRows(), mem = rows.filter(r => r.clan_id === id);
+  const agg = {};   // key -> {count, holo, owners: [{name, n, holo}]}
+  for (const r of mem) for (const [k, hh, n] of r.owned) {
+    const a = agg[k] ||= {count: 0, holo: 0, owners: []};
+    a.count += n; if (hh) a.holo++; a.owners.push({name: r.username, n, holo: hh});
+  }
+  const listed = S.levels.filter(l => l.rank), have = listed.filter(l => agg[l.key]).length;
+  let show = 'all';
+  const draw = () => {
+    let lv = S.levels.filter(l => l.rank || agg[l.key]);
+    if (show === 'owned') lv = lv.filter(l => agg[l.key]);
+    if (show === 'missing') lv = lv.filter(l => !agg[l.key]);
+    if (show === 'holo') lv = lv.filter(l => agg[l.key] && agg[l.key].holo);
+    app.innerHTML = clanRow({c, mem, total: mem.reduce((s, r) => s + r.info.total, 0)}, null) + `
+    <div class="panel" style="margin-top:18px"><div class="row between"><h2 style="margin:0">Clan collection · ${have}/${listed.length}</h2><a href="#/clans">Back</a></div>
+      <div class="chips" style="margin-top:12px">${[['all', 'All'], ['owned', 'Owned'], ['missing', 'Missing'], ['holo', '✦ Holo']].map(([v, t]) => `<button class="chip ${show === v ? 'on' : ''}" data-cs="${v}">${t}</button>`).join('')}</div>
+      <div class="grid" style="row-gap:18px">${lv.map(l => { const a = agg[l.key];
+        return `<div>${cardHTML(l, {missing: !a, holo: a && a.holo})}${a ? `<div class="owners">${a.owners.sort((x, y) => y.n - x.n).map(o => `${esc(o.name)}${o.n > 1 ? ' ×' + o.n : ''}${o.holo ? ' ✦' : ''}`).join(', ')}</div>` : ''}</div>`; }).join('')}</div></div>`;
+    document.querySelectorAll('[data-cs]').forEach(b => b.onclick = () => { show = b.dataset.cs; draw(); });
+  };
+  draw();
 }
 function updateClanDot(mine) { const n = mine ? (mine.requests || []).length + (mine.clan_id ? 0 : (mine.invites || []).length) : 0; $('#navClans').innerHTML = 'Clans' + (n ? `<span class="dot">${n}</span>` : ''); }
 function profileHead(r) {
@@ -1483,6 +1511,7 @@ async function route() {
     else if (h.startsWith('#/creators')) renderCreators();
     else if (h.startsWith('#/leaderboard')) await renderBoard();
     else if (h.startsWith('#/profile')) await renderProfile();
+    else if (h.startsWith('#/clan/')) await renderClanCollection(+h.slice(7));
     else if (h.startsWith('#/clans')) await renderClans();
     else if (h.startsWith('#/player/')) await renderPlayer(decodeURIComponent(h.slice(9)));
     else if (h.startsWith('#/trades/new/')) await renderNewTrade(decodeURIComponent(h.slice(13)));
@@ -1515,6 +1544,7 @@ async function boot() {
 setInterval(() => { if (S.token && S.me) { rpc('my_trades', {p_token: S.token}).then(updateTradeDot).catch(() => {}); rpc('my_clan', {p_token: S.token}).then(updateClanDot).catch(() => {}); } }, 30000);
 // ---- What's new: add a new entry at the TOP for each update ----
 const CHANGELOG = [
+  {v: 5, title: 'Update', items: ['Click any clan to see every card the clan owns together, and who owns each one']},
   {v: 4, title: 'Update', items: [
     'Collab levels now count for every creator on them (Pyrarrmaniac, Cries For The Lonely, The Killer, Happy Birthday Goldie)'
   ]},
