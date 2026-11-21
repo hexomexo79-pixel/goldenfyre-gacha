@@ -151,6 +151,7 @@ h3{margin:0 0 10px;font-size:16px}
 .card.holo{box-shadow:0 0 16px color-mix(in srgb,var(--c) 35%,transparent)}
 @keyframes hue{to{filter:hue-rotate(360deg)}}
 .card.missing{filter:grayscale(1) brightness(.42)}
+.card.missing.holo::after,.card.missing.holo::before{display:none}
 .card.missing .thumb img{opacity:.35}
 .card.sel{outline:3px solid #fff;outline-offset:2px}
 .card.mini{padding:5px;border-radius:7px;border-width:2px}
@@ -180,7 +181,7 @@ h3{margin:0 0 10px;font-size:16px}
 .overlay{position:fixed;inset:0;z-index:50;background:rgba(5,4,6,.95);overflow-y:auto;padding:24px 16px 130px}
 .overlay .inner{max-width:900px;margin:0 auto;text-align:center}
 .overlay h1{margin:6px 0}
-.pickrow{display:grid;grid-template-columns:repeat(3,minmax(0,210px));justify-content:center;gap:18px;margin-top:20px;text-align:left}
+.pickrow{display:grid;grid-template-columns:repeat(var(--n,3),minmax(0,210px));justify-content:center;gap:18px;margin-top:20px;text-align:left}
 @media (max-width:600px){.pickrow{gap:8px}}
 .deal{animation:deal .5s cubic-bezier(.2,.9,.3,1) both}
 @keyframes deal{from{transform:translateY(60px) scale(.85);opacity:0}to{transform:none;opacity:1}}
@@ -375,6 +376,29 @@ footer{text-align:center;color:#6d6975;font-size:12px;padding:20px;line-height:1
 .owners{font-size:11px;color:var(--muted);margin-top:5px;line-height:1.3;text-align:center}
 .delta{display:inline-block;font-weight:800;font-size:14px;padding:4px 10px;border-radius:8px;background:#26242c;border:1px solid var(--line)}
 .delta.up{color:#6ee08c;border-color:#2f6b3c;background:#173320}.delta.down{color:#ff8a8a;border-color:#6b2f2f;background:#331717}
+/* unverified */
+.card.t-unverified{--c:#e8e8e8;--frame:linear-gradient(120deg,#fff,#555,#000,#bbb,#fff,#333);animation:frame 3s steps(6) infinite;
+  background-image:repeating-linear-gradient(0deg,rgba(255,255,255,.04) 0 1px,transparent 1px 3px),linear-gradient(180deg,#121212,#050505),var(--frame)}
+.card.t-unverified .tag{background:#fff;color:#000;border-color:#fff;letter-spacing:1px}
+.card.t-unverified .thumb img{filter:grayscale(.6) contrast(1.2)}
+.card.t-unverified .thumb{position:relative}
+.card.t-unverified .thumb::after{content:"UNVERIFIED";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) rotate(-12deg);font-weight:900;font-size:clamp(9px,9cqw,15px);letter-spacing:2px;color:#fff;border:2px solid #fff;padding:1px 6px;background:#000a}
+.card.t-unverified .nm{animation:glitch 4s infinite}
+@keyframes glitch{0%,92%,100%{text-shadow:none;transform:none}93%{text-shadow:2px 0 #f0f,-2px 0 #0ff;transform:translateX(1px)}95%{text-shadow:-2px 0 #f0f,2px 0 #0ff;transform:translateX(-1px)}}
+.showcase.t-unverified{--g:#ffffff}
+.showcase.t-unverified .rays{background:repeating-conic-gradient(#ffffff40 0 4deg,transparent 4deg 12deg,#00ffff30 12deg 15deg,transparent 15deg 24deg)}
+.unvtxt{font-weight:900;color:#fff;letter-spacing:1px}
+.banner.unvb{background:linear-gradient(90deg,#1a1a1a,#333,#1a1a1a);border-color:#888;color:#fff}
+.cbadge.plus{background:linear-gradient(90deg,#fff3b0,#f5a524);color:#1a1208;border-color:#f5a524}
+.tnote{margin-top:8px;font-style:italic;color:#ddd;background:#0d0c10;border-left:3px solid var(--accent2);padding:6px 10px;border-radius:6px}
+.abil{color:#fff}
+.pack.holo{background:linear-gradient(135deg,#ff6b6b,#ffd36b,#6bff9c,#6bd0ff,#b46bff,#ff6bd0);background-size:300% 300%;animation:frame2 6s linear infinite}
+.hcount{color:#ffd36b;font-weight:800}
+.stile.holodone{--fr:linear-gradient(120deg,#ff6b6b,#ffd36b,#6bff9c,#6bd0ff,#b46bff,#ff6bd0);animation:frame2 4s linear infinite}
+.owners2{margin-top:14px}.owners2 .label{margin-bottom:6px}
+.orow{display:flex;align-items:center;gap:8px;padding:6px 8px;border:1px solid var(--line);border-radius:9px;margin-bottom:5px;font-size:14px}
+.orow.spare{border-color:#2f6b3c;background:#17332055}
+.sparetag{font-size:11px;font-weight:800;color:#6ee08c}
 </style>
 </head>
 <body>
@@ -410,6 +434,10 @@ const app = $('#app');
 const fmt = n => Math.round(n).toLocaleString();
 
 // ---- scoring rules (all in one place) ----
+// Unverified card abilities (they only work while you own the card)
+// Every Unverified card has the same ability: it's worth as much as your best card
+const MIRROR = {name: 'Mirror', who: 'You', desc: 'Worth as many points as your best card'};
+const ABILITIES = new Proxy({}, {get: (_, k) => S.byKey[k] && S.byKey[k].tier === 'unverified' ? MIRROR : undefined});
 const RULES = {
   holoMult: 3,            // a holo level counts 3x
   setMin: 500,            // set bonus = value of its levels, at least this
@@ -479,6 +507,8 @@ async function loadLevels() {
     return {...c, name, value, banner, style};
   }).sort((a, b) => b.keys.length - a.keys.length || b.value - a.value);
 }
+function unvOwner(key) { const r = S.board.find(r => r.owned.some(o => o[0] === key)); return r ? r.username : null; }
+async function loadDrops() { const { data } = await sb.from('unverified_drops').select('*').order('dropped_at', {ascending: false}).range(0, 49); S.drops = data || []; }
 async function loadMyCards() {
   S.myCards = await fetchAll(() => sb.from('cards').select('id,level_key,holo,locked').eq('owner', S.me.user_id).order('id'));
 }
@@ -512,7 +542,9 @@ function creatorStatus(c, own, claimed = []) {
   // partial bonus is automatic; the full 100% needs a redeem (and keeps counting only while complete)
   const bonus = have >= n && !isClaimed ? creatorBonusAt(c, n - 1) : creatorBonusAt(c, have);
   const nextGain = have < n ? creatorBonusAt(c, have + 1) - bonus : 0;
-  return {c, have, n, full, bonus, nextGain, pct: Math.round((have / n) ** 2 * 100), done: have >= n, claimed: isClaimed, redeemable: have >= n && !isClaimed, missing: c.keys.filter(k => !own[k])};
+  const holoHave = c.keys.filter(k => own[k] && own[k].holo).length;
+  return {c, have, n, full, bonus, nextGain, pct: Math.round((have / n) ** 2 * 100), done: have >= n, claimed: isClaimed, redeemable: have >= n && !isClaimed, missing: c.keys.filter(k => !own[k]),
+          holoHave, holoDone: holoHave === n};
 }
 function scoreInfo(own, claimed = [], cclaimed = []) {
   const byTier = {}; let base = 0, holoBonus = 0, uniq = 0, holos = 0;
@@ -523,20 +555,32 @@ function scoreInfo(own, claimed = [], cclaimed = []) {
     if (l.rank) uniq++;
     if (o.holo) { holos++; holoBonus += l.points * (RULES.holoMult - 1); }
   }
+  if (byTier.unverified) {   // Mirror: each Unverified card is worth your best card
+    let best = 0;
+    for (const [k, o] of Object.entries(own)) { const l = S.byKey[k]; if (l && l.tier !== 'unverified') best = Math.max(best, l.points * (o.holo ? RULES.holoMult : 1)); }
+    const now = byTier.unverified.n * best; base += now - byTier.unverified.pts; byTier.unverified.pts = now;
+  }
   const sets = S.packs.map(p => {
     const missing = p.level_keys.filter(k => !own[k]);
-    return {p, have: p.level_keys.length - missing.length, missing, done: !missing.length, bonus: setValue(p.level_keys), reward: rewardPacks(p.level_keys), claimed: claimed.includes(p.name)};
+    const holoHave = p.level_keys.filter(k => own[k] && own[k].holo).length;
+    return {p, have: p.level_keys.length - missing.length, missing, done: !missing.length, bonus: setValue(p.level_keys), reward: rewardPacks(p.level_keys), claimed: claimed.includes(p.name),
+            holoHave, holoDone: holoHave === p.level_keys.length};
   });
   sets.sort((a, b) => (b.done && !b.claimed) - (a.done && !a.claimed) || a.done - b.done || a.missing.length - b.missing.length || b.bonus - a.bonus);
   const creators = S.creators.map(c => creatorStatus(c, own, cclaimed));
   const setBonus = sets.filter(x => x.done && x.claimed).reduce((s, x) => s + x.bonus, 0);
   const creatorBonus = creators.reduce((s, x) => s + x.bonus, 0);
+  const holoSetBonus = sets.filter(x => x.holoDone).reduce((s, x) => s + x.bonus, 0);
+  const holoCreatorBonus = creators.filter(x => x.holoDone).reduce((s, x) => s + x.full, 0);
   return {byTier, base, holoBonus, setBonus, creatorBonus, uniq, holos, sets, creators,
           setsDone: sets.filter(x => x.done && x.claimed).length, creatorsDone: creators.filter(x => x.done && x.claimed).length,
-          total: base + holoBonus + setBonus + creatorBonus};
+          holoSetBonus, holoCreatorBonus, holoSetsDone: sets.filter(x => x.holoDone).length, holoCreatorsDone: creators.filter(x => x.holoDone).length,
+          total: base + holoBonus + setBonus + creatorBonus + holoSetBonus + holoCreatorBonus};
 }
 const myInfo = () => scoreInfo(ownership(S.myCards), S.me.claimed_sets || [], S.me.claimed_creators || []);
 async function loadBoard() { [S.board, S.clans] = await Promise.all([rpc('leaderboard'), rpc('clans_list')]); return S.board; }
+// clan score: members added up, +10% if anyone in the clan has Crazed Darkness III (Rally)
+function clanTotal(mem) { return mem.reduce((s, r) => s + r.info.total, 0); }
 const clanOf = r => r && r.clan_id ? S.clans.find(c => c.id === r.clan_id) : null;
 function clanIcon(c, size = 64) {
   const col = c.color || '#ffb340';
@@ -549,21 +593,22 @@ function boardRows() {
 
 // ---------------- card rendering ----------------
 function thumb(l) {
+  if (l.image) return `<img loading="lazy" src="${esc(l.image)}" alt="">`;
   return l.video_id
     ? `<img loading="lazy" src="https://i.ytimg.com/vi/${esc(l.video_id)}/mqdefault.jpg" alt="" onerror="this.outerHTML='<div class=noimg>'+this.closest('.card').dataset.name+'</div>'">`
     : `<div class="noimg">${esc(l.name)}</div>`;
 }
 function cardHTML(l, o = {}) {
   if (!l) return '';
-  const cls = ['card', 't-' + l.tier, o.holo ? 'holo' : '', o.missing ? 'missing' : '', o.mini ? 'mini' : '', o.sel ? 'sel' : ''].join(' ');
+  const cls = ['card', 't-' + l.tier, o.holo || l.tier === 'unverified' ? 'holo' : '', o.missing ? 'missing' : '', o.mini ? 'mini' : '', o.sel ? 'sel' : ''].join(' ');
   const glow = l.rank && l.rank <= 40 ? ((41 - l.rank) / 40).toFixed(2) : 0;
   return `<div class="${cls}" style="--gl:${glow}" data-key="${esc(l.key)}" data-name="${esc(l.name)}" ${o.id ? `data-id="${o.id}"` : ''}>
-    <div class="ctop"><span class="rank">${l.rank ? '#' + l.rank : '—'}</span><span class="tag">${l.rank ? l.tier : 'vaulted'}</span></div>
+    <div class="ctop"><span class="rank">${l.tier === 'unverified' ? '1 of 1' : l.rank ? '#' + l.rank : '—'}</span><span class="tag">${l.tier === 'unverified' ? 'unverified' : l.rank ? l.tier : 'vaulted'}</span></div>
     <div class="thumb">${thumb(l)}</div>
     <div class="nm">${esc(l.name)}</div>
-    <div class="meta">Verified by ${esc(l.verifier || '?')}<br>By ${esc(creatorsOf(l).join(', ') || '?')}</div>
-    <div class="pts">${fmt(l.points * (o.holo ? RULES.holoMult : 1))} pts${o.holo ? ' ✦' : ''}</div>
-    ${o.holo ? '<div class="holotag">✦ HOLO</div>' : ''}
+    <div class="meta">${l.tier === 'unverified' ? (ABILITIES[l.key] ? `<b class="abil">✦ ${esc(ABILITIES[l.key].name)}</b> · ${esc(ABILITIES[l.key].desc)}` : 'Not verified yet') : `Verified by ${esc(l.verifier || '?')}`}<br>By ${esc(creatorsOf(l).join(', ') || '?')}</div>
+    <div class="pts">${l.tier === 'unverified' ? '= your best card' : fmt(l.points * (o.holo ? RULES.holoMult : 1)) + ' pts' + (o.holo ? ' ✦' : '')}</div>
+    ${o.holo && l.tier !== 'unverified' ? '<div class="holotag">✦ HOLO</div>' : ''}
   </div>`;
 }
 // A stack of copies: holos on top, up to 5 layers peeking out above, big count past 5
@@ -594,7 +639,7 @@ function copiesOf(cards) {   // {key: [{id, holo}] holos first}
   for (const k in m) m[k].sort((a, b) => b.holo - a.holo || a.id - b.id);
   return m;
 }
-function thumbUrl(key) { const l = S.byKey[key]; return l && l.video_id ? `https://i.ytimg.com/vi/${l.video_id}/mqdefault.jpg` : ''; }
+function thumbUrl(key) { const l = S.byKey[key]; return !l ? '' : l.image ? l.image : l.video_id ? `https://i.ytimg.com/vi/${l.video_id}/mqdefault.jpg` : ''; }
 function hueOf(str) { let h = 0; for (const ch of String(str)) h = (h * 31 + ch.charCodeAt(0)) % 360; return h; }
 function creatorIcon(c, big) {
   const url = CFG.CREATOR_ICONS[c.key];
@@ -610,19 +655,42 @@ function avatarHTML(u, size = 40) {
 }
 const myRow = () => S.board.find(r => r.user_id === S.me.user_id) || {username: S.me.username};
 
+function craftCost(t) { return 3; }
+// Everyone who owns a card, most copies first, with a Trade button
+function ownersHTML(key) {
+  const rows = S.board.map(r => { const o = r.owned.find(x => x[0] === key); return o ? {r, n: o[2], holo: o[1]} : null; })
+    .filter(Boolean).filter(x => x.r.user_id !== S.me.user_id).sort((a, b) => b.n - a.n);
+  if (!rows.length) return `<div class="owners2"><div class="label">Other owners</div><span class="muted" style="font-size:13px">Nobody else has this one.</span></div>`;
+  return `<div class="owners2"><div class="label">Other owners (${rows.length})</div>${rows.map(x => `<div class="orow ${x.n > 1 ? 'spare' : ''}">
+    ${avatarHTML(x.r, 26)}<b>${tagHTML(x.r)}${esc(x.r.username)}</b><span class="muted">×${x.n}${x.holo ? ' ✦' : ''}</span>${x.n > 1 ? '<span class="sparetag">has spares</span>' : ''}
+    <span class="spacer"></span><button class="btn sm" data-tw="${esc(x.r.username)}">Trade</button></div>`).join('')}</div>`;
+}
 function showLevel(key) {
   const l = S.byKey[key]; if (!l) return;
   const own = ownership(S.myCards)[key];
   const m = document.createElement('div'); m.className = 'modal';
   m.innerHTML = `<div class="box">${cardHTML(l, {holo: own && own.holo})}
-    <p><b>${esc(l.name)}</b>: ${l.rank ? `#${l.rank} on the list, ${l.tier.toUpperCase()}` : 'no longer on the list (vaulted)'}<br>
+    <p><b>${esc(l.name)}</b>: ${l.tier === 'unverified' ? `UNVERIFIED · only 1 exists${l.info && l.info.placement ? ' · expected ' + esc(l.info.placement) : ''}${l.info && l.info.layout ? `<br><span class="muted">Layout ${esc(l.info.layout)} · Deco ${esc(l.info.deco || '?')} · Verifying ${esc(l.info.verify || '?')}</span>` : ''}${ABILITIES[l.key] ? `<br><b class="abil">✦ ${esc(ABILITIES[l.key].name)}</b> (${esc(ABILITIES[l.key].who)}): ${esc(ABILITIES[l.key].desc)}` : ''}${unvOwner(l.key) ? `<br>Owned by <b>${esc(unvOwner(l.key))}</b>` : '<br><span class="muted">Not found yet</span>'}` : l.rank ? `#${l.rank} on the list, ${l.tier.toUpperCase()}` : 'no longer on the list (vaulted)'}<br>
     <span class="muted">Created by ${esc(creatorsOf(l).join(', ') || '?')} · Verified by ${esc(l.verifier || '?')}</span></p>
     <p>You own: <b>${own ? own.count : 0}</b> ${own && own.holo ? `(${own.holo} holo)` : ''}<br>
     <span class="muted">Worth ${fmt(l.points)} pts, or ${fmt(l.points * RULES.holoMult)} as holo</span></p>
     ${l.video_id ? `<p><a href="https://youtu.be/${esc(l.video_id)}" target="_blank" rel="noopener">Watch verification ↗</a></p>` : ''}
     ${own ? `<div class="locks"><div class="label" style="margin-bottom:6px">Your copies · locked ones can't be traded</div>${S.myCards.filter(c => c.level_key === key).sort((a, b) => b.holo - a.holo).map((c, i) =>
       `<button class="btn sm lockb ${c.locked ? 'on' : ''}" data-lock="${c.id}">${c.locked ? '🔒' : '🔓'} Copy ${i + 1}${c.holo ? ' ✦' : ''}</button>`).join('')}</div>` : ''}
+    ${own && l.tier !== 'unverified' ? (() => { const n = S.myCards.filter(c => c.level_key === key && !c.holo && !c.locked).length, need = craftCost(l.tier);
+      return `<div style="margin-top:12px"><button class="btn sm ${n >= need ? 'primary' : ''}" id="craft" ${n >= need ? '' : 'disabled'}>✦ Combine ${need} copies into a holo</button> <span class="muted" style="font-size:12px">${n}/${need} unlocked normal copies</span></div>`; })() : ''}
+    ${ownersHTML(key)}
     <button class="btn" style="margin-top:12px" onclick="this.closest('.modal').remove()">Close</button></div>`;
+  m.querySelectorAll('[data-tw]').forEach(b => b.onclick = () => { m.remove(); go('#/trades/new/' + encodeURIComponent(b.dataset.tw)); });
+  const cb = m.querySelector('#craft');
+  if (cb) cb.onclick = async () => {
+    if (!confirm(`Combine ${craftCost(l.tier)} normal copies into 1 holo? Those copies are used up.`)) return;
+    cb.disabled = true;
+    try { const r = await rpc('craft_holo', {p_token: S.token, p_level_key: key});
+      S.myCards = S.myCards.filter(c => !r.used.includes(c.id)); S.myCards.push({id: r.id, level_key: key, holo: true});
+      m.remove(); celebrate(null, '#ffd36b', 0, 'Crafted a holo ' + l.name + '!'); document.querySelectorAll('.fxpts .fxn').forEach(x => x.remove()); route(); }
+    catch (e) { toast(e.message, true); cb.disabled = false; }
+  };
   m.querySelectorAll('[data-lock]').forEach(b => b.onclick = async () => {
     const c = S.myCards.find(x => x.id === +b.dataset.lock), nv = !c.locked;
     try { await rpc('set_lock', {p_token: S.token, p_card_id: c.id, p_locked: nv}); c.locked = nv;
@@ -693,6 +761,7 @@ function renderHome() {
   }
   const nearCreators = info.creators.filter(x => !x.done).sort((a, b) => b.nextGain - a.nextGain).slice(0, 3);
   app.innerHTML = `
+  ${dropBanner()}
   ${st.pending_picks ? `<div class="banner"><b>You have ${st.pending_picks} opened pack${st.pending_picks > 1 ? 's' : ''} waiting for you to pick a card.</b><span class="spacer"></span><button class="btn primary sm" id="resume">Pick now</button></div>` : ''}
   <div class="panel"><div class="packs">
     <div>
@@ -716,7 +785,8 @@ function renderHome() {
       </div>
     </div>
   </div>
-  </div></div>
+  </div>
+  </div>
 
   <div class="panel">
     <div class="row between"><h2 style="margin:0">Collection progress</h2><a href="#/collection">Open collection →</a></div>
@@ -724,7 +794,7 @@ function renderHome() {
     <div class="stats">
       <div class="stat"><b>${listed.length ? (info.uniq / listed.length * 100).toFixed(1) : 0}%</b><span class="muted">Collected</span></div>
       <div class="stat"><b>${info.uniq}/${listed.length}</b><span class="muted">Unique levels</span></div>
-      <div class="stat"><b>${info.setsDone}/${S.packs.length}</b><span class="muted">Sets complete</span></div>
+      <div class="stat"><b>${info.holos}/${listed.length}</b><span class="muted">✦ Holos</span></div>
       <div class="stat"><b>${fmt(info.total)}</b><span class="muted">Score</span></div>
     </div>
     <h3 style="margin-top:18px">Points</h3>
@@ -741,6 +811,7 @@ function renderHome() {
     ${creatorBlocks(nearCreators)}
   </div>
 
+  ${unverifiedPanel()}
   <div class="two">
     <div class="panel"><h2>Recent trades</h2><div class="feed" id="rtrades"><span class="muted">Loading…</span></div></div>
     <div class="panel"><h2>Community rare pulls</h2><div class="feed" id="rpulls"><span class="muted">Loading…</span></div></div>
@@ -756,14 +827,45 @@ function renderHome() {
   };
   loadFeeds();
 }
+function dropBanner() {
+  const d = (S.drops || [])[0]; if (!d || Date.now() + S.clock - new Date(d.dropped_at) > 86400000) return '';
+  const l = S.byKey[d.level_key];
+  return `<div class="banner unvb">✦ <b>${esc(d.username || '?')}</b> found the only <b>${esc(l ? l.name : d.level_key)}</b> Unverified card!</div>`;
+}
+function unverifiedPanel() {
+  const u = S.levels.filter(l => l.tier === 'unverified'); if (!u.length) return '';
+  const found = u.filter(l => unvOwner(l.key)).length;
+  return `<div class="panel"><div class="row between"><h2 style="margin:0">Unverified cards · ${found}/${u.length} found</h2></div>
+    <p class="muted" style="margin:6px 0 14px">Only one of each exists. Any pack has a tiny chance to include one. Each is worth as much as its owner's best card.</p>
+    <div class="hscroll">${u.map(l => `<div style="flex:0 0 150px">${cardHTML(l, {missing: !unvOwner(l.key)})}<div class="owners">${unvOwner(l.key) ? 'Owned by ' + esc(unvOwner(l.key)) : 'Not found yet'}</div></div>`).join('')}</div></div>`;
+}
+// Big moment the first time you see a new drop
+function dropPopup() {
+  const d = (S.drops || [])[0]; if (!d) return;
+  if (Date.now() + S.clock - new Date(d.dropped_at) > 86400000) return;
+  if (+(localStorage.getItem('gacha_drop_seen') || 0) >= d.id) return;
+  localStorage.setItem('gacha_drop_seen', d.id);
+  const l = S.byKey[d.level_key]; if (!l) return;
+  const mine = d.user_id === S.me.user_id;
+  const sc = document.createElement('div'); sc.className = 'showcase t-unverified';
+  sc.innerHTML = `<div class="rays"></div><div class="scin">
+    <div class="sctitle">${mine ? 'YOU FOUND AN UNVERIFIED CARD' : 'UNVERIFIED CARD FOUND'}</div>
+    <div class="sccard">${cardHTML(l)}</div>
+    <div class="scodds">${mine ? 'The only one in existence. It\'s yours.' : `<b>${esc(d.username || '?')}</b> got the only one in existence`}</div>
+    <button class="btn primary">Continue</button></div>`;
+  sc.querySelector('button').onclick = () => { sc.classList.add('out'); setTimeout(() => sc.remove(), 300); };
+  document.body.appendChild(sc);
+}
 function scoreTable(info) {
   const rows = TIERS.filter(t => info.byTier[t]).map(t => {
     const x = info.byTier[t];
     return `<tr><td><span style="color:var(--${t});font-weight:800">${t.toUpperCase()}</span></td><td>${x.n} level${x.n > 1 ? 's' : ''}</td><td style="text-align:right">${fmt(x.pts)}</td></tr>`;
   }).join('');
   return `<table class="scoretbl"><tbody>${rows || '<tr><td class="muted" colspan="3">No cards yet. Open a pack!</td></tr>'}
+    ${info.byTier.unverified ? `<tr><td><span class="unvtxt">UNVERIFIED</span></td><td>${info.byTier.unverified.n} card${info.byTier.unverified.n > 1 ? 's' : ''}</td><td style="text-align:right">${fmt(info.byTier.unverified.pts)}</td></tr>` : ''}
     <tr><td><b>✦ Holo bonus</b></td><td class="muted">${info.holos} × ${RULES.holoMult}</td><td style="text-align:right">+${fmt(info.holoBonus)}</td></tr>
     <tr><td><b>Set bonuses</b></td><td class="muted">${info.setsDone}/${S.packs.length}</td><td style="text-align:right">+${fmt(info.setBonus)}</td></tr>
+    ${info.holoSetBonus || info.holoCreatorBonus ? `<tr><td><b>✦ Holo set & creator bonuses</b></td><td class="muted">${info.holoSetsDone} sets, ${info.holoCreatorsDone} creators all in holo</td><td style="text-align:right">+${fmt(info.holoSetBonus + info.holoCreatorBonus)}</td></tr>` : ''}
     <tr><td><b>Creator bonuses</b></td><td class="muted">${info.creatorsDone} collected · partial bonuses included</td><td style="text-align:right">+${fmt(info.creatorBonus)}</td></tr>
     <tr class="tot"><td><b>Total</b></td><td></td><td style="text-align:right"><b>${fmt(info.total)}</b></td></tr>
   </tbody></table>`;
@@ -782,8 +884,8 @@ function setCards(sets, own, readOnly) {
       ? (x.claimed ? `<span class="sdone">✓ Already redeemed · +${fmt(x.bonus)} pts</span>` : readOnly ? '<span class="sdone">Complete</span>' : `<button class="btn primary sm redeem" data-claim="${esc(x.p.name)}">Redeem +${fmt(x.bonus)} & ${x.reward} packs</button>`)
       : x.claimed ? `<span class="saway">${away} away</span><span class="muted">Already redeemed · get it back for +${fmt(x.bonus)}</span>`
       : `<span class="saway">${away === 1 ? '1 away!' : `${away} away`}</span><span class="muted">+${fmt(x.bonus)} · ${x.reward} packs</span>`;
-    return `<div class="stile st-${tier} ${x.done && x.claimed ? 'won' : ''} ${x.done && !x.claimed ? 'ready' : ''}" style="--sc:${esc(x.p.colour || '#888')}${bg ? `;--bn:url('${bg}')` : ''}" data-set="${esc(x.p.name)}">
-      <div class="stin"><div class="row between"><b class="sname">${esc(x.p.name)}</b><span class="scount">${x.have}/${n}</span></div>
+    return `<div class="stile st-${tier} ${x.holoDone ? 'holodone' : ''} ${x.done && x.claimed ? 'won' : ''} ${x.done && !x.claimed ? 'ready' : ''}" style="--sc:${esc(x.p.colour || '#888')}${bg ? `;--bn:url('${bg}')` : ''}" data-set="${esc(x.p.name)}">
+      <div class="stin"><div class="row between"><b class="sname">${esc(x.p.name)}${x.holoDone ? ' <span class="cbadge plus">✦ HOLO</span>' : ''}</b><span class="scount">${x.have}/${n}${x.done ? ` <span class="hcount">✦ ${x.holoHave}/${n}</span>` : ''}</span></div>
       ${minisHTML(x.p.level_keys, own)}
       <div class="row between" style="gap:6px">${status}</div></div></div>`;
   }).join('')}</div>`;
@@ -798,23 +900,24 @@ function creatorProgress(x) {
   const right = x.claimed && x.done ? `<span class="sdone">✓ Already redeemed · +${fmt(x.full)}</span>`
     : x.redeemable ? `<button class="btn primary sm redeem" data-cclaim="${esc(x.c.key)}">Redeem +${fmt(x.full)}</button>`
     : `<span>+${fmt(x.bonus)} <span class="muted">/ ${fmt(x.full)}</span></span>`;
-  return `<div class="cprog"><div class="row between"><b>${x.have}/${x.n}</b>${right}</div>
+  return `<div class="cprog"><div class="row between"><b>${x.have}/${x.n}${x.done ? ` <span class="hcount">✦ ${x.holoHave}/${x.n}</span>` : ''}${x.holoDone ? ' <span class="cbadge plus">✦ HOLO</span>' : ''}</b>${right}</div>
     <div class="bar" style="margin:6px 0 0"><i style="width:${x.pct}%"></i></div></div>`;
 }
+function unvOf(c) { return S.levels.filter(l => l.tier === 'unverified' && creatorsOf(l).some(a => ckey(a) === c.key)); }
 function creatorRow(x, own) {
   const b = thumbUrl(x.c.banner);
   return `<div class="crow s-${x.c.style} ${x.done && x.claimed ? 'won' : ''}" data-creator="${esc(x.c.key)}">
     <div class="chead" ${b ? `style="--bn:url('${b}')"` : ''}>
       ${creatorIcon(x.c, true)}
-      <div class="cinfo"><div class="cname">${esc(x.c.name)}</div>${creatorProgress(x)}</div>
+      <div class="cinfo"><div class="cname">${esc(x.c.name)}${x.done && unvOf(x.c).some(l => own[l.key]) ? ' <span class="cbadge plus">COLLECTED+</span>' : ''}</div>${creatorProgress(x)}</div>
     </div>
-    <div class="hscroll">${x.c.keys.map(k => cardHTML(S.byKey[k], {missing: !own[k], holo: own[k] && own[k].holo})).join('')}</div>
+    <div class="hscroll">${x.c.keys.map(k => cardHTML(S.byKey[k], {missing: !own[k], holo: own[k] && own[k].holo})).join('')}${unvOf(x.c).map(l => cardHTML(l, {missing: !own[l.key]})).join('')}</div>
   </div>`;
 }
 function creatorBox(x, own) {
   return `<div class="cbox ${x.done && x.claimed ? 'done' : ''}" data-creator="${esc(x.c.key)}">
     <div class="row">${creatorIcon(x.c)}<b style="flex:1">${esc(x.c.name)}</b></div>
-    ${minisHTML(x.c.keys, own)}${creatorProgress(x)}</div>`;
+    ${minisHTML([...x.c.keys, ...unvOf(x.c).map(l => l.key)], own)}${creatorProgress(x)}</div>`;
 }
 // Redeem celebration: particles in the item's color + score counting up
 function celebrate(el, color, pts, label) {
@@ -872,7 +975,7 @@ async function loadFeeds() {
   } catch (e) { console.warn(e); }
 }
 async function merge(target) {
-  try { setState(await rpc('merge_packs', {p_token: S.token, p_target: target})); toast(`Merged into 1 ${target} pack`); renderHome(); }
+  try { setState(await rpc('merge_packs', {p_token: S.token, p_target: target})); toast(`Made 1 ${target} pack`); renderHome(); }
   catch (e) { toast(e.message, true); }
 }
 
@@ -939,6 +1042,27 @@ function showcase(o) {
     document.querySelectorAll('.fxpts').forEach(x => x.remove());
   });
 }
+// You found an Unverified card inside a pack
+function unverifiedFound(b) {
+  return new Promise(res => {
+    const l = S.byKey[b.level_key]; if (!l) return res();
+    if (!S.myCards.some(c => c.id === b.id)) S.myCards.push({id: b.id, level_key: b.level_key, holo: false});
+    const a = ABILITIES[l.key];
+    const sc = document.createElement('div'); sc.className = 'showcase t-unverified';
+    sc.innerHTML = `<div class="rays"></div><div class="scin">
+      <div class="sctitle">UNVERIFIED CARD!</div>
+      <div class="sccard">${cardHTML(l)}</div>
+      <div class="scodds">This pack had a bonus: the only <b>${esc(l.name)}</b> in existence.${a ? `<br><b class="abil">✦ ${esc(a.name)}</b>: ${esc(a.desc)}` : ''}</div>
+      <button class="btn primary">Continue <span class="kbd">Space</span></button></div>`;
+    const done = () => { document.removeEventListener('keydown', k, true); sc.classList.add('out'); setTimeout(() => sc.remove(), 300);
+      loadDrops().then(() => { const d = (S.drops || [])[0]; if (d) localStorage.setItem('gacha_drop_seen', d.id); }).catch(() => {}); res(); };
+    const k = e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); done(); } };
+    document.addEventListener('keydown', k, true);
+    sc.querySelector('button').onclick = done;
+    document.body.appendChild(sc);
+    celebrate(sc.querySelector('.sccard'), '#ffffff', 0, ''); document.querySelectorAll('.fxpts').forEach(x => x.remove());
+  });
+}
 function runPicks(picks) {
   if (!picks.length) return;
   let idx = 0, keyHandler = null;
@@ -953,9 +1077,9 @@ function runPicks(picks) {
     const left = picks.length - idx - 1;
     const instant = localStorage.getItem('gacha_instant') === '1';
     ov.innerHTML = `<div class="inner">
-      <div class="muted">${picks.length > 1 ? `Pack ${idx + 1} of ${picks.length}` : '&nbsp;'}</div>
+      <div class="muted">${pk.kind === 'holo' ? '✦ Holo pack' : ''}${picks.length > 1 ? ` · Pack ${idx + 1} of ${picks.length}` : '&nbsp;'}</div>
       <h1 id="pTitle">${instant ? 'Pick 1 to keep' : 'Revealing…'}</h1>
-      <div class="pickrow">${pk.options.map((o, i) => `<div class="opt ${instant ? '' : 'deal'}" data-i="${i}" style="animation-delay:${i * 130}ms">
+      <div class="pickrow" style="--n:${pk.options.length}">${pk.options.map((o, i) => `<div class="opt ${instant ? '' : 'deal'}" data-i="${i}" style="animation-delay:${i * 130}ms">
         <div class="flip t-${lv(o).tier}"><div class="flip-in"><div class="fr">${cardHTML(lv(o), {holo: o.holo})}</div><div class="cback"><img src="${LOGO}" alt=""></div></div></div>
         <div class="hints">${pickHints(o.level_key, o.holo)}</div></div>`).join('')}</div>
       <label class="itoggle"><input type="checkbox" id="inst" ${instant ? 'checked' : ''}> Instant reveal</label>
@@ -965,7 +1089,7 @@ function runPicks(picks) {
     const opts = [...ov.querySelectorAll('.opt')];
     let skip = false, ready = false, chosen = null;
     const flip = o => { const f = o.querySelector('.flip'); f.classList.remove('charge'); f.classList.add('open'); o.classList.add('revealed'); };
-    const packsAfter = () => pk.kind === 'normal' ? S.me.packs + S.me.bonus_packs : pk.kind === 'epic' ? S.me.epic_packs : S.me.legendary_packs;
+    const packsAfter = () => pk.kind === 'normal' ? S.me.packs + S.me.bonus_packs : pk.kind === 'holo' ? S.me.holo_packs : pk.kind === 'epic' ? S.me.epic_packs : S.me.legendary_packs;
     const confirmPick = async (thenNext) => {
       if (chosen == null || ov.dataset.busy) return;
       ov.dataset.busy = 1; keyHandler = null;
@@ -983,7 +1107,7 @@ function runPicks(picks) {
       }
       opts.forEach(x => { x.classList.remove('choosable', 'chosen'); x.classList.add(x === o ? 'kept' : 'gone'); });
       ov.querySelector('#pTitle').textContent = `Kept ${S.byKey[r.card.level_key].name}!`;
-      const packsLeft = pk.kind === 'normal' ? S.me.packs + S.me.bonus_packs : pk.kind === 'epic' ? S.me.epic_packs : S.me.legendary_packs;
+      const packsLeft = pk.kind === 'normal' ? S.me.packs + S.me.bonus_packs : pk.kind === 'holo' ? S.me.holo_packs : pk.kind === 'epic' ? S.me.epic_packs : S.me.legendary_packs;
       ov.querySelector('#pAct').innerHTML = left
         ? `<button class="btn primary" id="next">Next pack (${left}) <span class="kbd">Space</span></button><button class="btn light" id="cont">Done</button>`
         : `${packsLeft ? `<button class="btn primary" id="again">Open another (${packsLeft}) <span class="kbd">Space</span></button>` : ''}<button class="btn light" id="toCol">Collection</button><button class="btn light" id="cont">Done</button>`;
@@ -1003,6 +1127,7 @@ function runPicks(picks) {
       const big = pk.options.map((o, i) => ({o, i})).filter(x => ['apex', 'mythic'].includes(lv(x.o).tier))
         .sort((a, b) => TIERS.indexOf(lv(a.o).tier) - TIERS.indexOf(lv(b.o).tier))[0];
       if (big && !shown) { shown = true; keyHandler = null; await sleep(450); await showcase(big.o); }
+      if (pk.bonus && !pk.bonusShown) { pk.bonusShown = true; keyHandler = null; await sleep(300); await unverifiedFound(pk.bonus); }
       ov.querySelector('#pTitle').textContent = 'Pick 1 to keep';
       const more = left || packsAfter() - 0;
       ov.querySelector('#pAct').innerHTML = `<button class="btn light" id="keep" disabled>Keep <span class="kbd">Enter</span></button>
@@ -1055,11 +1180,14 @@ setInterval(async () => {
 // ---------------- collection ----------------
 function collectionGrid(cards) {
   const cp = copiesOf(cards), f = S.filter;
-  let lv = S.levels.filter(l => l.rank || cp[l.key]);
+  let lv = S.levels.filter(l => l.rank || cp[l.key] || (f.tier === 'unverified' && l.tier === 'unverified'));
   if (f.tier !== 'all') lv = lv.filter(l => l.tier === f.tier);
   if (f.show === 'owned') lv = lv.filter(l => cp[l.key]);
   if (f.show === 'missing') lv = lv.filter(l => !cp[l.key]);
-  if (f.show === 'holo') lv = lv.filter(l => cp[l.key] && cp[l.key].some(c => c.holo));
+  if (f.show === 'holo') {   // every listed level: holo ones lit up, everything else grayed out
+    const hl = S.levels.filter(l => l.rank && (f.tier === 'all' || l.tier === f.tier));
+    return `<div class="grid" style="row-gap:24px">${hl.map(l => { const hc = (cp[l.key] || []).filter(c => c.holo); return hc.length ? stackHTML(l, hc) : cardHTML(l, {missing: true, holo: true}); }).join('')}</div>`;
+  }
   if (f.show === 'dupes') lv = lv.filter(l => cp[l.key] && cp[l.key].length > 1);
   return lv.length ? `<div class="grid" style="row-gap:24px">${lv.map(l => cp[l.key] ? stackHTML(l, cp[l.key]) : cardHTML(l, {missing: true})).join('')}</div>` : '<p class="muted">Nothing here.</p>';
 }
@@ -1068,11 +1196,11 @@ function filterChips(rerender) {
   const chip = (grp, v, label) => `<button class="chip ${f[grp] === v ? 'on' : ''}" data-g="${grp}" data-v="${v}">${label}</button>`;
   setTimeout(() => document.querySelectorAll('.chip[data-g]').forEach(b => b.onclick = () => { S.filter[b.dataset.g] = b.dataset.v; rerender(); }));
   return `<div class="chips">${chip('show','all','All')}${chip('show','owned','Owned')}${chip('show','missing','Missing')}${chip('show','holo','✦ Holo')}${chip('show','dupes','Dupes')}</div>
-    <div class="chips">${chip('tier','all','Every tier')}${[...TIERS].reverse().map(t => chip('tier', t, t[0].toUpperCase() + t.slice(1))).join('')}</div>`;
+    <div class="chips">${chip('tier','all','Every tier')}${[...TIERS].reverse().map(t => chip('tier', t, t[0].toUpperCase() + t.slice(1))).join('')}${chip('tier','unverified','Unverified')}</div>`;
 }
 function renderCollection() {
   const info = myInfo(), listed = S.levels.filter(l => l.rank);
-  app.innerHTML = `<div class="panel"><h2>Your collection · ${info.uniq}/${listed.length} · ${S.myCards.length} cards total</h2>
+  app.innerHTML = `<div class="panel"><h2>Your collection · ${info.uniq}/${listed.length} · <span class="hcount">✦ ${info.holos}/${listed.length} holo</span> · ${S.myCards.length} cards</h2>
     ${filterChips(renderCollection)}${collectionGrid(S.myCards)}</div>
     <div class="panel"><h2>Goldenfyre pack sets</h2>${setCards(info.sets)}</div>
     <div class="panel"><h2>Your score</h2>${scoreTable(info)}</div>`;
@@ -1098,7 +1226,7 @@ async function renderBoard(tab = 'players') {
   if (tab === 'clans') {
     const cl = S.clans.map(c => {
       const mem = rows.filter(r => r.clan_id === c.id);
-      return {c, mem, total: mem.reduce((s, r) => s + r.info.total, 0)};
+      return {c, mem, total: clanTotal(mem)};
     }).sort((a, b) => b.total - a.total);
     $('#lb').innerHTML = cl.length ? `<div class="lbl">${cl.map((x, i) => clanRow(x, i)).join('')}</div>`
       : `<p class="muted">No clans yet. <a href="#/clans">Make one</a></p>`;
@@ -1137,7 +1265,7 @@ async function renderClans() {
   if (my) {
     const lead = my.leader === S.me.user_id;
     const mem = my.members.map(scoreOf).filter(Boolean).sort((a, b) => b.info.total - a.info.total);
-    html += clanRow({c: my, mem, total: mem.reduce((s, r) => s + r.info.total, 0)}, null) + `<div class="panel" style="margin-top:18px">
+    html += clanRow({c: my, mem, total: clanTotal(mem)}, null) + `<div class="panel" style="margin-top:18px">
       ${lead ? `<details class="cedit"><summary><b>Customize clan</b></summary>
         <div class="row" style="margin-top:12px"><input class="field" id="ceDesc" maxlength="80" placeholder="Description" style="flex:1;min-width:200px" value="${esc(my.description || '')}">
         <label class="row" style="gap:6px">Color <input type="color" id="ceCol" value="${esc(my.color || '#ffb340')}"></label>
@@ -1161,7 +1289,7 @@ async function renderClans() {
       <input class="field" id="cName" placeholder="Clan name" maxlength="24"><input class="field" id="cTag" placeholder="TAG" maxlength="5" style="width:90px;text-transform:uppercase">
       <button class="btn primary" id="mk">Create</button></div></div>`;
   }
-  const others = S.clans.filter(c => !my || c.id !== my.id).map(c => ({c, total: c.members.reduce((s, id) => s + (scoreOf(id)?.info.total || 0), 0)})).sort((a, b) => b.total - a.total);
+  const others = S.clans.filter(c => !my || c.id !== my.id).map(c => ({c, total: clanTotal(c.members.map(scoreOf).filter(Boolean))})).sort((a, b) => b.total - a.total);
   html += `<div class="panel"><h2>All clans</h2>${others.length ? `<div class="lbl">${others.map(x => {
     const applied = mine.applied.includes(x.c.id);
     const mem = x.c.members.map(scoreOf).filter(Boolean);
@@ -1213,7 +1341,7 @@ async function renderClanCollection(id) {
     if (show === 'owned') lv = lv.filter(l => agg[l.key]);
     if (show === 'missing') lv = lv.filter(l => !agg[l.key]);
     if (show === 'holo') lv = lv.filter(l => agg[l.key] && agg[l.key].holo);
-    app.innerHTML = clanRow({c, mem, total: mem.reduce((s, r) => s + r.info.total, 0)}, null) + `
+    app.innerHTML = clanRow({c, mem, total: clanTotal(mem)}, null) + `
     <div class="panel" style="margin-top:18px"><div class="row between"><h2 style="margin:0">Clan collection · ${have}/${listed.length}</h2><a href="#/clans">Back</a></div>
       <div class="chips" style="margin-top:12px">${[['all', 'All'], ['owned', 'Owned'], ['missing', 'Missing'], ['holo', '✦ Holo']].map(([v, t]) => `<button class="chip ${show === v ? 'on' : ''}" data-cs="${v}">${t}</button>`).join('')}</div>
       <div class="grid" style="row-gap:18px">${lv.map(l => { const a = agg[l.key];
@@ -1310,6 +1438,7 @@ async function renderTrades() {
     const other = t.incoming ? t.from_username : t.to_username;
     return `<div class="trade"><div class="row between">
       <b>${t.incoming ? `From ${esc(other)}` : `To ${esc(other)}`}</b><span class="status ${t.status}">${t.status}</span></div>
+      ${t.note ? `<div class="tnote">“${esc(t.note)}”</div>` : ''}
       <div class="sides"><div><div class="label">You give · ${fmt(sideValue(youGive))} pts of cards</div>${mini(youGive)}</div><div><div class="label">You get · ${fmt(sideValue(youGet))} pts of cards</div>${mini(youGet)}</div></div>
       ${t.status === 'pending' ? `<div style="margin-bottom:8px">${deltaHTML(scoreDelta(S.myCards, youGive.map(c => c.id), youGet, S.me.claimed_sets || [], S.me.claimed_creators || []), 'Your score')}</div>` : ''}
       ${t.status === 'pending' ? `<div class="row">${t.incoming ? `<button class="btn primary sm" data-acc="${t.id}">Accept</button><button class="btn sm" data-dec="${t.id}">Decline</button>` : `<span class="muted">Waiting for ${esc(other)}…</span><button class="btn sm" data-dec="${t.id}">Cancel</button>`}</div>` : ''}
@@ -1349,6 +1478,7 @@ async function renderNewTrade(name) {
   app.innerHTML = '<div class="panel">Loading…</div>';
   const theirs = await cardsOf(row.user_id);
   const give = [], get = [];   // selected card objects
+  let note = '';
   const myOwn = ownership(S.myCards), theirOwn = ownership(theirs);
   const sortKeys = m => Object.keys(m).sort((a, b) => (S.byKey[a].rank ?? 999) - (S.byKey[b].rank ?? 999));
   const side = (cards, sel) => {
@@ -1358,6 +1488,7 @@ async function renderNewTrade(name) {
   const tray = (sel, otherOwn) => sel.map(c => cardHTML(S.byKey[c.level_key], {holo: c.holo, id: c.id, mini: true})).join('');
   const draw = () => {
     const ys = [$('#pg')?.scrollTop, $('#pt')?.scrollTop];
+    if ($('#tnote')) note = $('#tnote').value;
     app.innerHTML = `<div class="panel"><div class="row between"><h2 style="margin:0">Trade with ${esc(row.username)}</h2><a href="#/trades">Back</a></div>
 
       <div class="tradecols">
@@ -1368,7 +1499,7 @@ async function renderNewTrade(name) {
         ${deltaHTML(scoreDelta(S.myCards, give.map(c => c.id), get, S.me.claimed_sets || [], S.me.claimed_creators || []), 'Your score')}
         ${deltaHTML(scoreDelta(theirs, get.map(c => c.id), give, row.claimed_sets || [], row.claimed_creators || []), esc(row.username) + "'s score")}
         <span class="muted" style="font-size:12px">includes new levels, holos, set and creator bonuses. Dupes add nothing.</span></div>` : ''}
-      <div class="row" style="margin:14px 0"><button class="btn primary" id="send" ${give.length + get.length ? '' : 'disabled'}>Send trade offer</button></div>
+      <div class="row" style="margin:14px 0"><input class="field" id="tnote" maxlength="140" placeholder="Add a message (optional)" style="flex:1;min-width:200px" value="${esc(note)}"><button class="btn primary" id="send" ${give.length + get.length ? '' : 'disabled'}>Send trade offer</button></div>
       <div class="tradecols">
         <div><h3>Your cards</h3><div class="tpick" id="pg">${side(S.myCards, give)}</div></div>
         <div><h3>${esc(row.username)}'s cards</h3><div class="tpick" id="pt">${side(theirs, get)}</div></div>
@@ -1390,7 +1521,7 @@ async function renderNewTrade(name) {
     $('#tt').querySelectorAll('.card').forEach(c => c.onclick = () => { get.splice(get.findIndex(x => x.id === +c.dataset.id), 1); draw(); });
     $('#send').onclick = async () => {
       $('#send').disabled = true;
-      try { await rpc('create_trade', {p_token: S.token, p_to_username: row.username, p_offer: give.map(c => c.id), p_request: get.map(c => c.id)}); toast('Trade offer sent!'); go('#/trades'); }
+      try { await rpc('create_trade', {p_token: S.token, p_to_username: row.username, p_offer: give.map(c => c.id), p_request: get.map(c => c.id), p_note: $('#tnote').value}); toast('Trade offer sent!'); go('#/trades'); }
       catch (e) { toast(e.message, true); $('#send').disabled = false; }
     };
   };
@@ -1410,6 +1541,9 @@ function renderAdmin() {
       <select class="field hidden" id="cKind"><option value="normal">normal packs</option></select><span class="muted">packs</span>
       <input class="field" id="cUses" type="number" value="100" style="width:90px" title="max uses"><button class="btn sm" id="cGo">Create</button></div>
     <p class="muted" style="font-size:13px">The last box is the max number of people who can use it.</p>
+    <hr style="border-color:var(--line);margin:24px 0">
+    <h3>Unverified cards</h3>
+    <p class="muted">They drop from packs on their own (about 1 in 1,200). This button gives one to a random player who opened a pack in the last 24 hours.</p><button class="btn sm" id="dropNow">Give one out now</button>
     <hr style="border-color:var(--line);margin:24px 0">
     <h3>All pulls</h3>
     <div class="row"><input class="field" id="apU" placeholder="Filter by player (optional)"><select class="field" id="apT"><option value="">Every tier</option>${TIERS.map(t => `<option>${t}</option>`).join('')}</select><label class="row" style="gap:4px"><input type="checkbox" id="apH"> holo only</label><button class="btn sm" id="apGo">Show</button></div>
@@ -1444,6 +1578,11 @@ function renderAdmin() {
       msg.textContent = `Done: ${r.levels} levels, ${r.packs} packs.`;
     } catch (e) { msg.textContent = 'Failed: ' + e.message; }
     $('#sync').disabled = false;
+  };
+  $('#dropNow').onclick = async () => {
+    if (!confirm('Give an Unverified card to a random active player right now?')) return;
+    try { await rpc('admin_drop_now', {p_token: S.token}); await loadDrops(); await loadBoard(); toast('Dropped!'); dropPopup(); renderAdmin(); }
+    catch (e) { toast(e.message, true); }
   };
   let apOff = 0;
   const loadPulls = async (more) => {
@@ -1549,7 +1688,7 @@ async function boot() {
   app.innerHTML = '<div class="panel" style="text-align:center">Loading…</div>';
   try {
     await refreshState();
-    await Promise.all([loadLevels(), loadMyCards(), loadBoard()]);
+    await Promise.all([loadLevels(), loadMyCards(), loadBoard(), loadDrops()]);
     updateTopAvatar();
   } catch (e) {
     if (!S.token) { renderAuth(); return; }
@@ -1557,14 +1696,22 @@ async function boot() {
   }
   $('#top').classList.remove('hidden');
   route();
+  dropPopup();
   rpc('my_trades', {p_token: S.token}).then(updateTradeDot).catch(() => {});
   rpc('my_clan', {p_token: S.token}).then(updateClanDot).catch(() => {});
 }
 setInterval(() => { if (S.token && S.me) { rpc('my_trades', {p_token: S.token}).then(updateTradeDot).catch(() => {}); rpc('my_clan', {p_token: S.token}).then(updateClanDot).catch(() => {}); } }, 30000);
 // ---- What's new: add a new entry at the TOP for each update ----
 const CHANGELOG = [
-  {v: 6, title: 'Update', items: ['Trades now show how many points each side is worth, and how much the trade changes your score']},
-  {v: 5, title: 'Update', items: ['Click any clan to see every card the clan owns together, and who owns each one']},
+  {v: 5, title: 'Update', items: [
+    'NEW: Unverified cards. 7 unreleased Top 1s, and only ONE of each exists. Any pack has a tiny chance to include one as a free bonus. Each is worth as many points as its owner\'s best card',
+    'Holo sets: own every level of a Goldenfyre pack in holo for a second bonus and a ✦ HOLO badge (same for creators)',
+    'Combine 3 normal copies of a level into 1 holo (tap a card in your collection)',
+    'The ✦ Holo filter now shows all 90 levels, so you can see which holos you\'re missing',
+    'Tap any card to see who else owns it and start a trade with them',
+    'Trades show how many points each side is worth and how much the trade changes your score, plus you can add a message',
+    'Click any clan to see every card the clan owns together'
+  ]},
   {v: 4, title: 'Update', items: [
     'Collab levels now count for every creator on them (Pyrarrmaniac, Cries For The Lonely, The Killer, Happy Birthday Goldie)'
   ]},
