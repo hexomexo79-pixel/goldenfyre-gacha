@@ -230,8 +230,10 @@ tr.me td{background:rgba(255,179,64,.07)}
 .lb tbody tr{cursor:pointer}.lb tbody tr:hover td{background:var(--panel2)}
 .scoretbl td{padding:7px 6px}.scoretbl tr.tot td{border-top:2px solid var(--line);border-bottom:none}
 .chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
-.holotog{vertical-align:middle;margin-left:8px;font-size:12px}
-.chip.holotog.on{background:linear-gradient(135deg,#ff6b6b,#ffd36b,#6bff9c,#6bd0ff,#b46bff);color:#111;border-color:transparent}
+.holotog{vertical-align:middle;margin-left:10px;font-weight:800;font-size:14px;font-family:inherit;padding:8px 16px;border-radius:999px;cursor:pointer;color:#fff;
+  border:2px solid transparent;background:linear-gradient(var(--panel2),var(--panel2)) padding-box,linear-gradient(135deg,#ff6b6b,#ffd36b,#6bff9c,#6bd0ff,#b46bff) border-box}
+.holotog:hover{filter:brightness(1.25)}
+.holotog.on{color:#111;background:linear-gradient(135deg,#ff6b6b,#ffd36b,#6bff9c,#6bd0ff,#b46bff) border-box;box-shadow:0 0 14px rgba(180,107,255,.45)}
 .holobar i{background:linear-gradient(90deg,#ff6b6b,#ffd36b,#6bff9c,#6bd0ff,#b46bff)!important}
 .chip{border:1px solid var(--line);background:var(--panel2);color:var(--muted);border-radius:999px;padding:5px 12px;font-size:13px;font-weight:700}
 .chip.on{color:#111;background:#f2eef6;border-color:#f2eef6}
@@ -410,6 +412,7 @@ footer{text-align:center;color:#6d6975;font-size:12px;padding:20px;line-height:1
   <nav id="nav">
     <a href="#/">Packs</a>
     <a href="#/collection">Collection</a>
+    <a href="#/sets">Sets</a>
     <a href="#/creators">Creators</a>
     <a href="#/leaderboard">Leaderboard</a>
     <a href="#/clans" id="navClans">Clans</a>
@@ -547,7 +550,7 @@ function creatorStatus(c, own, claimed = []) {
   const nextGain = have < n ? creatorBonusAt(c, have + 1) - bonus : 0;
   const holoHave = c.keys.filter(k => own[k] && own[k].holo).length;
   return {c, have, n, full, bonus, nextGain, pct: Math.round((have / n) ** 2 * 100), done: have >= n, claimed: isClaimed, redeemable: have >= n && !isClaimed, missing: c.keys.filter(k => !own[k]),
-          holoHave, holoDone: holoHave === n};
+          holoHave, holoDone: holoHave === n, holoClaimed: claimed.includes('✦' + c.key)};
 }
 function scoreInfo(own, claimed = [], cclaimed = []) {
   const byTier = {}; let base = 0, holoBonus = 0, uniq = 0, holos = 0;
@@ -567,17 +570,17 @@ function scoreInfo(own, claimed = [], cclaimed = []) {
     const missing = p.level_keys.filter(k => !own[k]);
     const holoHave = p.level_keys.filter(k => own[k] && own[k].holo).length;
     return {p, have: p.level_keys.length - missing.length, missing, done: !missing.length, bonus: setValue(p.level_keys), reward: rewardPacks(p.level_keys), claimed: claimed.includes(p.name),
-            holoHave, holoDone: holoHave === p.level_keys.length};
+            holoHave, holoDone: holoHave === p.level_keys.length, holoClaimed: claimed.includes('✦' + p.name)};
   });
   sets.sort((a, b) => (b.done && !b.claimed) - (a.done && !a.claimed) || a.done - b.done || a.missing.length - b.missing.length || b.bonus - a.bonus);
   const creators = S.creators.map(c => creatorStatus(c, own, cclaimed));
   const setBonus = sets.filter(x => x.done && x.claimed).reduce((s, x) => s + x.bonus, 0);
   const creatorBonus = creators.reduce((s, x) => s + x.bonus, 0);
-  const holoSetBonus = sets.filter(x => x.holoDone).reduce((s, x) => s + x.bonus, 0);
-  const holoCreatorBonus = creators.filter(x => x.holoDone).reduce((s, x) => s + x.full, 0);
+  const holoSetBonus = sets.filter(x => x.holoDone && x.holoClaimed).reduce((s, x) => s + x.bonus, 0);
+  const holoCreatorBonus = creators.filter(x => x.holoDone && x.holoClaimed).reduce((s, x) => s + x.full, 0);
   return {byTier, base, holoBonus, setBonus, creatorBonus, uniq, holos, sets, creators,
           setsDone: sets.filter(x => x.done && x.claimed).length, creatorsDone: creators.filter(x => x.done && x.claimed).length,
-          holoSetBonus, holoCreatorBonus, holoSetsDone: sets.filter(x => x.holoDone).length, holoCreatorsDone: creators.filter(x => x.holoDone).length,
+          holoSetBonus, holoCreatorBonus, holoSetsDone: sets.filter(x => x.holoDone && x.holoClaimed).length, holoCreatorsDone: creators.filter(x => x.holoDone && x.holoClaimed).length,
           total: base + holoBonus + setBonus + creatorBonus + holoSetBonus + holoCreatorBonus};
 }
 const myInfo = () => scoreInfo(ownership(S.myCards), S.me.claimed_sets || [], S.me.claimed_creators || []);
@@ -806,7 +809,7 @@ function renderHome() {
   </div>
 
   <div class="panel">
-    <div class="row between"><h2 style="margin:0">Goldenfyre pack sets ${holoToggle()}</h2><a href="#/collection">All ${S.packs.length} sets →</a></div>
+    <div class="row between"><h2 style="margin:0">Sets ${holoToggle()}</h2><a href="#/sets">All ${S.packs.length} sets →</a></div>
     ${setCards(orderSets(info.sets).slice(0, 4))}
   </div>
 
@@ -879,7 +882,7 @@ function holoToggle(redraw) {
     S.holoView = !S.holoView; try { localStorage.setItem('gacha_holoview', S.holoView ? '1' : '0'); } catch (e) {}
     (redraw || route)();
   }));
-  return `<button class="chip holotog ${S.holoView ? 'on' : ''}">✦ Holo</button>`;
+  return `<button class="holotog ${S.holoView ? 'on' : ''}">${S.holoView ? '✦ Showing holos' : '✦ Show holos'}</button>`;
 }
 function orderSets(sets) {
   if (!S.holoView) return sets;
@@ -902,15 +905,19 @@ function setCards(sets, own, readOnly) {
     const hk = hardestKey(x.p.level_keys), tier = S.byKey[hk]?.tier || 'common', bg = thumbUrl(hk);
     const hAway = n - x.holoHave;
     const status = S.holoView
-      ? (x.holoDone ? `<span class="sdone">✦ Holo complete · +${fmt(x.bonus)} pts</span>` : `<span class="saway">✦ ${hAway === 1 ? '1 away!' : `${hAway} away`}</span><span class="muted">+${fmt(x.bonus)}</span>`)
+      ? (x.holoDone
+          ? (x.holoClaimed ? `<span class="sdone">✓ Already redeemed · +${fmt(x.bonus)} pts</span>` : readOnly ? '<span class="sdone">✦ Complete</span>' : `<button class="btn primary sm redeem" data-hclaim="set" data-hname="${esc(x.p.name)}">✦ Redeem +${fmt(x.bonus)} & ${x.reward} packs</button>`)
+          : x.holoClaimed ? `<span class="saway">✦ ${hAway} away</span><span class="muted">Already redeemed · get it back for +${fmt(x.bonus)}</span>`
+          : `<span class="saway">✦ ${hAway === 1 ? '1 away!' : `${hAway} away`}</span><span class="muted">+${fmt(x.bonus)} · ${x.reward} packs</span>`)
       : x.done
       ? (x.claimed ? `<span class="sdone">✓ Already redeemed · +${fmt(x.bonus)} pts</span>` : readOnly ? '<span class="sdone">Complete</span>' : `<button class="btn primary sm redeem" data-claim="${esc(x.p.name)}">Redeem +${fmt(x.bonus)} & ${x.reward} packs</button>`)
       : x.claimed ? `<span class="saway">${away} away</span><span class="muted">Already redeemed · get it back for +${fmt(x.bonus)}</span>`
       : `<span class="saway">${away === 1 ? '1 away!' : `${away} away`}</span><span class="muted">+${fmt(x.bonus)} · ${x.reward} packs</span>`;
-    return `<div class="stile st-${tier} ${x.holoDone ? 'holodone' : ''} ${x.done && x.claimed ? 'won' : ''} ${x.done && !x.claimed ? 'ready' : ''}" style="--sc:${esc(x.p.colour || '#888')}${bg ? `;--bn:url('${bg}')` : ''}" data-set="${esc(x.p.name)}">
+    return `<div class="stile st-${tier} ${x.holoDone ? 'holodone' : ''} ${x.done && x.claimed ? 'won' : ''} ${(x.done && !x.claimed) || (!readOnly && x.holoDone && !x.holoClaimed) ? 'ready' : ''}" style="--sc:${esc(x.p.colour || '#888')}${bg ? `;--bn:url('${bg}')` : ''}" data-set="${esc(x.p.name)}">
       <div class="stin"><div class="row between"><b class="sname">${esc(x.p.name)}${x.holoDone ? ' <span class="cbadge plus">✦ HOLO</span>' : ''}</b><span class="scount">${S.holoView ? `<span class="hcount">✦ ${x.holoHave}/${n}</span>` : `${x.have}/${n}${x.done ? ` <span class="hcount">✦ ${x.holoHave}/${n}</span>` : ''}`}</span></div>
       ${minisHTML(x.p.level_keys, own)}
-      <div class="row between" style="gap:6px">${status}</div></div></div>`;
+      <div class="row between" style="gap:6px">${status}</div>
+      ${!S.holoView && !readOnly && x.holoDone && !x.holoClaimed ? `<button class="btn primary sm redeem" style="margin-top:6px" data-hclaim="set" data-hname="${esc(x.p.name)}">✦ Redeem holo +${fmt(x.bonus)} & ${x.reward} packs</button>` : ''}</div></div>`;
   }).join('')}</div>`;
 }
 function creatorBlocks(list, own) {
@@ -922,13 +929,15 @@ function creatorBlocks(list, own) {
 function creatorProgress(x) {
   if (S.holoView) {
     const away = x.n - x.holoHave;
-    return `<div class="cprog"><div class="row between"><b><span class="hcount">✦ ${x.holoHave}/${x.n}</span>${x.holoDone ? ' <span class="cbadge plus">✦ HOLO</span>' : ''}</b>${x.holoDone ? `<span class="sdone">✦ Holo complete · +${fmt(x.full)}</span>` : `<span>${away === 1 ? '1 away!' : `${away} away`} <span class="muted">· +${fmt(x.full)}</span></span>`}</div>
+    return `<div class="cprog"><div class="row between"><b><span class="hcount">✦ ${x.holoHave}/${x.n}</span>${x.holoDone ? ' <span class="cbadge plus">✦ HOLO</span>' : ''}</b>${x.holoDone ? (x.holoClaimed ? `<span class="sdone">✓ Already redeemed · +${fmt(x.full)}</span>` : `<button class="btn primary sm redeem" data-hclaim="creator" data-hname="${esc(x.c.key)}">✦ Redeem +${fmt(x.full)} & 3 packs</button>`)
+      : `<span>${away === 1 ? '1 away!' : `${away} away`} <span class="muted">· +${fmt(x.full)} & 3 packs</span></span>`}</div>
     <div class="bar holobar" style="margin:6px 0 0"><i style="width:${Math.round(x.holoHave / x.n * 100)}%"></i></div></div>`;
   }
   const right = x.claimed && x.done ? `<span class="sdone">✓ Already redeemed · +${fmt(x.full)}</span>`
     : x.redeemable ? `<button class="btn primary sm redeem" data-cclaim="${esc(x.c.key)}">Redeem +${fmt(x.full)}</button>`
     : `<span>+${fmt(x.bonus)} <span class="muted">/ ${fmt(x.full)}</span></span>`;
   return `<div class="cprog"><div class="row between"><b>${x.have}/${x.n}${x.done ? ` <span class="hcount">✦ ${x.holoHave}/${x.n}</span>` : ''}${x.holoDone ? ' <span class="cbadge plus">✦ HOLO</span>' : ''}</b>${right}</div>
+    ${x.holoDone && !x.holoClaimed ? `<button class="btn primary sm redeem" style="margin-top:6px" data-hclaim="creator" data-hname="${esc(x.c.key)}">✦ Redeem holo +${fmt(x.full)} & 3 packs</button>` : ''}
     <div class="bar" style="margin:6px 0 0"><i style="width:${x.pct}%"></i></div></div>`;
 }
 function unvOf(c) { return S.levels.filter(l => l.tier === 'unverified' && creatorsOf(l).some(a => ckey(a) === c.key)); }
@@ -988,6 +997,18 @@ function bindClaims() {
       setState(r.state);
       const colors = {apex: '#ffd36b', mythic: '#e5484d', legendary: '#f5a524', epic: '#a463f2', plain: '#3fca6b'};
       celebrate(el, colors[x?.c.style] || '#ffb340', x ? x.full - before : 0, `${x?.c.name || ''} collected!`);
+      setTimeout(route, 1700);
+    } catch (er) { toast(er.message, true); b.disabled = false; }
+  });
+  document.querySelectorAll('[data-hclaim]').forEach(b => b.onclick = async e => {
+    e.stopPropagation(); b.disabled = true;
+    const kind = b.dataset.hclaim, name = b.dataset.hname, info = myInfo();
+    const x = kind === 'set' ? info.sets.find(s => s.p.name === name) : info.creators.find(c => c.c.key === name);
+    const el = b.closest('[data-set]') || b.closest('[data-creator]');
+    try {
+      const r = await rpc('claim_holo', {p_token: S.token, p_kind: kind, p_name: name});
+      setState(r.state);
+      celebrate(el, '#b46bff', kind === 'set' ? (x?.bonus || 0) : (x?.full || 0), `✦ ${kind === 'set' ? name : (x?.c.name || '')} in holo! +${r.packs} packs`);
       setTimeout(route, 1700);
     } catch (er) { toast(er.message, true); b.disabled = false; }
   });
@@ -1230,8 +1251,12 @@ function renderCollection() {
   const info = myInfo(), listed = S.levels.filter(l => l.rank);
   app.innerHTML = `<div class="panel"><h2>Your collection · ${info.uniq}/${listed.length} · <span class="hcount">✦ ${info.holos}/${listed.length} holo</span> · ${S.myCards.length} cards</h2>
     ${filterChips(renderCollection)}${collectionGrid(S.myCards)}</div>
-    <div class="panel"><h2>Goldenfyre pack sets ${holoToggle()}</h2>${setCards(orderSets(info.sets))}</div>
     <div class="panel"><h2>Your score</h2>${scoreTable(info)}</div>`;
+  bindClaims();
+}
+function renderSets() {
+  const info = myInfo();
+  app.innerHTML = `<div class="panel"><h2>Sets · ${S.holoView ? `<span class="hcount">✦ ${info.holoSetsDone}/${S.packs.length} in holo</span>` : `${info.setsDone}/${S.packs.length} redeemed`} ${holoToggle()}</h2>${setCards(orderSets(info.sets))}</div>`;
   bindClaims();
 }
 function renderCreators() {
@@ -1687,13 +1712,15 @@ async function adminTrades(un) {
 }
 
 // ---------------- router / boot ----------------
-async function route() {
+async function route(reset) {
   if (!S.me) return;
+  const keepY = window.scrollY;
   document.querySelectorAll('.modal').forEach(m => m.remove());
   const h = location.hash || '#/';
   document.querySelectorAll('nav a').forEach(a => a.classList.toggle('on', a.getAttribute('href') === h || (h.startsWith('#/trades') && a.id === 'navTrades')));
   try {
     if (h.startsWith('#/collection')) renderCollection();
+    else if (h.startsWith('#/sets')) renderSets();
     else if (h.startsWith('#/creators')) renderCreators();
     else if (h.startsWith('#/leaderboard')) await renderBoard();
     else if (h.startsWith('#/profile')) await renderProfile();
@@ -1705,9 +1732,9 @@ async function route() {
     else if (h.startsWith('#/admin')) renderAdmin();
     else renderHome();
   } catch (e) { app.innerHTML = `<div class="panel">Something went wrong: ${esc(e.message)}</div>`; }
-  window.scrollTo(0, 0);
+  window.scrollTo(0, reset === true ? 0 : keepY);
 }
-window.addEventListener('hashchange', route);
+window.addEventListener('hashchange', () => route(true));
 $('#packPill').onclick = () => go('#/');
 
 async function boot() {
@@ -1733,7 +1760,8 @@ setInterval(() => { if (S.token && S.me) { rpc('my_trades', {p_token: S.token}).
 const CHANGELOG = [
   {v: 5, title: 'Update', items: [
     'NEW: Unverified cards. 7 unreleased Top 1s, and only ONE of each exists. Any pack has a tiny chance to include one as a free bonus. Each is worth as many points as its owner\'s best card',
-    'Holo sets: own every level of a Goldenfyre pack in holo for a second bonus and a ✦ HOLO badge (same for creators)',
+    'Holo sets: own every level of a set in holo, then redeem it for a second bonus, bonus packs and a ✦ HOLO badge (same for creators). Hit ✦ Show holos to see how close you are',
+    'Sets now have their own tab',
     'Combine 3 normal copies of a level into 1 holo (tap a card in your collection)',
     'The ✦ Holo filter now shows all 90 levels, so you can see which holos you\'re missing',
     'Tap any card to see who else owns it and start a trade with them',
