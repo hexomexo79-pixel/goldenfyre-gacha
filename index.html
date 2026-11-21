@@ -64,16 +64,22 @@ h3{margin:0 0 10px;font-size:16px}
 .big small{font-size:22px;color:var(--muted);font-weight:700}
 .label{font-size:12px;letter-spacing:1px;color:var(--muted);text-transform:uppercase;font-weight:700}
 .stack{position:relative;height:262px;display:flex;justify-content:center;margin-bottom:14px}
-.pack{position:absolute;top:18px;width:150px;height:220px;border-radius:12px;padding:14px;color:#fff;text-align:center;
-  background:linear-gradient(160deg,#c084fc 0%,#7c3aed 45%,#f472b6 100%);box-shadow:0 10px 30px rgba(0,0,0,.6);
-  border:2px solid rgba(255,255,255,.35);display:flex;flex-direction:column;align-items:center;justify-content:center;transform-origin:bottom center}
-.pack.epic{background:linear-gradient(160deg,#a78bfa,#5b21b6 50%,#1e1b4b)}
-.pack.legendary{background:linear-gradient(160deg,#fde68a,#d97706 50%,#7c2d12)}
-.pack::before{content:"";position:absolute;inset:0;border-radius:10px;background:repeating-linear-gradient(90deg,rgba(255,255,255,.18) 0 3px,transparent 3px 9px);height:14px}
-.pack .pk-face{width:64px;height:64px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#ff8a8a,#b91c1c);display:grid;place-items:center;font-size:30px;font-weight:900;box-shadow:inset 0 -6px 0 rgba(0,0,0,.25)}
-.pack .pk-title{font-weight:900;font-size:20px;margin-top:12px;line-height:1.05;text-shadow:0 2px 0 rgba(0,0,0,.3)}
-.pack .pk-sub{margin-top:10px;background:#f6d37a;color:#4a2a00;border-radius:6px;padding:3px 10px;font-weight:900;font-size:11px;letter-spacing:2px}
+.pack{position:absolute;top:14px;width:150px;height:226px;color:#fff;text-align:center;border-radius:4px;overflow:hidden;
+  background:linear-gradient(165deg,#3a0b12 0%,#8f1524 38%,#e0453a 72%,#ffb35c 100%);
+  box-shadow:0 14px 30px rgba(0,0,0,.55);display:flex;flex-direction:column;align-items:center;justify-content:center;transform-origin:bottom center;
+  -webkit-mask:conic-gradient(from -45deg at bottom,#0000,#000 1deg 89deg,#0000 90deg) bottom/8px 51% repeat-x,conic-gradient(from 135deg at top,#0000,#000 1deg 89deg,#0000 90deg) top/8px 51% repeat-x;
+          mask:conic-gradient(from -45deg at bottom,#0000,#000 1deg 89deg,#0000 90deg) bottom/8px 51% repeat-x,conic-gradient(from 135deg at top,#0000,#000 1deg 89deg,#0000 90deg) top/8px 51% repeat-x}
+.pack::before{content:"";position:absolute;inset:0;background:linear-gradient(105deg,transparent 35%,rgba(255,255,255,.35) 48%,transparent 60%);background-size:300% 100%;animation:shine 4.5s ease-in-out infinite}
+.pack::after{content:"";position:absolute;inset:10px 8px;border:1px solid rgba(255,255,255,.22);border-radius:3px}
+@keyframes shine{0%,55%{background-position:120% 0}100%{background-position:-60% 0}}
+.pack.epic{background:linear-gradient(165deg,#140b2e,#3b1a8a 40%,#8b5cf6 75%,#e9d5ff)}
+.pack.legendary{background:linear-gradient(165deg,#2a1500,#8a4b06 40%,#f59e0b 75%,#fff1b8)}
+.pack .pk-face{width:58px;height:58px;border-radius:50%;background:rgba(0,0,0,.35);border:2px solid rgba(255,255,255,.6);display:grid;place-items:center;font-size:20px;font-weight:900;letter-spacing:1px}
+.pack .pk-title{font-weight:900;font-size:22px;margin-top:12px;letter-spacing:2px;line-height:1}
+.pack .pk-kind{font-size:11px;letter-spacing:3px;opacity:.85;margin-top:4px;font-weight:700}
+.pack .pk-sub{margin-top:14px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:3px 12px;font-weight:800;font-size:10px;letter-spacing:2px}
 .pack.empty{opacity:.25;filter:grayscale(1)}
+.pack.mini{position:relative;top:0;width:46px;height:68px;flex:none}.pack.mini::after{inset:5px 4px}.pack.mini b{font-size:9px;letter-spacing:1px;position:relative}
 .full{border:1px solid #b7791f;color:#f6c063;border-radius:999px;padding:8px 18px;font-weight:800;font-size:13px;display:inline-block;letter-spacing:.5px}
 .special{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
 @media (max-width:600px){.special{grid-template-columns:1fr}}
@@ -90,8 +96,8 @@ h3{margin:0 0 10px;font-size:16px}
 .card.small .count{bottom:auto;top:30px;right:12px}
 .hscroll{display:flex;gap:12px;overflow-x:auto;padding-bottom:10px}
 .hscroll .card{flex:0 0 150px}
-.card{--c:var(--common);position:relative;border-radius:12px;padding:10px;background:linear-gradient(180deg,#1d1c22,#141318);
-  border:3px solid var(--c);box-shadow:0 0 0 1px rgba(0,0,0,.6) inset;min-height:200px;display:flex;flex-direction:column;cursor:pointer;overflow:hidden}
+.card{--c:var(--common);position:relative;border-radius:11px;padding:10px;background:linear-gradient(180deg,#1c1b21,#131217);
+  border:2px solid var(--c);box-shadow:0 4px 14px rgba(0,0,0,.45);min-height:200px;display:flex;flex-direction:column;cursor:pointer;overflow:hidden;isolation:isolate}
 .card.t-common{--c:var(--common)}.card.t-uncommon{--c:var(--uncommon)}.card.t-rare{--c:var(--rare)}
 .card.t-epic{--c:var(--epic)}.card.t-legendary{--c:var(--legendary)}.card.t-mythic{--c:var(--mythic)}
 .card.t-apex{border-color:transparent;background:linear-gradient(#18171c,#18171c) padding-box,linear-gradient(135deg,#ff4d4d,#ffb340,#3fca6b,#3f82f0,#a463f2,#ff4d4d) border-box}
@@ -104,12 +110,14 @@ h3{margin:0 0 10px;font-size:16px}
 .thumb .noimg{font-weight:900;font-size:13px;text-align:center;padding:6px;color:var(--c);background:radial-gradient(circle,color-mix(in srgb,var(--c) 30%,transparent),transparent 70%);width:100%;height:100%;display:grid;place-items:center}
 .card .nm{font-weight:800;font-size:15px;margin-top:8px;line-height:1.15;overflow-wrap:break-word}
 .card .meta{font-size:11px;color:var(--muted);margin-top:4px;line-height:1.3}
-.card .holotag{position:absolute;left:10px;bottom:10px;background:#f2eefc;color:#2b1a5a;font-weight:900;font-size:11px;border-radius:6px;padding:2px 7px;z-index:2}
+.card .holotag{position:absolute;left:15px;top:38px;background:#f2eefc;color:#2b1a5a;font-weight:900;font-size:11px;border-radius:6px;padding:2px 7px;z-index:2}
 .card .count{position:absolute;right:8px;bottom:8px;background:rgba(0,0,0,.7);border:1px solid var(--line);border-radius:6px;font-size:11px;font-weight:800;padding:1px 6px;z-index:2}
-.card.holo::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:1;mix-blend-mode:screen;opacity:.42;
-  background:linear-gradient(115deg,#ff5c5c 0%,#ffd25c 18%,#5cff8a 36%,#5cc8ff 54%,#b45cff 72%,#ff5cb8 90%);background-size:250% 250%;animation:holo 6s linear infinite}
-.card.holo{box-shadow:0 0 18px color-mix(in srgb,var(--c) 40%,transparent)}
-@keyframes holo{0%{background-position:0% 50%}100%{background-position:250% 50%}}
+.card.holo::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:1;mix-blend-mode:color;opacity:.55;
+  background:linear-gradient(125deg,#ff6b6b,#ffd36b,#6bff9c,#6bd0ff,#b46bff,#ff6bd0);animation:hue 7s linear infinite}
+.card.holo::before{content:"";position:absolute;inset:0;pointer-events:none;z-index:3;
+  background:linear-gradient(110deg,transparent 30%,rgba(255,255,255,.22) 45%,rgba(255,255,255,.05) 55%,transparent 70%);background-size:300% 100%;animation:shine 5s ease-in-out infinite}
+.card.holo{box-shadow:0 0 16px color-mix(in srgb,var(--c) 35%,transparent)}
+@keyframes hue{to{filter:hue-rotate(360deg)}}
 .card.missing{filter:grayscale(1) brightness(.45)}
 .card.missing .thumb img{opacity:.35}
 .card.sel{outline:3px solid #fff;outline-offset:2px}
@@ -126,10 +134,27 @@ h3{margin:0 0 10px;font-size:16px}
 .holosum{display:inline-block;background:linear-gradient(90deg,#c4f1d3,#fdf2b3,#c8d7ff);color:#111;border-radius:8px;padding:6px 16px;font-weight:900;font-size:18px;margin:8px 0}
 .overlay .grid{text-align:left;margin-top:18px}
 .actions{position:fixed;left:0;right:0;bottom:0;padding:14px;display:flex;justify-content:center;gap:10px;flex-wrap:wrap;background:linear-gradient(transparent,rgba(5,4,6,.95) 40%)}
+.deal{animation:deal .5s cubic-bezier(.2,.9,.3,1) both}
+@keyframes deal{from{transform:translateY(60px) scale(.85);opacity:0}to{transform:none;opacity:1}}
+.flip{perspective:1100px;position:relative}
+.flip-in{position:relative;transform-style:preserve-3d;transition:transform .8s cubic-bezier(.3,1.25,.4,1);transform:rotateY(180deg)}
+.flip.open .flip-in{transform:rotateY(0)}
+.flip .front{backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.flip .front .card{min-height:200px}
+.cback{position:absolute;inset:0;transform:rotateY(180deg);backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:11px;cursor:pointer;
+  background:radial-gradient(circle at 50% 45%,#5a1019 0%,#26070b 70%);border:2px solid #6e1a22;display:grid;place-items:center;overflow:hidden}
+.cback::before{content:"";position:absolute;inset:8px;border:1px solid rgba(255,140,120,.25);border-radius:7px;
+  background:repeating-linear-gradient(45deg,rgba(255,255,255,.025) 0 6px,transparent 6px 12px)}
+.cback .em{position:relative;width:64px;height:64px;border-radius:50%;border:2px solid rgba(255,190,150,.6);display:grid;place-items:center;font-weight:900;letter-spacing:1px;color:#ffcfb8;background:rgba(0,0,0,.3)}
+.flip.charge .cback{animation:charge 1s ease-in-out infinite;--g:var(--epic)}
+.flip.charge.t-legendary .cback{--g:var(--legendary)}.flip.charge.t-mythic .cback{--g:var(--mythic)}.flip.charge.t-apex .cback{--g:#fff3b0}
+@keyframes charge{0%,100%{box-shadow:0 0 10px var(--g)}50%{box-shadow:0 0 38px var(--g),0 0 6px var(--g) inset;transform:rotateY(180deg) scale(1.04)}}
+.cell .under{opacity:0;transition:opacity .3s .4s}.cell.opened .under{opacity:1}
+.tierlbl{text-align:center;font-size:12px;font-weight:800;letter-spacing:1px;margin-top:6px;color:var(--c)}
 .reveal{animation:pop .45s cubic-bezier(.2,1.4,.4,1) both}
 @keyframes pop{from{transform:scale(.6) rotateY(80deg);opacity:0}to{transform:none;opacity:1}}
-.tearing{animation:shake .6s ease both}
-@keyframes shake{0%,100%{transform:none}20%{transform:rotate(-4deg)}40%{transform:rotate(4deg)}60%{transform:rotate(-3deg) scale(1.05)}80%{transform:scale(1.15);opacity:.8}}
+.tearing{animation:shake .7s ease both}
+@keyframes shake{0%{transform:none}15%{transform:rotate(-3deg)}30%{transform:rotate(3deg)}45%{transform:rotate(-2deg) scale(1.04)}70%{transform:scale(1.1);filter:brightness(1.6)}100%{transform:scale(1.25) translateY(-30px);opacity:0;filter:brightness(2.5)}}
 
 /* lists */
 .feed{display:flex;flex-direction:column;gap:8px}
@@ -147,7 +172,11 @@ tbody tr{cursor:pointer}tbody tr:hover td{background:var(--panel2)}
 .chip{border:1px solid var(--line);background:var(--panel2);color:var(--muted);border-radius:999px;padding:5px 12px;font-size:13px;font-weight:700}
 .chip.on{color:#111;background:#f2eef6;border-color:#f2eef6}
 .setbox{border:1px solid var(--line);border-left:5px solid var(--sc,#888);border-radius:10px;padding:10px 12px;background:var(--panel2)}
-.sets{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+.sets{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.slv{display:flex;flex-direction:column;gap:2px;font-size:13px;color:var(--muted)}.slv .has{color:var(--text)}.slv i{color:var(--muted);font-style:normal;font-size:11px}
+.srew{font-size:13px;margin-top:8px}.srew b.epic{color:#c4a1ff}.srew b.legendary{color:var(--legendary)}
+.saway{font-size:13px;font-weight:800;color:var(--accent2)}.sdone{font-size:13px;font-weight:800;color:#6ee08c}
+.scoretbl td{padding:7px 6px}.scoretbl tr.tot td{border-top:2px solid var(--line);border-bottom:none}.scoretbl tbody tr{cursor:default}.scoretbl tbody tr:hover td{background:none}
 .setbox.done{background:color-mix(in srgb,var(--sc) 12%,var(--panel2))}
 .trade{border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px;background:var(--panel2)}
 .trade .sides{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:10px 0}
@@ -168,7 +197,7 @@ tbody tr{cursor:pointer}tbody tr:hover td{background:var(--panel2)}
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:60;display:grid;place-items:center;padding:16px}
 .modal .box{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px;max-width:420px;width:100%;max-height:90vh;overflow-y:auto}
 .modal .card{cursor:default;min-height:0}
-@media (max-width:600px){.grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.card{padding:7px;min-height:160px}.card .rank{font-size:13px}.card .ctop{gap:3px}.card .holotag{font-size:9px;left:7px;bottom:7px;padding:1px 5px}.card .count{font-size:10px}.tag{font-size:8px;padding:1px 4px}.card .nm{font-size:12px}.card .meta{display:none}.newb{font-size:11px;padding:4px}.card.small .tag{display:none}.trade .grid,.picker .grid{grid-template-columns:repeat(3,minmax(0,1fr))}.trade .sides{grid-template-columns:1fr}}
+@media (max-width:600px){.grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.card{padding:7px;min-height:160px}.card .rank{font-size:13px}.card .ctop{gap:3px}.card .holotag{font-size:9px;left:10px;top:31px;padding:1px 5px}.card .count{font-size:10px}.tag{font-size:8px;padding:1px 4px}.card .nm{font-size:12px}.card .meta{display:none}.newb{font-size:11px;padding:4px}.card.small .tag{display:none}.trade .grid,.picker .grid{grid-template-columns:repeat(3,minmax(0,1fr))}.trade .sides{grid-template-columns:1fr}}
 footer{text-align:center;color:#6d6975;font-size:12px;padding:20px;line-height:1.6}
 </style>
 </head>
@@ -354,12 +383,13 @@ async function renderHome() {
   const own = ownership(S.myCards);
   const uniq = listed.filter(l => own[l.key]).length;
   const holos = listed.filter(l => own[l.key] && own[l.key].holo).length;
-  const stackN = Math.min(Math.max(total, 1), 10);
+  const stackN = Math.min(Math.max(total, 1), 5);
   let stack = '';
   for (let i = 0; i < stackN; i++) {
-    const a = (i - (stackN - 1) / 2) * 3.2;
-    stack += `<div class="pack ${total ? '' : 'empty'}" style="transform:rotate(${a}deg) translateX(${a * 2.2}px)"><div class="pk-face">GD</div><div class="pk-title">GDPS<br>DEMON</div><div class="pk-sub">5 CARDS</div></div>`;
+    const off = i - (stackN - 1);   // top pack is last and straight
+    stack += packHTML('normal', total ? '' : 'empty', `transform:translate(${off * 7}px,${off * -3}px) rotate(${off * 2.5}deg);opacity:${1 + off * 0.12}`);
   }
+  const info = scoreInfo(S.myCards);
   app.innerHTML = `
   <div class="panel"><div class="packs">
     <div>
@@ -386,7 +416,7 @@ async function renderHome() {
   </div>
   <div class="special">
     <div class="spbox">
-      <div class="row"><div class="pack epic" style="position:static;width:48px;height:68px;padding:4px"><div style="font-size:9px;font-weight:900">EPIC</div></div>
+      <div class="row"><div class="pack epic mini"><b>EPIC</b></div>
         <div style="flex:1"><b>Epic packs: ${st.epic_packs}</b><div class="muted" style="font-size:13px">Rare or better only. Merge ${st.merge_cost} normal packs into 1.</div></div></div>
       <div class="row" style="margin-top:10px">
         <button class="btn epic sm" id="openEpic" ${st.epic_packs ? '' : 'disabled'}>Open epic</button>
@@ -394,7 +424,7 @@ async function renderHome() {
       </div>
     </div>
     <div class="spbox">
-      <div class="row"><div class="pack legendary" style="position:static;width:48px;height:68px;padding:4px"><div style="font-size:8px;font-weight:900">LEGEND</div></div>
+      <div class="row"><div class="pack legendary mini"><b>LEG</b></div>
         <div style="flex:1"><b>Legendary packs: ${st.legendary_packs}</b><div class="muted" style="font-size:13px">Epic or better only. Merge ${st.merge_cost} epic packs into 1.</div></div></div>
       <div class="row" style="margin-top:10px">
         <button class="btn leg sm" id="openLeg" ${st.legendary_packs ? '' : 'disabled'}>Open legendary</button>
@@ -410,8 +440,16 @@ async function renderHome() {
       <div class="stat"><b>${listed.length ? (uniq / listed.length * 100).toFixed(1) : 0}%</b><span class="muted">Collected</span></div>
       <div class="stat"><b>${uniq}/${listed.length}</b><span class="muted">Unique levels</span></div>
       <div class="stat"><b>${holos}</b><span class="muted">Holos</span></div>
-      <div class="stat"><b>${myScore().toLocaleString()}</b><span class="muted">Score</span></div>
+      <div class="stat"><b>${info.total.toLocaleString()}</b><span class="muted">Score</span></div>
     </div>
+    <h3 style="margin-top:18px">Where your points come from</h3>
+    ${scoreTable(info)}
+  </div>
+
+  <div class="panel">
+    <div class="row" style="justify-content:space-between"><h2 style="margin:0">GDPS pack sets</h2><a href="#/collection">All ${S.packs.length} sets →</a></div>
+    <p class="muted" style="margin:6px 0 14px">Own every level in a set to earn its bonus points, plus a one-time reward pack.</p>
+    ${setCards(info.sets.slice(0, 4))}
   </div>
 
   <div class="panel"><h2>Featured: the hardest levels</h2>
@@ -423,6 +461,7 @@ async function renderHome() {
     <div class="panel"><h2>Community rare pulls</h2><div class="feed" id="rpulls"><span class="muted">Loading…</span></div></div>
   </div>`;
 
+  bindClaims();
   $('#open1').onclick = () => openPacks('normal', 1);
   $('#openAll').onclick = () => openPacks('normal', total);
   $('#openEpic').onclick = () => openPacks('epic', 1);
@@ -451,50 +490,91 @@ async function merge(target) {
   catch (e) { toast(e.message, true); }
 }
 
-let lastOpen = null;
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+function packHTML(kind = 'normal', cls = '', style = '') {
+  const label = {normal: 'DEMON PACK', epic: 'EPIC PACK', legendary: 'LEGENDARY'}[kind];
+  return `<div class="pack ${kind === 'normal' ? '' : kind} ${cls}" style="${style}"><div class="pk-face">GD</div><div class="pk-title">GDPS</div><div class="pk-kind">${label}</div><div class="pk-sub">${S.me.cards_per_pack} CARDS</div></div>`;
+}
+let opening = false;
 async function openPacks(kind, count) {
-  document.querySelectorAll('.stack .pack').forEach(p => p.classList.add('tearing'));
-  document.querySelectorAll('button').forEach(b => b.disabled = true);
+  if (opening) return; opening = true;
+  const top = document.querySelector('.stack .pack:last-child');
+  if (top && kind === 'normal') top.classList.add('tearing');
+  document.querySelectorAll('main button').forEach(b => b.disabled = true);
   let r;
-  try { r = await rpc('open_packs', {p_token: S.token, p_kind: kind, p_count: count}); }
-  catch (e) { toast(e.message, true); renderHome(); return; }
+  try { [r] = await Promise.all([rpc('open_packs', {p_token: S.token, p_kind: kind, p_count: count}), sleep(650)]); }
+  catch (e) { opening = false; toast(e.message, true); renderHome(); return; }
   setState(r.state);
   r.cards.forEach(c => S.myCards.push({id: c.id, level_key: c.level_key, holo: c.holo}));
-  lastOpen = {kind, cards: r.cards};
+  opening = false;
   showOpening(kind, r.cards);
   rpc('leaderboard').then(b => S.board = b).catch(() => {});
 }
 function showOpening(kind, cards) {
   const lv = c => S.byKey[c.level_key];
-  const sorted = [...cards].sort((a, b) => (lv(a).rank ?? 999) - (lv(b).rank ?? 999));
-  const best = sorted[0], bl = lv(best);
-  const newCount = cards.filter(c => c.is_new).length;
+  const ti = c => TIERS.indexOf(lv(c).tier);             // 0 = apex … 6 = common
+  const multi = cards.length > S.me.cards_per_pack;
+  // single pack: reveal worst → best so the best card comes last; many packs: list order
+  const order = multi ? [...cards].sort((a, b) => (lv(a).rank ?? 999) - (lv(b).rank ?? 999))
+                      : [...cards].sort((a, b) => ti(b) - ti(a) || (lv(b).rank ?? 0) - (lv(a).rank ?? 0));
+  const best = [...cards].sort((a, b) => (lv(a).rank ?? 999) - (lv(b).rank ?? 999) || b.holo - a.holo)[0], bl = lv(best);
+  const newCount = cards.filter(c => c.is_new || c.is_new_holo).length;
   const counts = {}; cards.forEach(c => counts[lv(c).tier] = (counts[lv(c).tier] || 0) + 1);
   const holoN = cards.filter(c => c.holo).length;
-  const left = kind === 'normal' ? S.me.packs + S.me.bonus_packs : kind === 'epic' ? S.me.epic_packs : S.me.legendary_packs;
-  const multi = cards.length > 5;
+  const left = () => kind === 'normal' ? S.me.packs + S.me.bonus_packs : kind === 'epic' ? S.me.epic_packs : S.me.legendary_packs;
+  const tc = t => `var(--${t === 'apex' ? 'accent2' : t})`;
   const ov = document.createElement('div'); ov.className = 'overlay';
+  const cols = multi ? '' : `style="grid-template-columns:repeat(${order.length},minmax(0,200px));justify-content:center"`;
   ov.innerHTML = `<div class="inner">
-    <h1>${multi ? `${cards.length / 5} packs opened!` : 'Pack opened!'}</h1>
-    <div class="muted" style="font-size:17px">Best pull: <b style="color:var(--${bl.tier === 'apex' ? 'accent2' : bl.tier})">${bl.tier.toUpperCase()}</b> #${bl.rank ?? '—'} ${esc(bl.name)}${best.holo ? ' ✦ holo' : ''} · ✓ saved to your collection</div>
-    ${multi ? `<div class="tiersum">${TIERS.filter(t => counts[t]).map(t => `<span style="color:var(--${t === 'apex' ? 'accent2' : t})">${t.toUpperCase()} ×${counts[t]}</span>`).join('')}</div>` : ''}
-    ${holoN && multi ? `<div class="holosum">✦ HOLO ×${holoN}</div>` : ''}
-    <div style="color:#6ee08c;font-weight:900;font-size:20px;margin-top:10px">${newCount ? `✦ ${newCount} new for your collection` : 'No new cards this time'}</div>
-    <div class="grid">${(multi ? sorted : cards).map((c, i) => `<div class="cell ${c.is_new || c.is_new_holo ? 'isnew' : ''} reveal" style="animation-delay:${Math.min(i, 40) * (multi ? 40 : 180)}ms">
-      ${cardHTML(lv(c), {holo: c.holo, meta: false})}
-      ${c.is_new_holo && !c.is_new ? '<div class="newb">✦ NEW HOLO</div>' : c.is_new ? `<div class="newb">✦ NEW${c.holo ? ' HOLO' : ''}</div>` : ''}
-    </div>`).join('')}</div>
+    <h1 id="ovTitle">${multi ? `Opening ${cards.length / S.me.cards_per_pack} packs…` : `Opening ${kind === 'normal' ? '' : kind + ' '}pack…`}</h1>
+    <div id="ovSum" style="opacity:0;transition:opacity .4s">
+      <div class="muted" style="font-size:17px">Best pull: <b style="color:${tc(bl.tier)}">${bl.tier.toUpperCase()}</b> #${bl.rank ?? '—'} ${esc(bl.name)}${best.holo ? ' ✦ holo' : ''} · ✓ saved to your collection</div>
+      ${multi ? `<div class="tiersum">${TIERS.filter(t => counts[t]).map(t => `<span style="color:${tc(t)}">${t.toUpperCase()} ×${counts[t]}</span>`).join('')}</div>` : ''}
+      ${holoN && multi ? `<div class="holosum">✦ HOLO ×${holoN}</div>` : ''}
+      <div style="color:#6ee08c;font-weight:900;font-size:20px;margin-top:10px">${newCount ? `✦ ${newCount} new for your collection` : 'No new cards this time'}</div>
+    </div>
+    <div class="grid revealgrid" ${cols}>${order.map((c, i) => { const l = lv(c); return `<div class="cell deal t-${l.tier}" style="animation-delay:${Math.min(i, 30) * (multi ? 25 : 120)}ms">
+      <div class="flip t-${l.tier}" data-i="${i}"><div class="flip-in">
+        <div class="front">${cardHTML(l, {holo: c.holo, meta: !multi})}</div>
+        <div class="cback"><div class="em">GD</div></div>
+      </div></div>
+      <div class="under">${c.is_new_holo && !c.is_new ? '<div class="newb">✦ NEW HOLO</div>' : c.is_new ? `<div class="newb">✦ NEW${c.holo ? ' HOLO' : ''}</div>` : `<div class="tierlbl" style="--c:${tc(l.tier)}">${l.tier.toUpperCase()}</div>`}</div>
+    </div>`; }).join('')}</div>
   </div>
-  <div class="actions">
-    ${left ? `<button class="btn primary" id="again">Open another (${left} left)</button>` : ''}
-    <button class="btn light" id="toCol">View collection</button>
-    <button class="btn light" id="cont">Continue</button>
-  </div>`;
+  <div class="actions" id="ovAct"><button class="btn light" id="revAll">Reveal all</button></div>`;
   document.body.appendChild(ov);
-  const close = () => ov.remove();
-  ov.querySelector('#cont').onclick = () => { close(); route(); };
-  ov.querySelector('#toCol').onclick = () => { close(); go('#/collection'); route(); };
-  if (left) ov.querySelector('#again').onclick = () => { close(); renderHome(); openPacks(kind, 1); };
+  const flips = [...ov.querySelectorAll('.flip')];
+  let skip = false, done = false;
+  const flip = f => { f.classList.remove('charge'); f.classList.add('open'); f.parentElement.classList.add('opened'); };
+  const finish = () => {
+    if (done) return; done = true;
+    flips.forEach(flip);
+    ov.querySelector('#ovTitle').textContent = multi ? `${cards.length / S.me.cards_per_pack} packs opened!` : 'Pack opened!';
+    ov.querySelector('#ovSum').style.opacity = 1;
+    const n = left();
+    ov.querySelector('#ovAct').innerHTML = `${n ? `<button class="btn primary" id="again">Open another (${n} left)</button>` : ''}
+      ${n > 1 && kind === 'normal' ? `<button class="btn light" id="againAll">Open all (${n})</button>` : ''}
+      <button class="btn light" id="toCol">View collection</button><button class="btn light" id="cont">Continue</button>`;
+    const close = () => ov.remove();
+    ov.querySelector('#cont').onclick = () => { close(); route(); };
+    ov.querySelector('#toCol').onclick = () => { close(); go('#/collection'); route(); };
+    if (n) ov.querySelector('#again').onclick = () => { close(); renderHome(); openPacks(kind, 1); };
+    if (ov.querySelector('#againAll')) ov.querySelector('#againAll').onclick = () => { close(); renderHome(); openPacks(kind, n); };
+  };
+  flips.forEach(f => f.onclick = () => { flip(f); if (flips.every(x => x.classList.contains('open'))) finish(); });
+  ov.querySelector('#revAll').onclick = () => { skip = true; finish(); };
+  (async () => {
+    await sleep(multi ? 500 : order.length * 120 + 500);
+    for (const f of flips) {
+      if (skip || done) return;
+      if (f.classList.contains('open')) continue;
+      const t = TIERS.indexOf([...f.classList].find(c => c.startsWith('t-')).slice(2));
+      if (t <= 3 && !multi) { f.classList.add('charge'); await sleep(1100); }   // Epic or better: glow first
+      if (skip || done) return;
+      flip(f); await sleep(multi ? 45 : 520);
+    }
+    await sleep(500); finish();
+  })();
 }
 
 // ---------------- timer ----------------
@@ -526,16 +606,60 @@ function collectionGrid(cards, opts = {}) {
       count: own[l.key] && own[l.key].count > 1 ? `×${own[l.key].count}` : ''
     })).join('')}</div>` : '<p class="muted">Nothing here.</p>';
 }
-function setsHTML(cards) {
+function rewardKind(keys) { return keys.some(k => ['apex','mythic','legendary'].includes(S.byKey[k]?.tier)) ? 'legendary' : 'epic'; }
+// Mirrors the leaderboard formula in the database
+function scoreInfo(cards, claimed) {
   const own = ownership(cards);
-  return `<div class="sets">${S.packs.map(p => {
-    const have = p.level_keys.filter(k => own[k]).length, done = have === p.level_keys.length;
+  claimed = claimed || (S.me ? S.me.claimed_sets || [] : []);
+  const byTier = {}; let base = 0, holoBonus = 0;
+  for (const [k, o] of Object.entries(own)) {
+    const l = S.byKey[k]; if (!l) continue;
+    const p = TIER_POINTS[l.tier];
+    const t = byTier[l.tier] ||= {n: 0, pts: 0, holo: 0};
+    t.n++; t.pts += p; base += p;
+    if (o.holo) { t.holo++; holoBonus += p * 2; }
+  }
+  const sets = S.packs.map(p => {
+    const missing = p.level_keys.filter(k => !own[k]);
     const bonus = Math.floor(p.level_keys.reduce((s, k) => s + (S.byKey[k] ? TIER_POINTS[S.byKey[k].tier] : 0), 0) / 2);
-    return `<div class="setbox ${done ? 'done' : ''}" style="--sc:${esc(p.colour || '#888')}">
-      <div class="row" style="justify-content:space-between"><b>${esc(p.name)}</b><span class="muted">${have}/${p.level_keys.length}${done ? ' ✓' : ''}</span></div>
-      <div class="muted" style="font-size:12px;margin-top:4px">${p.level_keys.map(k => `<span style="color:${own[k] ? 'var(--text)' : 'inherit'}">${esc(S.byKey[k]?.name || k)}</span>`).join(' · ')}</div>
-      <div style="font-size:12px;margin-top:6px;color:var(--accent2);font-weight:700">Bonus: +${bonus.toLocaleString()} pts</div></div>`;
+    return {p, have: p.level_keys.length - missing.length, missing, done: !missing.length, bonus, reward: rewardKind(p.level_keys), claimed: claimed.includes(p.name)};
+  });
+  sets.sort((a, b) => (b.done && !b.claimed) - (a.done && !a.claimed) || a.done - b.done || a.missing.length - b.missing.length || b.bonus - a.bonus);
+  const setBonus = sets.filter(x => x.done).reduce((s, x) => s + x.bonus, 0);
+  return {byTier, base, holoBonus, setBonus, setsDone: sets.filter(x => x.done).length, total: base + holoBonus + setBonus, sets};
+}
+function scoreTable(info) {
+  const rows = TIERS.filter(t => info.byTier[t]).map(t => {
+    const x = info.byTier[t];
+    return `<tr><td><span style="color:var(--${t === 'apex' ? 'accent2' : t});font-weight:800">${t.toUpperCase()}</span></td><td>${x.n} level${x.n > 1 ? 's' : ''} × ${TIER_POINTS[t].toLocaleString()}</td><td style="text-align:right">${x.pts.toLocaleString()}</td></tr>`;
+  }).join('');
+  return `<table class="scoretbl"><tbody>${rows || '<tr><td class="muted" colspan="3">No cards yet. Open a pack!</td></tr>'}
+    <tr><td><b>✦ Holo bonus</b></td><td class="muted">holo levels count 3×</td><td style="text-align:right">+${info.holoBonus.toLocaleString()}</td></tr>
+    <tr><td><b>Set bonuses</b></td><td class="muted">${info.setsDone} of ${S.packs.length} sets complete</td><td style="text-align:right">+${info.setBonus.toLocaleString()}</td></tr>
+    <tr class="tot"><td><b>Total</b></td><td class="muted">dupes don't count, trade them!</td><td style="text-align:right"><b>${info.total.toLocaleString()}</b></td></tr>
+  </tbody></table>`;
+}
+function setCards(sets, readOnly) {
+  if (!sets.length) return '<p class="muted">No sets.</p>';
+  return `<div class="sets">${sets.map(x => {
+    const n = x.p.level_keys.length, away = x.missing.length;
+    const status = x.done ? (x.claimed || readOnly ? '<span class="sdone">✓ Complete</span>' : `<button class="btn primary sm" data-claim="${esc(x.p.name)}">Claim reward</button>`)
+      : `<span class="saway">${away === 1 ? '1 level away!' : `${away} levels away`}</span>`;
+    return `<div class="setbox ${x.done ? 'done' : ''}" style="--sc:${esc(x.p.colour || '#888')}">
+      <div class="row" style="justify-content:space-between"><b>${esc(x.p.name)}</b><span class="muted">${x.have}/${n}</span></div>
+      <div class="bar" style="margin:8px 0"><i style="width:${x.have / n * 100}%;background:var(--sc)"></i></div>
+      <div class="slv">${x.p.level_keys.map(k => { const l = S.byKey[k]; const has = !x.missing.includes(k);
+        return `<span class="${has ? 'has' : ''}">${has ? '✓' : '○'} ${esc(l?.name || k)}${l?.rank ? ` <i>#${l.rank}</i>` : ''}</span>`; }).join('')}</div>
+      <div class="srew">Reward: <b>+${x.bonus.toLocaleString()} pts</b> & <b class="${x.reward}">1 ${x.reward === 'legendary' ? 'Legendary' : 'Epic'} pack</b>${x.claimed ? ' <span class="muted">(pack claimed)</span>' : ''}</div>
+      <div style="margin-top:8px">${status}</div></div>`;
   }).join('')}</div>`;
+}
+function bindClaims() {
+  document.querySelectorAll('[data-claim]').forEach(b => b.onclick = async () => {
+    b.disabled = true;
+    try { const r = await rpc('claim_set', {p_token: S.token, p_set_name: b.dataset.claim}); setState(r.state); toast(`Set complete! +1 ${r.kind} pack`); route(); }
+    catch (e) { toast(e.message, true); b.disabled = false; }
+  });
 }
 function filterChips(rerender) {
   const f = S.filter;
@@ -548,7 +672,9 @@ function renderCollection() {
   const listed = S.levels.filter(l => l.rank), own = ownership(S.myCards);
   app.innerHTML = `<div class="panel"><h2>Your collection · ${listed.filter(l => own[l.key]).length}/${listed.length} · ${S.myCards.length} cards total</h2>
     ${filterChips(renderCollection)}${collectionGrid(S.myCards)}</div>
-    <div class="panel"><h2>GDPS pack sets</h2><p class="muted" style="margin-top:-6px">Own every level in a pack (normal or holo) to earn its bonus.</p>${setsHTML(S.myCards)}</div>`;
+    <div class="panel"><h2>GDPS pack sets</h2><p class="muted" style="margin-top:-6px">Own every level in a set (normal or holo) to earn its bonus points, plus a one-time reward pack.</p>${setCards(scoreInfo(S.myCards).sets)}</div>
+    <div class="panel"><h2>Your score</h2>${scoreTable(scoreInfo(S.myCards))}</div>`;
+  bindClaims();
 }
 
 // ---------------- leaderboard / players ----------------
@@ -571,7 +697,7 @@ async function renderPlayer(name) {
     app.innerHTML = `<div class="panel"><div class="row" style="justify-content:space-between"><h2 style="margin:0">${esc(row.username)} · ${row.score.toLocaleString()} pts</h2>
       ${row.user_id !== S.me.user_id ? `<button class="btn primary sm" id="tw">Trade with ${esc(row.username)}</button>` : ''}</div><br>
       ${filterChips(draw)}${collectionGrid(cards)}</div>
-      <div class="panel"><h2>GDPS pack sets</h2>${setsHTML(cards)}</div>`;
+      <div class="panel"><h2>GDPS pack sets</h2>${setCards(scoreInfo(cards, []).sets, true)}</div>`;
     const tw = $('#tw'); if (tw) tw.onclick = () => go('#/trades/new/' + encodeURIComponent(row.username));
   };
   draw();
