@@ -1,657 +1,1046 @@
--- GDPS Gacha — update to v3. Paste ALL of this into a new SQL Editor query and Run.
--- =====================================================================
---  GDPS Gacha — database setup for Supabase
---  Paste this whole file into Supabase → SQL Editor → Run.
---  Safe to run again later: it drops and recreates the functions,
---  but keeps players, cards and trades.
--- =====================================================================
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GDPS Gacha</title>
+<link rel="icon" href="data:image/png;base64,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">
+<script>
+/* ======================= CONFIG ======================= */
+window.GACHA_CONFIG = {
+  SUPABASE_URL: "https://mtswotmpskcktqhsxddx.supabase.co",
+  SUPABASE_KEY: "sb_publishable_iBSxevW54OgJg2vZKr3ljA_gbkq7qBT",  // publishable key (safe to be public)
+  LIST_REPO_RAW: "https://raw.githubusercontent.com/ScratchCrafter/Goldenfyre101-GDPS-Demonlist/main/data/",
+  // Creator icons: lowercase creator name -> image link. Creators not listed get a placeholder.
+  // e.g.  "beeguy": "https://example.com/beeguy.png",
+  CREATOR_ICONS: {
+  }
+};
+/* ====================================================== */
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --bg:#0a0909; --panel:#141317; --panel2:#1b1a20; --line:#2a2830; --text:#f2f0f5; --muted:#9c98a6;
+  --accent:#ff7a59; --accent2:#ffb340;
+  --common:#9aa0a8; --uncommon:#3fca6b; --rare:#3f82f0; --epic:#a463f2; --legendary:#f5a524; --mythic:#e5484d; --apex:#ffd36b;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+body{background:radial-gradient(1200px 600px at 50% -200px,#3a0f12 0%,transparent 70%),var(--bg);min-height:100vh}
+a{color:var(--accent2)}
+button,input,select{font:inherit}
+button{cursor:pointer}
+.hidden{display:none!important}
 
-create extension if not exists pgcrypto with schema extensions;
+/* top bar */
+.top{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:10px;padding:10px 16px;background:rgba(8,8,10,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.logo{font-weight:900;letter-spacing:.5px;font-size:18px;display:flex;align-items:center;gap:8px;cursor:pointer}
+.logo img{width:30px;height:30px}
+nav{display:flex;gap:4px;margin-left:12px;flex-wrap:wrap}
+nav a{color:var(--muted);text-decoration:none;padding:6px 10px;border-radius:8px;font-weight:600;font-size:14px;position:relative}
+nav a.on,nav a:hover{color:var(--text);background:var(--panel2)}
+.dot{position:absolute;top:0;right:0;min-width:16px;height:16px;border-radius:8px;background:#ff3b6b;color:#fff;font-size:10px;display:grid;place-items:center;padding:0 4px}
+.spacer{flex:1}
+.pill{display:inline-flex;align-items:center;gap:6px;background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:5px 12px;font-weight:700;font-size:14px;cursor:pointer}
+.pill img{width:18px;height:18px}
+.user{color:var(--muted);font-size:14px;cursor:pointer}
+@media (max-width:760px){nav{order:3;width:100%;margin:0}.top{flex-wrap:wrap}}
 
--- ---------- Settings (change numbers here) ----------------------------
-create table if not exists public.settings (
-  id int primary key default 1 check (id = 1),
-  pack_minutes int not null default 10,   -- one pack every N minutes
-  pack_cap int not null default 10,       -- max timer packs stored
-  start_packs int not null default 10,    -- packs a new player starts with
-  holo_chance float not null default 0.10,
-  merge_cost int not null default 4       -- 4 packs -> 1 better pack
-);
-insert into public.settings (id) values (1) on conflict do nothing;
--- added in v2
-alter table public.settings add column if not exists cards_per_pack int not null default 3;
--- chance per card for: apex, mythic, legendary, epic, rare, uncommon, common (any scale; they're relative)
-alter table public.settings add column if not exists tier_weights float[] not null
-  default array[0.08, 0.4, 1.5, 5, 13, 30, 50.02];
+main{max-width:1240px;margin:0 auto;padding:20px 16px 60px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:18px}
+h2{font-size:20px;margin:0 0 14px}
+h3{margin:0 0 10px;font-size:16px}
+.muted{color:var(--muted)}
+.btn{border:1px solid var(--line);background:var(--panel2);color:var(--text);padding:10px 18px;border-radius:12px;font-weight:700}
+.btn:hover{border-color:#444}
+.btn.primary{background:linear-gradient(90deg,#ff6b6b,#ffb340);color:#1a0d05;border:none}
+.btn.epic{background:linear-gradient(90deg,#7c3aed,#c084fc);color:#fff;border:none}
+.btn.leg{background:linear-gradient(90deg,#d97706,#fcd34d);color:#2a1600;border:none}
+.btn.light{background:#f4f2f6;color:#111;border:none}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn.sm{padding:6px 12px;font-size:13px;border-radius:9px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.between{justify-content:space-between}
+.field{background:#0d0c10;border:1px solid var(--line);color:var(--text);border-radius:10px;padding:10px 12px;min-width:0}
+.banner{background:linear-gradient(90deg,rgba(255,107,107,.15),rgba(255,179,64,.15));border:1px solid #6b4a1f;border-radius:12px;padding:12px 16px;margin-bottom:18px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
 
--- ---------- Tables ----------------------------------------------------
-create table if not exists public.levels (
-  key text primary key,          -- file name in the demonlist repo
-  rank int unique,               -- list position; null = removed from list ("vaulted")
-  name text not null,
-  author text,
-  verifier text,
-  video_id text,                 -- YouTube id, used for the thumbnail
-  tier text not null
-);
+/* pack panel */
+.packs{display:grid;grid-template-columns:1fr 1.2fr 1fr;gap:20px;align-items:center}
+@media (max-width:820px){.packs{grid-template-columns:1fr}}
+.big{font-size:56px;font-weight:900;line-height:1}
+.big small{font-size:22px;color:var(--muted);font-weight:700}
+.label{font-size:12px;letter-spacing:1px;color:var(--muted);text-transform:uppercase;font-weight:700}
+.stack{position:relative;height:262px;display:flex;justify-content:center;margin-bottom:14px}
+.pack{position:absolute;top:14px;width:150px;height:226px;color:#fff;text-align:center;border-radius:4px;overflow:hidden;
+  background:linear-gradient(165deg,#3a0b12 0%,#8f1524 38%,#e0453a 72%,#ffb35c 100%);
+  box-shadow:0 14px 30px rgba(0,0,0,.55);display:flex;flex-direction:column;align-items:center;justify-content:center;transform-origin:bottom center;
+  -webkit-mask:conic-gradient(from -45deg at bottom,#0000,#000 1deg 89deg,#0000 90deg) bottom/8px 51% repeat-x,conic-gradient(from 135deg at top,#0000,#000 1deg 89deg,#0000 90deg) top/8px 51% repeat-x;
+          mask:conic-gradient(from -45deg at bottom,#0000,#000 1deg 89deg,#0000 90deg) bottom/8px 51% repeat-x,conic-gradient(from 135deg at top,#0000,#000 1deg 89deg,#0000 90deg) top/8px 51% repeat-x}
+.pack::before{content:"";position:absolute;inset:0;background:linear-gradient(105deg,transparent 35%,rgba(255,255,255,.35) 48%,transparent 60%);background-size:300% 100%;animation:shine 4.5s ease-in-out infinite;z-index:2}
+.pack::after{content:"";position:absolute;inset:10px 8px;border:1px solid rgba(255,255,255,.22);border-radius:3px}
+@keyframes shine{0%,55%{background-position:120% 0}100%{background-position:-60% 0}}
+.pack.epic{background:linear-gradient(165deg,#140b2e,#3b1a8a 40%,#8b5cf6 75%,#e9d5ff)}
+.pack.legendary{background:linear-gradient(165deg,#2a1500,#8a4b06 40%,#f59e0b 75%,#fff1b8)}
+.pack .pk-face{width:70px;height:70px;filter:drop-shadow(0 4px 8px rgba(0,0,0,.5))}
+.pack .pk-title{font-weight:900;font-size:22px;margin-top:10px;letter-spacing:2px;line-height:1}
+.pack .pk-kind{font-size:11px;letter-spacing:3px;opacity:.85;margin-top:4px;font-weight:700}
+.pack .pk-sub{margin-top:12px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:3px 12px;font-weight:800;font-size:10px;letter-spacing:2px}
+.pack.empty{opacity:.25;filter:grayscale(1)}
+.pack.mini{position:relative;top:0;width:46px;height:68px;flex:none}.pack.mini::after{inset:5px 4px}.pack.mini img{width:30px;height:30px;position:relative}
+.full{border:1px solid #b7791f;color:#f6c063;border-radius:999px;padding:8px 18px;font-weight:800;font-size:13px;display:inline-block;letter-spacing:.5px}
+.special{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
+@media (max-width:600px){.special{grid-template-columns:1fr}}
+.spbox{border:1px solid var(--line);border-radius:12px;padding:14px;background:var(--panel2)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+@media (max-width:700px){.stats{grid-template-columns:repeat(2,1fr)}}
+.stat{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:14px}
+.stat b{font-size:26px;display:block}
+.bar{height:6px;background:#26242c;border-radius:4px;overflow:hidden;margin:6px 0 14px;position:relative}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,#ff6b6b,#ffb340)}
+.bar .mark{position:absolute;top:0;bottom:0;width:2px;background:#fff8}
 
-alter table public.levels add column if not exists points int not null default 10;
+/* cards (tall, 5:7) */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px}
+.hscroll{display:flex;gap:12px;overflow-x:auto;padding:4px 2px 10px}
+.hscroll .card{flex:0 0 150px}
+.card{--c:var(--common);position:relative;aspect-ratio:5/7;border-radius:11px;padding:9px;background:linear-gradient(180deg,#1c1b21,#131217);
+  border:2px solid var(--c);box-shadow:0 4px 14px rgba(0,0,0,.45);display:flex;flex-direction:column;cursor:pointer;overflow:hidden;isolation:isolate;container-type:inline-size}
+.card.t-common{--c:var(--common)}.card.t-uncommon{--c:var(--uncommon)}.card.t-rare{--c:var(--rare)}
+.card.t-epic{--c:var(--epic)}.card.t-legendary{--c:var(--legendary)}.card.t-mythic{--c:var(--mythic)}
+.card.t-apex{--c:var(--apex);border-color:transparent;background:linear-gradient(#18171c,#18171c) padding-box,linear-gradient(135deg,#ff4d4d,#ffb340,#3fca6b,#3f82f0,#a463f2,#ff4d4d) border-box}
+.card .ctop{display:flex;justify-content:space-between;align-items:center;gap:4px;margin-bottom:7px}
+.card .rank{font-weight:900;font-size:clamp(11px,11cqw,17px)}
+.tag{font-size:clamp(7px,6.5cqw,10px);font-weight:800;letter-spacing:.4px;padding:2px 5px;border-radius:5px;background:color-mix(in srgb,var(--c) 22%,transparent);color:var(--c);border:1px solid color-mix(in srgb,var(--c) 55%,transparent);text-transform:uppercase;white-space:nowrap}
+.thumb{aspect-ratio:16/10;border-radius:7px;overflow:hidden;background:#0c0b0f;border:1px solid rgba(255,255,255,.12);display:grid;place-items:center;flex:none}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.noimg{font-weight:900;font-size:12px;text-align:center;padding:6px;color:var(--c);background:radial-gradient(circle,color-mix(in srgb,var(--c) 30%,transparent),transparent 70%);width:100%;height:100%;display:grid;place-items:center}
+.card .nm{font-weight:800;font-size:clamp(11px,10cqw,16px);margin-top:9px;line-height:1.15;overflow-wrap:break-word}
+.card .meta{font-size:clamp(9px,7.5cqw,11px);color:var(--muted);margin-top:auto;line-height:1.35}
+.card .meta{margin-bottom:calc(1.9em + 6px)}
+.card .pts{position:absolute;left:9px;right:9px;bottom:8px;text-align:center;font-size:clamp(9px,8.5cqw,13px);font-weight:900;color:var(--c);z-index:2;
+  background:color-mix(in srgb,var(--c) 14%,#000);border:1px solid color-mix(in srgb,var(--c) 45%,transparent);border-radius:6px;padding:2px 0}
+.card .holotag{position:absolute;left:14px;top:calc(9px + 1.6em + 7px);background:#f2eefc;color:#2b1a5a;font-weight:900;font-size:clamp(8px,7cqw,11px);border-radius:6px;padding:1px 6px;z-index:4}
+.card.holo::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:1;mix-blend-mode:color;opacity:.55;
+  background:linear-gradient(125deg,#ff6b6b,#ffd36b,#6bff9c,#6bd0ff,#b46bff,#ff6bd0);animation:hue 7s linear infinite}
+.card.holo::before{content:"";position:absolute;inset:0;pointer-events:none;z-index:3;
+  background:linear-gradient(110deg,transparent 30%,rgba(255,255,255,.22) 45%,rgba(255,255,255,.05) 55%,transparent 70%);background-size:300% 100%;animation:shine 5s ease-in-out infinite}
+.card.holo{box-shadow:0 0 16px color-mix(in srgb,var(--c) 35%,transparent)}
+@keyframes hue{to{filter:hue-rotate(360deg)}}
+.card.missing{filter:grayscale(1) brightness(.42)}
+.card.missing .thumb img{opacity:.35}
+.card.sel{outline:3px solid #fff;outline-offset:2px}
+.card.mini{padding:5px;border-radius:7px;border-width:2px}
+.card.mini .ctop{margin-bottom:4px}.card.mini .tag,.card.mini .meta,.card.mini .pts,.card.mini .holotag{display:none}.card.mini .nm{margin-top:5px}
+.minis{display:grid;grid-template-columns:repeat(auto-fill,minmax(62px,1fr));gap:6px;margin:8px 0}
 
-create table if not exists public.list_packs (
-  id serial primary key,
-  sort int not null default 0,
-  name text not null unique,
-  colour text,
-  level_keys text[] not null
-);
+/* stacks of copies */
+.cstack{position:relative}
+.cstack .layer{position:absolute;left:0;right:0;transition:transform .25s ease}
+.cstack .layer .card{box-shadow:0 -2px 8px rgba(0,0,0,.6)}
+.cstack .front{position:relative}
+.cstack .many{position:absolute;left:50%;bottom:-12px;transform:translateX(-50%);z-index:30;background:#f2eef6;color:#111;font-weight:900;font-size:18px;border-radius:10px;padding:2px 12px;box-shadow:0 4px 12px rgba(0,0,0,.6)}
+.cstack .cnt{position:absolute;right:-6px;bottom:-8px;z-index:30;background:#000c;border:1px solid var(--line);font-weight:900;font-size:12px;border-radius:8px;padding:1px 7px}
+/* trade stacks: hover a layer to slide it out */
+.tstack .layer,.tstack .front{transition:transform .22s ease}
+.tstack .peek{transform:translateX(42%) rotate(4deg)!important;z-index:40!important}
+.tstack .hit{position:absolute;left:0;right:0;z-index:45;cursor:pointer}
+.tray{min-height:120px;border:1px dashed #3a3842;border-radius:12px;padding:10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:8px;align-content:start}
+.tray .card{cursor:pointer}
+.tray:empty::before{content:"Click cards below to add them";color:var(--muted);font-size:13px;grid-column:1/-1;align-self:center;text-align:center}
+.tradecols{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media (max-width:820px){.tradecols{grid-template-columns:1fr}}
+.tpick{max-height:560px;overflow-y:auto;padding:10px 4px 20px}
+.tpick .grid{grid-template-columns:repeat(auto-fill,minmax(110px,1fr));row-gap:22px}
 
-create table if not exists public.profiles (
-  id uuid primary key default gen_random_uuid(),
-  username text not null,
-  is_admin boolean not null default false,
-  packs int not null default 10,
-  pack_anchor timestamptz not null default now(),
-  bonus_packs int not null default 0,
-  epic_packs int not null default 0,
-  legendary_packs int not null default 0,
-  created_at timestamptz not null default now()
-);
-create unique index if not exists profiles_username_lower on public.profiles (lower(username));
+/* overlay / pick */
+.overlay{position:fixed;inset:0;z-index:50;background:rgba(5,4,6,.95);overflow-y:auto;padding:24px 16px 130px}
+.overlay .inner{max-width:900px;margin:0 auto;text-align:center}
+.overlay h1{margin:6px 0}
+.pickrow{display:grid;grid-template-columns:repeat(3,minmax(0,210px));justify-content:center;gap:18px;margin-top:20px;text-align:left}
+@media (max-width:600px){.pickrow{gap:8px}}
+.deal{animation:deal .5s cubic-bezier(.2,.9,.3,1) both}
+@keyframes deal{from{transform:translateY(60px) scale(.85);opacity:0}to{transform:none;opacity:1}}
+.flip{perspective:1100px;position:relative}
+.flip-in{position:relative;transform-style:preserve-3d;transition:transform .8s cubic-bezier(.3,1.25,.4,1);transform:rotateY(180deg)}
+.flip.open .flip-in{transform:rotateY(0)}
+.flip .fr{backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.cback{position:absolute;inset:0;transform:rotateY(180deg);backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:11px;cursor:pointer;
+  background:radial-gradient(circle at 50% 45%,#5a1019 0%,#26070b 70%);border:2px solid #6e1a22;display:grid;place-items:center;overflow:hidden}
+.cback::before{content:"";position:absolute;inset:8px;border:1px solid rgba(255,140,120,.25);border-radius:7px;background:repeating-linear-gradient(45deg,rgba(255,255,255,.025) 0 6px,transparent 6px 12px)}
+.cback img{position:relative;width:46%;filter:drop-shadow(0 4px 10px rgba(0,0,0,.6))}
+.flip.charge .cback{animation:charge 1s ease-in-out infinite;--g:var(--epic)}
+.flip.charge.t-legendary .cback{--g:var(--legendary)}.flip.charge.t-mythic .cback{--g:var(--mythic)}.flip.charge.t-apex .cback{--g:#fff3b0}
+@keyframes charge{0%,100%{box-shadow:0 0 10px var(--g)}50%{box-shadow:0 0 38px var(--g),0 0 6px var(--g) inset}}
+.opt{transition:transform .35s ease,opacity .35s ease,filter .35s}
+.opt.choosable .flip{cursor:pointer}
+.opt.choosable:hover{transform:translateY(-8px)}
+.opt.kept{transform:translateY(-14px) scale(1.06)}
+.opt.kept .card{box-shadow:0 0 30px color-mix(in srgb,var(--c) 70%,transparent)}
+.opt.gone{opacity:.18;filter:grayscale(1);transform:scale(.92)}
+.hints{display:flex;flex-direction:column;gap:4px;margin-top:8px;opacity:0;transition:opacity .3s}
+.opt.revealed .hints{opacity:1}
+.hint{font-size:12px;font-weight:800;border-radius:8px;padding:4px 8px;text-align:center}
+.hint.new{background:#173320;color:#6ee08c;border:1px solid #2f6b3c}
+.hint.dupe{background:#222;color:#aaa;border:1px solid #333}
+.hint.set{background:#2a2110;color:#ffcf70;border:1px solid #6b4a1f}
+.hint.creator{background:#1b1730;color:#c4b5fd;border:1px solid #4c3d8f}
+.hint.mine{background:#331522;color:#ff9ec4;border:1px solid #7a2e4d}
+.actions{position:fixed;left:0;right:0;bottom:0;padding:14px;display:flex;justify-content:center;gap:10px;flex-wrap:wrap;background:linear-gradient(transparent,rgba(5,4,6,.96) 40%);z-index:51}
+.tearing{animation:shake .7s ease both}
+@keyframes shake{0%{transform:none}15%{transform:rotate(-3deg)}30%{transform:rotate(3deg)}45%{transform:rotate(-2deg) scale(1.04)}70%{transform:scale(1.1);filter:brightness(1.6)}100%{transform:scale(1.25) translateY(-30px);opacity:0;filter:brightness(2.5)}}
 
--- Private tables (no one can read these from the website)
-create table if not exists public.secrets (
-  user_id uuid primary key references public.profiles on delete cascade,
-  pin_hash text not null,
-  failed int not null default 0,
-  locked_until timestamptz
-);
-create table if not exists public.sessions (
-  token text primary key,
-  user_id uuid not null references public.profiles on delete cascade,
-  created_at timestamptz not null default now()
-);
+/* feeds, tables */
+.feed{display:flex;flex-direction:column;gap:8px}
+.feeditem{--c:var(--legendary);border:1px solid color-mix(in srgb,var(--c) 55%,transparent);background:color-mix(in srgb,var(--c) 7%,transparent);border-radius:10px;padding:10px 12px;display:flex;gap:10px;align-items:center;font-size:14px}
+.feeditem .tt{font-weight:900;font-size:11px;color:var(--c);min-width:78px;letter-spacing:.5px}
+.feeditem.t-mythic{--c:var(--mythic)}.feeditem.t-epic{--c:var(--epic)}.feeditem.t-apex{--c:var(--apex)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media (max-width:820px){.two{grid-template-columns:1fr}}
+table{width:100%;border-collapse:collapse}
+th,td{padding:10px 8px;border-bottom:1px solid var(--line);text-align:left;font-size:14px}
+th{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.5px}
+tr.me td{background:rgba(255,179,64,.07)}
+.lb tbody tr{cursor:pointer}.lb tbody tr:hover td{background:var(--panel2)}
+.scoretbl td{padding:7px 6px}.scoretbl tr.tot td{border-top:2px solid var(--line);border-bottom:none}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.chip{border:1px solid var(--line);background:var(--panel2);color:var(--muted);border-radius:999px;padding:5px 12px;font-size:13px;font-weight:700}
+.chip.on{color:#111;background:#f2eef6;border-color:#f2eef6}
 
-create table if not exists public.cards (
-  id bigserial primary key,
-  owner uuid not null references public.profiles on delete cascade,
-  level_key text not null references public.levels on update cascade,
-  holo boolean not null default false,
-  pulled_by uuid references public.profiles on delete set null,
-  pack_kind text,
-  pulled_at timestamptz not null default now()
-);
-create index if not exists cards_owner on public.cards (owner);
-create index if not exists cards_pulled_at on public.cards (pulled_at desc);
+/* sets & creators */
+.sets{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.setbox{border:1px solid var(--line);border-left:5px solid var(--sc,#888);border-radius:10px;padding:12px;background:var(--panel2)}
+.setbox.done{background:color-mix(in srgb,var(--sc) 12%,var(--panel2))}
+.srew{font-size:13px;margin-top:4px}.srew b.epic{color:#c4a1ff}.srew b.legendary{color:var(--legendary)}
+.saway{font-size:13px;font-weight:800;color:var(--accent2)}.sdone{font-size:13px;font-weight:800;color:#6ee08c}
+.cicon{width:46px;height:46px;border-radius:12px;flex:none;display:grid;place-items:center;font-weight:900;font-size:18px;color:#fff;overflow:hidden;border:2px solid rgba(255,255,255,.15)}
+.cicon img{width:100%;height:100%;object-fit:cover}
+.cbox{border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--panel2)}
+.cbox.done{border-color:#6b4a1f;background:linear-gradient(180deg,rgba(255,179,64,.08),var(--panel2))}
+.cbadge{font-size:11px;font-weight:900;letter-spacing:.5px;padding:2px 7px;border-radius:6px;background:#2a2110;color:#ffcf70;border:1px solid #6b4a1f}
 
-create table if not exists public.trades (
-  id bigserial primary key,
-  from_user uuid not null references public.profiles on delete cascade,
-  to_user uuid not null references public.profiles on delete cascade,
-  offer bigint[] not null default '{}',     -- card ids from_user gives
-  request bigint[] not null default '{}',   -- card ids from_user wants
-  status text not null default 'pending'
-    check (status in ('pending','accepted','declined','cancelled','failed')),
-  created_at timestamptz not null default now(),
-  resolved_at timestamptz
-);
+/* trades list */
+.trade{border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px;background:var(--panel2)}
+.trade .sides{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:10px 0}
+@media (max-width:600px){.trade .sides{grid-template-columns:1fr}}
+.status{font-size:12px;font-weight:800;text-transform:uppercase;padding:2px 8px;border-radius:6px;background:#26242c}
+.status.accepted{color:#6ee08c}.status.declined,.status.failed,.status.cancelled{color:#ff8080}.status.pending{color:#ffcf70}
 
-create table if not exists public.codes (
-  code text primary key,           -- stored uppercase
-  packs int not null default 1,
-  pack_kind text not null default 'normal' check (pack_kind in ('normal','epic','legendary')),
-  max_uses int not null default 1000,
-  uses int not null default 0,
-  expires_at timestamptz
-);
-create table if not exists public.code_redemptions (
-  code text references public.codes on delete cascade,
-  user_id uuid references public.profiles on delete cascade,
-  primary key (code, user_id)
-);
+/* auth, misc */
+.auth{max-width:420px;margin:60px auto}
+.auth .field{width:100%;margin-bottom:10px;font-size:16px}
+.tabs{display:flex;gap:6px;margin-bottom:16px}.tabs button{flex:1}
+.err{color:#ff8a8a;min-height:20px;font-size:14px;margin:6px 0}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#f2eef6;color:#111;padding:10px 18px;border-radius:10px;font-weight:700;z-index:100;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+.toast.bad{background:#ff8080}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:60;display:grid;place-items:center;padding:16px}
+.modal .box{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px;max-width:420px;width:100%;max-height:90vh;overflow-y:auto}
+.modal .card{cursor:default;width:220px;margin:0 auto 10px}
+footer{text-align:center;color:#6d6975;font-size:12px;padding:20px;line-height:1.6}
+@media (max-width:600px){
+  main{padding:14px 10px 60px}.panel{padding:14px}
+  .grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;row-gap:16px}
+  .card{padding:6px;border-radius:9px}.card .meta{display:none}.card .pts{left:5px;right:5px;bottom:5px}.card .holotag{left:9px}
+  .tpick .grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .minis{grid-template-columns:repeat(auto-fill,minmax(50px,1fr))}
+  .cstack .many{font-size:14px}
+}
+</style>
+</head>
+<body>
+<div class="top hidden" id="top">
+  <div class="logo" onclick="go('#/')"><img src="data:image/png;base64,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" alt="">GDPS GACHA</div>
+  <nav id="nav">
+    <a href="#/">Packs</a>
+    <a href="#/collection">Collection</a>
+    <a href="#/creators">Creators</a>
+    <a href="#/leaderboard">Leaderboard</a>
+    <a href="#/trades" id="navTrades">Trades</a>
+    <a href="#/admin" id="navAdmin" class="hidden">Admin</a>
+  </nav>
+  <div class="spacer"></div>
+  <span class="pill" id="packPill" title="Packs"><img src="data:image/png;base64,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" alt=""><span id="pillCount">0</span>/<span id="pillCap">10</span></span>
+  <span class="user" id="who" title="Log out"></span>
+</div>
+<main id="app"></main>
+<footer>Fan-made card game for the Goldenfyre GDPS demonlist · Built with AI assistance (Claude), not hand-made ·
+Not affiliated with RobTop Games · Level data from the GDPS demonlist, thumbnails from YouTube</footer>
 
--- A pack that has been opened but not picked from yet (pick 1 of 3)
-create table if not exists public.pending_picks (
-  id bigserial primary key,
-  user_id uuid not null references public.profiles on delete cascade,
-  kind text not null,
-  options jsonb not null,        -- [{level_key, holo}, ...]
-  created_at timestamptz not null default now()
-);
-create index if not exists pending_picks_user on public.pending_picks (user_id);
+<script>
+const CFG = window.GACHA_CONFIG;
+const LOGO = "data:image/png;base64,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";
+const TIERS = ['apex','mythic','legendary','epic','rare','uncommon','common'];
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const app = $('#app');
+const fmt = n => Math.round(n).toLocaleString();
 
-create table if not exists public.set_claims (
-  user_id uuid references public.profiles on delete cascade,
-  set_name text not null,
-  claimed_at timestamptz not null default now(),
-  primary key (user_id, set_name)
-);
+// ---- scoring rules (all in one place) ----
+const RULES = {
+  holoMult: 3,            // a holo level counts 3x
+  setMin: 500,            // set bonus = value of its levels, at least this
+  creatorMinLevels: 2,    // creators need at least this many levels on the list to count
+  creatorHalf: 0.15,      // own half of a creator's levels: +15% of their levels' value
+  creatorAll: 0.4,        // own all of them: +40% (total)
+  creatorHalfMin: 100, creatorAllMin: 300
+};
 
--- ---------- Row level security ---------------------------------------
--- Everything is read-only from the website. All changes go through the
--- functions below, which check the player's session and the rules.
-alter table public.settings enable row level security;
-alter table public.levels enable row level security;
-alter table public.list_packs enable row level security;
-alter table public.profiles enable row level security;
-alter table public.secrets enable row level security;
-alter table public.sessions enable row level security;
-alter table public.cards enable row level security;
-alter table public.trades enable row level security;
-alter table public.codes enable row level security;
-alter table public.code_redemptions enable row level security;
-alter table public.set_claims enable row level security;
-alter table public.pending_picks enable row level security;
+let sb = null;
+if (window.supabase && !/PASTE/.test(CFG.SUPABASE_URL)) sb = window.supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_KEY);
 
-drop policy if exists read_all on public.settings;
-create policy read_all on public.settings for select using (true);
-drop policy if exists read_all on public.levels;
-create policy read_all on public.levels for select using (true);
-drop policy if exists read_all on public.list_packs;
-create policy read_all on public.list_packs for select using (true);
-drop policy if exists read_all on public.profiles;
-create policy read_all on public.profiles for select using (true);
-drop policy if exists read_all on public.cards;
-create policy read_all on public.cards for select using (true);
--- secrets, sessions, trades, codes, code_redemptions: no policies = not readable directly
+const S = {
+  token: localStorage.getItem('gacha_token'),
+  me: null, levels: [], byKey: {}, packs: [], creators: [],
+  myCards: [], board: [], clock: 0,
+  filter: {show: 'all', tier: 'all'}, picks: []
+};
 
--- ---------- Helpers ---------------------------------------------------
-create or replace function public.tier_for_rank(r int) returns text
-language sql immutable as $$
-  select case when r = 1 then 'apex' when r <= 5 then 'mythic' when r <= 15 then 'legendary'
-              when r <= 30 then 'epic' when r <= 50 then 'rare' when r <= 70 then 'uncommon'
-              else 'common' end
-$$;
+async function rpc(name, args) {
+  const { data, error } = await sb.rpc(name, args);
+  if (error) {
+    if (/Not logged in/.test(error.message)) { logoutLocal(); throw new Error('Please log in again'); }
+    throw new Error(error.message);
+  }
+  return data;
+}
+async function fetchAll(q) {
+  let out = [], from = 0;
+  while (true) {
+    const { data, error } = await q().range(from, from + 999);
+    if (error) throw new Error(error.message);
+    out = out.concat(data);
+    if (data.length < 1000) return out;
+    from += 1000;
+  }
+}
+function toast(msg, bad) {
+  const t = document.createElement('div'); t.className = 'toast' + (bad ? ' bad' : ''); t.textContent = msg;
+  document.body.appendChild(t); setTimeout(() => t.remove(), 3200);
+}
+function go(h) { location.hash = h; }
 
-create or replace function public.tier_points(t text) returns int
-language sql immutable as $$
-  select case t when 'apex' then 10000 when 'mythic' then 3000 when 'legendary' then 1000
-                when 'epic' then 300 when 'rare' then 100 when 'uncommon' then 30 else 10 end
-$$;
+// ---------------- data ----------------
+const ckey = a => String(a || '').trim().toLowerCase();
+async function loadLevels() {
+  const lv = await fetchAll(() => sb.from('levels').select('*').order('rank', {ascending: true, nullsFirst: false}));
+  S.levels = lv; S.byKey = Object.fromEntries(lv.map(l => [l.key, l]));
+  const { data } = await sb.from('list_packs').select('*').order('sort');
+  S.packs = data || [];
+  // creators: group listed levels by author (case-insensitive)
+  const m = {};
+  for (const l of lv.filter(l => l.rank && ckey(l.author))) {
+    const c = m[ckey(l.author)] ||= {key: ckey(l.author), names: {}, keys: []};
+    c.names[l.author] = (c.names[l.author] || 0) + 1; c.keys.push(l.key);
+  }
+  S.creators = Object.values(m).filter(c => c.keys.length >= RULES.creatorMinLevels).map(c => {
+    const name = Object.entries(c.names).sort((a, b) => b[1] - a[1] || (b[0] > a[0] ? 1 : -1))[0][0];
+    const value = c.keys.reduce((s, k) => s + S.byKey[k].points, 0);
+    return {...c, name, value};
+  }).sort((a, b) => b.keys.length - a.keys.length || b.value - a.value);
+}
+async function loadMyCards() {
+  S.myCards = await fetchAll(() => sb.from('cards').select('id,level_key,holo').eq('owner', S.me.user_id).order('id'));
+}
+async function cardsOf(uid) { return fetchAll(() => sb.from('cards').select('id,level_key,holo').eq('owner', uid).order('id')); }
+function setState(st) {
+  S.me = st;
+  S.clock = new Date(st.server_now).getTime() - Date.now();
+  $('#pillCount').textContent = st.packs + st.bonus_packs;
+  $('#pillCap').textContent = st.pack_cap;
+  $('#who').textContent = st.username;
+  $('#navAdmin').classList.toggle('hidden', !st.is_admin);
+}
+async function refreshState() { setState(await rpc('get_state', {p_token: S.token})); }
 
--- Session token -> user id (raises if not logged in)
-create or replace function public._uid(p_token text) returns uuid
-language plpgsql stable security definer set search_path = public as $$
-declare u uuid;
-begin
-  select user_id into u from sessions where token = p_token;
-  if u is null then raise exception 'Not logged in'; end if;
-  return u;
-end $$;
+function ownership(cards) {
+  const o = {};
+  for (const c of cards) { const x = o[c.level_key] ||= {count: 0, holo: 0, ids: []}; x.count++; if (c.holo) x.holo++; x.ids.push(c.id); }
+  return o;
+}
+// owned map from leaderboard rows: [[key, holoAny, count]]
+function ownFromRows(rows) { const o = {}; for (const [k, h, n] of rows) o[k] = {count: n, holo: h ? 1 : 0}; return o; }
 
--- Adds timer packs that were earned since last time. Returns the locked profile row.
-create or replace function public._refresh_packs(p_uid uuid) returns public.profiles
-language plpgsql security definer set search_path = public as $$
-declare p profiles; s settings; earned int; secs int;
-begin
-  select * into s from settings where id = 1;
-  secs := s.pack_minutes * 60;
-  select * into p from profiles where id = p_uid for update;
-  if p.packs >= s.pack_cap then
-    p.pack_anchor := now();
-  else
-    earned := floor(extract(epoch from (now() - p.pack_anchor)) / secs);
-    if earned > 0 then
-      p.packs := least(s.pack_cap, p.packs + earned);
-      if p.packs >= s.pack_cap then p.pack_anchor := now();
-      else p.pack_anchor := p.pack_anchor + make_interval(secs => earned * secs); end if;
-    end if;
-  end if;
-  update profiles set packs = p.packs, pack_anchor = p.pack_anchor where id = p_uid;
-  return p;
-end $$;
+// ---------------- scoring ----------------
+function rewardKind(keys) { return keys.some(k => ['apex','mythic','legendary'].includes(S.byKey[k]?.tier)) ? 'legendary' : 'epic'; }
+function setValue(keys) { return Math.max(RULES.setMin, keys.reduce((s, k) => s + (S.byKey[k]?.points || 0), 0)); }
+function creatorStatus(c, own) {
+  const have = c.keys.filter(k => own[k]).length, n = c.keys.length;
+  const halfAt = Math.ceil(n / 2);
+  const halfBonus = Math.max(RULES.creatorHalfMin, Math.round(c.value * RULES.creatorHalf));
+  const allBonus = Math.max(RULES.creatorAllMin, Math.round(c.value * RULES.creatorAll));
+  const bonus = have >= n ? allBonus : (n >= 3 && have >= halfAt) ? halfBonus : 0;
+  return {c, have, n, halfAt: n >= 3 ? halfAt : null, halfBonus, allBonus, bonus, done: have >= n, missing: c.keys.filter(k => !own[k])};
+}
+function scoreInfo(own, claimed = []) {
+  const byTier = {}; let base = 0, holoBonus = 0, uniq = 0, holos = 0;
+  for (const [k, o] of Object.entries(own)) {
+    const l = S.byKey[k]; if (!l) continue;
+    const t = byTier[l.tier] ||= {n: 0, pts: 0};
+    t.n++; t.pts += l.points; base += l.points;
+    if (l.rank) uniq++;
+    if (o.holo) { holos++; holoBonus += l.points * (RULES.holoMult - 1); }
+  }
+  const sets = S.packs.map(p => {
+    const missing = p.level_keys.filter(k => !own[k]);
+    return {p, have: p.level_keys.length - missing.length, missing, done: !missing.length, bonus: setValue(p.level_keys), reward: rewardKind(p.level_keys), claimed: claimed.includes(p.name)};
+  });
+  sets.sort((a, b) => (b.done && !b.claimed) - (a.done && !a.claimed) || a.done - b.done || a.missing.length - b.missing.length || b.bonus - a.bonus);
+  const creators = S.creators.map(c => creatorStatus(c, own));
+  const setBonus = sets.filter(x => x.done).reduce((s, x) => s + x.bonus, 0);
+  const creatorBonus = creators.reduce((s, x) => s + x.bonus, 0);
+  return {byTier, base, holoBonus, setBonus, creatorBonus, uniq, holos, sets, creators,
+          setsDone: sets.filter(x => x.done).length, creatorsDone: creators.filter(x => x.done).length,
+          total: base + holoBonus + setBonus + creatorBonus};
+}
+const myInfo = () => scoreInfo(ownership(S.myCards), S.me.claimed_sets || []);
+function boardRows() {
+  return S.board.map(r => ({...r, info: scoreInfo(ownFromRows(r.owned), r.claimed_sets)})).sort((a, b) => b.info.total - a.info.total);
+}
 
-create or replace function public._state_json(p profiles) returns jsonb
-language sql stable security definer set search_path = public as $$
-  select jsonb_build_object(
-    'user_id', p.id, 'username', p.username, 'is_admin', p.is_admin,
-    'packs', p.packs, 'bonus_packs', p.bonus_packs,
-    'epic_packs', p.epic_packs, 'legendary_packs', p.legendary_packs,
-    'pack_cap', s.pack_cap, 'pack_minutes', s.pack_minutes, 'merge_cost', s.merge_cost,
-    'cards_per_pack', s.cards_per_pack, 'tier_weights', s.tier_weights,
-    'pending_picks', (select count(*) from pending_picks where user_id = p.id),
-    'claimed_sets', (select coalesce(jsonb_agg(set_name), '[]') from set_claims where user_id = p.id),
-    'next_pack_at', case when p.packs < s.pack_cap
-                         then p.pack_anchor + make_interval(mins => s.pack_minutes) end,
-    'server_now', now())
-  from settings s where s.id = 1
-$$;
+// ---------------- card rendering ----------------
+function thumb(l) {
+  return l.video_id
+    ? `<img loading="lazy" src="https://i.ytimg.com/vi/${esc(l.video_id)}/mqdefault.jpg" alt="" onerror="this.outerHTML='<div class=noimg>'+this.closest('.card').dataset.name+'</div>'">`
+    : `<div class="noimg">${esc(l.name)}</div>`;
+}
+function cardHTML(l, o = {}) {
+  if (!l) return '';
+  const cls = ['card', 't-' + l.tier, o.holo ? 'holo' : '', o.missing ? 'missing' : '', o.mini ? 'mini' : '', o.sel ? 'sel' : ''].join(' ');
+  return `<div class="${cls}" data-key="${esc(l.key)}" data-name="${esc(l.name)}" ${o.id ? `data-id="${o.id}"` : ''}>
+    <div class="ctop"><span class="rank">${l.rank ? '#' + l.rank : '—'}</span><span class="tag">${l.rank ? l.tier : 'vaulted'}</span></div>
+    <div class="thumb">${thumb(l)}</div>
+    <div class="nm">${esc(l.name)}</div>
+    <div class="meta">Verified by ${esc(l.verifier || '?')}<br>By ${esc(l.author || '?')}</div>
+    <div class="pts">${fmt(l.points * (o.holo ? RULES.holoMult : 1))} pts${o.holo ? ' ✦' : ''}</div>
+    ${o.holo ? '<div class="holotag">✦ HOLO</div>' : ''}
+  </div>`;
+}
+// A stack of copies: holos on top, up to 5 layers peeking out above, big count past 5
+function stackHTML(l, copies, opts = {}) {
+  // copies: [{id, holo}] sorted holos first
+  const step = opts.step || 12;
+  const shown = copies.slice(0, 5);
+  const layers = shown.length;
+  let h = `<div class="cstack ${opts.trade ? 'tstack' : ''}" data-key="${esc(l.key)}" style="padding-top:${(layers - 1) * step}px">`;
+  // back-most first (highest on screen), front last
+  for (let i = layers - 1; i >= 1; i--) {
+    const c = shown[i];
+    h += `<div class="layer" data-li="${i}" style="top:${(layers - 1 - i) * step}px;z-index:${10 - i}">${cardHTML(l, {holo: c.holo, id: c.id})}</div>`;
+  }
+  h += `<div class="front layer-front" data-li="0" style="z-index:10">${cardHTML(l, {holo: shown[0].holo, id: shown[0].id})}</div>`;
+  if (opts.trade) {   // invisible hit strips so hovering a back card is easy
+    for (let i = layers - 1; i >= 1; i--) h += `<div class="hit" data-li="${i}" style="top:${(layers - 1 - i) * step}px;height:${step}px"></div>`;
+    h += `<div class="hit" data-li="0" style="top:${(layers - 1) * step}px;bottom:0"></div>`;
+  }
+  if (copies.length > 5) h += `<div class="many">${copies.length}×</div>`;
+  else if (copies.length > 1 && opts.trade) h += `<div class="cnt">${copies.length}×</div>`;
+  return h + '</div>';
+}
+function copiesOf(cards) {   // {key: [{id, holo}] holos first}
+  const m = {};
+  for (const c of cards) (m[c.level_key] ||= []).push(c);
+  for (const k in m) m[k].sort((a, b) => b.holo - a.holo || a.id - b.id);
+  return m;
+}
+function creatorIcon(c) {
+  const url = CFG.CREATOR_ICONS[c.key];
+  if (url) return `<div class="cicon"><img src="${esc(url)}" alt=""></div>`;
+  let h = 0; for (const ch of c.key) h = (h * 31 + ch.charCodeAt(0)) % 360;
+  return `<div class="cicon" style="background:linear-gradient(135deg,hsl(${h} 60% 45%),hsl(${(h + 40) % 360} 60% 28%))">${esc(c.name.slice(0, 1).toUpperCase())}</div>`;
+}
 
--- Tier odds per card. Epic packs only roll Rare+, Legendary packs only Epic+.
-create or replace function public._roll_tier(p_kind text) returns text
-language plpgsql volatile security definer set search_path = public as $$
-declare
-  tiers text[]  := array['apex','mythic','legendary','epic','rare','uncommon','common'];
-  w     float[] := (select tier_weights from settings where id = 1);
-  n int := case p_kind when 'legendary' then 4 when 'epic' then 5 else 7 end;
-  total float := 0; r float; i int;
-begin
-  for i in 1..n loop total := total + w[i]; end loop;
-  r := random() * total;
-  for i in 1..n loop
-    if r < w[i] then return tiers[i]; end if;
-    r := r - w[i];
-  end loop;
-  return tiers[n];
-end $$;
+function showLevel(key) {
+  const l = S.byKey[key]; if (!l) return;
+  const own = ownership(S.myCards)[key];
+  const m = document.createElement('div'); m.className = 'modal';
+  m.innerHTML = `<div class="box">${cardHTML(l, {holo: own && own.holo})}
+    <p><b>${esc(l.name)}</b>: ${l.rank ? `#${l.rank} on the list, ${l.tier.toUpperCase()}` : 'no longer on the list (vaulted)'}<br>
+    <span class="muted">Created by ${esc(l.author || '?')} · Verified by ${esc(l.verifier || '?')}</span></p>
+    <p>You own: <b>${own ? own.count : 0}</b> ${own && own.holo ? `(${own.holo} holo)` : ''}<br>
+    <span class="muted">Worth ${fmt(l.points)} pts, or ${fmt(l.points * RULES.holoMult)} as holo</span></p>
+    ${l.video_id ? `<p><a href="https://youtu.be/${esc(l.video_id)}" target="_blank" rel="noopener">Watch verification ↗</a></p>` : ''}
+    <button class="btn" onclick="this.closest('.modal').remove()">Close</button></div>`;
+  m.addEventListener('click', e => { if (e.target === m) m.remove(); });
+  document.body.appendChild(m);
+}
+document.addEventListener('click', e => {
+  const c = e.target.closest('.card[data-key]');
+  if (c && !c.closest('.tstack,.tray,.modal,.overlay,.nomodal')) showLevel(c.dataset.key);
+});
 
--- ---------- Accounts (username + 4 character PIN) ---------------------
-create or replace function public._check_pin(p_pin text) returns text
-language plpgsql immutable as $$
-begin
-  if p_pin is null or upper(p_pin) !~ '^[A-Z0-9]{4}$' then
-    raise exception 'PIN must be exactly 4 letters or numbers';
-  end if;
-  return upper(p_pin);
-end $$;
+// ---------------- auth ----------------
+function renderAuth(mode = 'login') {
+  $('#top').classList.add('hidden');
+  app.innerHTML = `<div class="auth panel">
+    <div class="logo" style="justify-content:center;font-size:24px;margin-bottom:6px"><img src="${LOGO}" alt="" style="width:40px;height:40px">GDPS GACHA</div>
+    <p class="muted" style="text-align:center;margin-top:0">Collect the Goldenfyre GDPS demonlist as cards.</p>
+    <div class="tabs"><button class="btn ${mode === 'login' ? 'light' : ''}" id="tLogin">Log in</button><button class="btn ${mode === 'signup' ? 'light' : ''}" id="tSign">Make account</button></div>
+    <input class="field" id="un" placeholder="Username" autocomplete="username" maxlength="20">
+    <input class="field" id="pin" placeholder="4-character PIN (letters or numbers)" maxlength="4" autocomplete="current-password" style="text-transform:uppercase;letter-spacing:6px">
+    <div class="err" id="err"></div>
+    <button class="btn primary" style="width:100%" id="go">${mode === 'login' ? 'Log in' : 'Create account'}</button>
+    ${mode === 'signup' ? '<p class="muted" style="font-size:13px">Don\'t forget your PIN. There\'s no email reset, so you\'d have to ask an admin.</p>' : ''}
+  </div>`;
+  $('#tLogin').onclick = () => renderAuth('login');
+  $('#tSign').onclick = () => renderAuth('signup');
+  const submit = async () => {
+    const un = $('#un').value.trim(), pin = $('#pin').value.trim();
+    $('#err').textContent = '';
+    if (!un || pin.length !== 4) { $('#err').textContent = 'Enter a username and a 4-character PIN'; return; }
+    $('#go').disabled = true;
+    try {
+      const tok = await rpc(mode === 'login' ? 'login' : 'signup', {p_username: un, p_pin: pin});
+      if (!tok) throw new Error('Wrong username or PIN');
+      S.token = tok; localStorage.setItem('gacha_token', tok);
+      await boot();
+    } catch (e) { $('#err').textContent = e.message; $('#go').disabled = false; }
+  };
+  $('#go').onclick = submit;
+  $('#pin').onkeydown = e => { if (e.key === 'Enter') submit(); };
+}
+function logoutLocal() { localStorage.removeItem('gacha_token'); S.token = null; S.me = null; }
+$('#who').onclick = async () => {
+  if (!confirm('Log out?')) return;
+  try { await rpc('logout', {p_token: S.token}); } catch {}
+  logoutLocal(); renderAuth();
+};
 
-create or replace function public.signup(p_username text, p_pin text) returns text
-language plpgsql security definer set search_path = public, extensions as $$
-declare u uuid; tok text; pin text; s settings;
-begin
-  p_username := trim(p_username);
-  if p_username !~ '^[A-Za-z0-9_.]{3,20}$' then
-    raise exception 'Username must be 3-20 letters, numbers, _ or .';
-  end if;
-  pin := _check_pin(p_pin);
-  if exists (select 1 from profiles where lower(username) = lower(p_username)) then
-    raise exception 'That username is taken';
-  end if;
-  select * into s from settings where id = 1;
-  insert into profiles (username, packs) values (p_username, s.start_packs) returning id into u;
-  insert into secrets (user_id, pin_hash) values (u, crypt(pin, gen_salt('bf')));
-  tok := encode(gen_random_bytes(32), 'hex');
-  insert into sessions (token, user_id) values (tok, u);
-  return tok;
-end $$;
+// ---------------- home ----------------
+function packHTML(kind = 'normal', cls = '', style = '') {
+  const label = {normal: 'DEMON PACK', epic: 'EPIC PACK', legendary: 'LEGENDARY'}[kind];
+  return `<div class="pack ${kind === 'normal' ? '' : kind} ${cls}" style="${style}"><img class="pk-face" src="${LOGO}" alt=""><div class="pk-title">GDPS</div><div class="pk-kind">${label}</div><div class="pk-sub">PICK 1 OF ${S.me.cards_per_pack}</div></div>`;
+}
+function renderHome() {
+  const st = S.me, total = st.packs + st.bonus_packs;
+  const info = myInfo();
+  const listed = S.levels.filter(l => l.rank);
+  const stackN = Math.min(Math.max(total, 1), 5);
+  let stack = '';
+  for (let i = 0; i < stackN; i++) {
+    const off = i - (stackN - 1);
+    stack += packHTML('normal', total ? '' : 'empty', `transform:translate(${off * 7}px,${off * -3}px) rotate(${off * 2.5}deg);opacity:${1 + off * 0.12}`);
+  }
+  const nearCreators = info.creators.filter(x => !x.done).sort((a, b) => (a.n - a.have) - (b.n - b.have) || b.allBonus - a.allBonus).slice(0, 3);
+  app.innerHTML = `
+  ${st.pending_picks ? `<div class="banner"><b>You have ${st.pending_picks} opened pack${st.pending_picks > 1 ? 's' : ''} waiting for you to pick a card.</b><span class="spacer"></span><button class="btn primary sm" id="resume">Pick now</button></div>` : ''}
+  <div class="panel"><div class="packs">
+    <div>
+      <div class="label">Packs available</div>
+      <div class="big">${st.packs}<small> / ${st.pack_cap}</small></div>
+      ${st.bonus_packs ? `<div style="margin-top:6px;font-weight:800;color:var(--accent2)">+${st.bonus_packs} bonus</div>` : ''}
+      <p class="muted">One pack every ${st.pack_minutes} minutes, up to ${st.pack_cap} stored. Each pack shows ${st.cards_per_pack} cards and you keep one.</p>
+    </div>
+    <div>
+      <div class="stack" id="stack">${stack}</div>
+      <div class="row" style="justify-content:center">
+        <button class="btn primary" id="open1" ${total ? '' : 'disabled'}>Open pack</button>
+        <button class="btn" id="openAll" ${total > 1 ? '' : 'disabled'}>Open all (${total})</button>
+      </div>
+    </div>
+    <div style="text-align:center">
+      ${st.packs >= st.pack_cap ? `<div class="full">PACK STORAGE FULL</div><p class="muted">Open a pack to resume earning.</p>`
+        : `<div class="label">Next pack in</div><div style="font-size:34px;font-weight:900" id="timer">--:--</div>`}
+      <div class="row" style="justify-content:center;margin-top:14px">
+        <input class="field" id="code" placeholder="Have a code?" style="width:150px">
+        <button class="btn sm" id="redeem">Redeem</button>
+      </div>
+    </div>
+  </div>
+  <div class="special">
+    <div class="spbox">
+      <div class="row"><div class="pack epic mini"><img src="${LOGO}" alt=""></div>
+        <div style="flex:1"><b>Epic packs: ${st.epic_packs}</b><div class="muted" style="font-size:13px">Every option is Rare or better. Merge ${st.merge_cost} normal packs into 1.</div></div></div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn epic sm" id="openEpic" ${st.epic_packs ? '' : 'disabled'}>Open epic</button>
+        <button class="btn sm" id="mergeEpic" ${total >= st.merge_cost ? '' : 'disabled'}>Merge ${st.merge_cost} → 1</button>
+      </div>
+    </div>
+    <div class="spbox">
+      <div class="row"><div class="pack legendary mini"><img src="${LOGO}" alt=""></div>
+        <div style="flex:1"><b>Legendary packs: ${st.legendary_packs}</b><div class="muted" style="font-size:13px">Every option is Epic or better. Merge ${st.merge_cost} epic packs into 1.</div></div></div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn leg sm" id="openLeg" ${st.legendary_packs ? '' : 'disabled'}>Open legendary</button>
+        <button class="btn sm" id="mergeLeg" ${st.epic_packs >= st.merge_cost ? '' : 'disabled'}>Merge ${st.merge_cost} epic → 1</button>
+      </div>
+    </div>
+  </div></div>
 
-create or replace function public.login(p_username text, p_pin text) returns text
-language plpgsql security definer set search_path = public, extensions as $$
-declare u uuid; sec secrets; tok text;
-begin
-  select id into u from profiles where lower(username) = lower(trim(p_username));
-  if u is null then raise exception 'Wrong username or PIN'; end if;
-  select * into sec from secrets where user_id = u for update;
-  if sec.locked_until is not null and sec.locked_until > now() then
-    raise exception 'Too many wrong PINs. Try again in a minute.';
-  end if;
-  if sec.pin_hash <> crypt(upper(coalesce(p_pin,'')), sec.pin_hash) then
-    -- 5 wrong tries = locked for 1 minute (slows down PIN guessing)
-    update secrets set
-      failed = case when failed + 1 >= 5 then 0 else failed + 1 end,
-      locked_until = case when failed + 1 >= 5 then now() + interval '1 minute' else locked_until end
-    where user_id = u;
-    return null;  -- signal wrong PIN (raising would undo the counter)
-  end if;
-  update secrets set failed = 0, locked_until = null where user_id = u;
-  tok := encode(gen_random_bytes(32), 'hex');
-  insert into sessions (token, user_id) values (tok, u);
-  return tok;
-end $$;
+  <div class="panel">
+    <div class="row between"><h2 style="margin:0">Collection progress</h2><a href="#/collection">Open collection →</a></div>
+    <div class="bar"><i style="width:${listed.length ? info.uniq / listed.length * 100 : 0}%"></i></div>
+    <div class="stats">
+      <div class="stat"><b>${listed.length ? (info.uniq / listed.length * 100).toFixed(1) : 0}%</b><span class="muted">Collected</span></div>
+      <div class="stat"><b>${info.uniq}/${listed.length}</b><span class="muted">Unique levels</span></div>
+      <div class="stat"><b>${info.setsDone}/${S.packs.length}</b><span class="muted">Sets complete</span></div>
+      <div class="stat"><b>${fmt(info.total)}</b><span class="muted">Score</span></div>
+    </div>
+    <h3 style="margin-top:18px">Where your points come from</h3>
+    ${scoreTable(info)}
+  </div>
 
-create or replace function public.logout(p_token text) returns void
-language sql security definer set search_path = public as $$
-  delete from sessions where token = p_token
-$$;
+  <div class="panel">
+    <div class="row between"><h2 style="margin:0">GDPS pack sets</h2><a href="#/collection">All ${S.packs.length} sets →</a></div>
+    <p class="muted" style="margin:6px 0 14px">Own every level in a set to earn its bonus points, plus a one-time reward pack.</p>
+    ${setCards(info.sets.slice(0, 4))}
+  </div>
 
--- ---------- Packs -----------------------------------------------------
-create or replace function public.get_state(p_token text) returns jsonb
-language plpgsql security definer set search_path = public as $$
-declare p profiles;
-begin
-  p := _refresh_packs(_uid(p_token));
-  return _state_json(p);
-end $$;
+  <div class="panel">
+    <div class="row between"><h2 style="margin:0">Creator bonuses</h2><a href="#/creators">All creators →</a></div>
+    <p class="muted" style="margin:6px 0 14px">Collect a creator's levels: half of them gives a bonus, all of them collects the creator.</p>
+    ${creatorCards(nearCreators)}
+  </div>
 
--- Opens up to p_count packs. Each pack rolls 3 options; the player keeps ONE (pick_card).
--- Returns { state, picks: [{id, kind, options: [{level_key, holo}]}] }
-create or replace function public.open_packs(p_token text, p_kind text default 'normal', p_count int default 1)
-returns jsonb language plpgsql security definer set search_path = public as $$
-declare
-  u uuid := _uid(p_token);
-  p profiles; s settings;
-  avail int; n int; i int; j int;
-  was_full boolean;
-  t text; lk text; opts jsonb; pid bigint;
-  out jsonb := '[]'::jsonb;
-begin
-  select * into s from settings where id = 1;
-  p := _refresh_packs(u);
-  if p_kind not in ('normal','epic','legendary') then raise exception 'Unknown pack type'; end if;
-  if (select count(*) from pending_picks where user_id = u) >= 30 then
-    raise exception 'Pick from your opened packs first';
-  end if;
-  avail := case p_kind when 'normal' then p.packs + p.bonus_packs
-                       when 'epic' then p.epic_packs else p.legendary_packs end;
-  n := least(greatest(coalesce(p_count,1), 1), avail, 20);
-  if n <= 0 then raise exception 'No packs to open'; end if;
+  <div class="two">
+    <div class="panel"><h2>Recent trades</h2><div class="feed" id="rtrades"><span class="muted">Loading…</span></div></div>
+    <div class="panel"><h2>Community rare pulls</h2><div class="feed" id="rpulls"><span class="muted">Loading…</span></div></div>
+  </div>`;
+  bindClaims();
+  if ($('#resume')) $('#resume').onclick = resumePicks;
+  $('#open1').onclick = () => openPacks('normal', 1);
+  $('#openAll').onclick = () => openPacks('normal', total);
+  $('#openEpic').onclick = () => openPacks('epic', 1);
+  $('#openLeg').onclick = () => openPacks('legendary', 1);
+  $('#mergeEpic').onclick = () => merge('epic');
+  $('#mergeLeg').onclick = () => merge('legendary');
+  $('#redeem').onclick = async () => {
+    const code = $('#code').value.trim(); if (!code) return;
+    try { const r = await rpc('redeem_code', {p_token: S.token, p_code: code}); setState(r.state); toast(`+${r.packs} ${r.kind === 'normal' ? '' : r.kind + ' '}pack${r.packs > 1 ? 's' : ''}!`); renderHome(); }
+    catch (e) { toast(e.message, true); }
+  };
+  loadFeeds();
+}
+function scoreTable(info) {
+  const rows = TIERS.filter(t => info.byTier[t]).map(t => {
+    const x = info.byTier[t];
+    return `<tr><td><span style="color:var(--${t});font-weight:800">${t.toUpperCase()}</span></td><td>${x.n} level${x.n > 1 ? 's' : ''}</td><td style="text-align:right">${fmt(x.pts)}</td></tr>`;
+  }).join('');
+  return `<table class="scoretbl"><tbody>${rows || '<tr><td class="muted" colspan="3">No cards yet. Open a pack!</td></tr>'}
+    <tr><td><b>✦ Holo bonus</b></td><td class="muted">${info.holos} holo level${info.holos === 1 ? '' : 's'}, each counts ${RULES.holoMult}×</td><td style="text-align:right">+${fmt(info.holoBonus)}</td></tr>
+    <tr><td><b>Set bonuses</b></td><td class="muted">${info.setsDone} of ${S.packs.length} sets complete</td><td style="text-align:right">+${fmt(info.setBonus)}</td></tr>
+    <tr><td><b>Creator bonuses</b></td><td class="muted">${info.creatorsDone} creator${info.creatorsDone === 1 ? '' : 's'} collected</td><td style="text-align:right">+${fmt(info.creatorBonus)}</td></tr>
+    <tr class="tot"><td><b>Total</b></td><td class="muted">harder levels are worth more · dupes don't count</td><td style="text-align:right"><b>${fmt(info.total)}</b></td></tr>
+  </tbody></table>`;
+}
+function minisHTML(keys, own) {
+  return `<div class="minis">${keys.map(k => S.byKey[k] ? cardHTML(S.byKey[k], {mini: true, missing: !own[k], holo: own[k] && own[k].holo}) : '').join('')}</div>`;
+}
+function setCards(sets, own, readOnly) {
+  own = own || ownership(S.myCards);
+  if (!sets.length) return '<p class="muted">No sets.</p>';
+  return `<div class="sets">${sets.map(x => {
+    const n = x.p.level_keys.length, away = x.missing.length;
+    const status = x.done ? (x.claimed || readOnly ? '<span class="sdone">✓ Complete</span>' : `<button class="btn primary sm" data-claim="${esc(x.p.name)}">Claim reward pack</button>`)
+      : `<span class="saway">${away === 1 ? '1 level away!' : `${away} levels away`}</span>`;
+    return `<div class="setbox ${x.done ? 'done' : ''}" style="--sc:${esc(x.p.colour || '#888')}">
+      <div class="row between"><b>${esc(x.p.name)}</b><span class="muted">${x.have}/${n}</span></div>
+      ${minisHTML(x.p.level_keys, own)}
+      <div class="srew">Reward: <b>+${fmt(x.bonus)} pts</b> & <b class="${x.reward}">1 ${x.reward === 'legendary' ? 'Legendary' : 'Epic'} pack</b>${x.claimed ? ' <span class="muted">(claimed)</span>' : ''}</div>
+      <div style="margin-top:8px">${status}</div></div>`;
+  }).join('')}</div>`;
+}
+function creatorCards(list, own) {
+  own = own || ownership(S.myCards);
+  if (!list.length) return '<p class="muted">Every creator collected!</p>';
+  return `<div class="sets">${list.map(x => {
+    const next = x.done ? '<span class="sdone">✓ Collected</span>'
+      : x.halfAt && x.have < x.halfAt ? `<span class="saway">${x.halfAt - x.have} more for +${fmt(x.halfBonus)}</span>`
+      : `<span class="saway">${x.n - x.have} more to collect (+${fmt(x.allBonus)} total)</span>`;
+    return `<div class="cbox ${x.done ? 'done' : ''}">
+      <div class="row">${creatorIcon(x.c)}<div style="flex:1"><div class="row between"><b>${esc(x.c.name)}</b>${x.done ? '<span class="cbadge">COLLECTED</span>' : `<span class="muted">${x.have}/${x.n}</span>`}</div>
+        <div class="bar" style="margin:6px 0 0"><i style="width:${x.have / x.n * 100}%"></i>${x.halfAt ? `<span class="mark" style="left:${x.halfAt / x.n * 100}%"></span>` : ''}</div></div></div>
+      ${minisHTML(x.c.keys, own)}
+      <div class="srew">${x.halfAt ? `Half (${x.halfAt}): <b>+${fmt(x.halfBonus)}</b> · ` : ''}All ${x.n}: <b>+${fmt(x.allBonus)}</b>${x.bonus ? ` · <span class="sdone">earning +${fmt(x.bonus)}</span>` : ''}</div>
+      <div style="margin-top:6px">${next}</div></div>`;
+  }).join('')}</div>`;
+}
+function bindClaims() {
+  document.querySelectorAll('[data-claim]').forEach(b => b.onclick = async () => {
+    b.disabled = true;
+    try { const r = await rpc('claim_set', {p_token: S.token, p_set_name: b.dataset.claim}); setState(r.state); toast(`Set complete! +1 ${r.kind} pack`); route(); }
+    catch (e) { toast(e.message, true); b.disabled = false; }
+  });
+}
+async function loadFeeds() {
+  try {
+    const [tr, pu] = await Promise.all([rpc('recent_trades'), rpc('recent_pulls')]);
+    const ago = t => { const s = (Date.now() + S.clock - new Date(t)) / 1000; return s < 60 ? 'just now' : s < 3600 ? Math.floor(s / 60) + 'm ago' : s < 86400 ? Math.floor(s / 3600) + 'h ago' : Math.floor(s / 86400) + 'd ago'; };
+    if ($('#rtrades')) $('#rtrades').innerHTML = tr.length ? tr.map(t => `<div class="feeditem t-epic"><span><b>${esc(t.from_username)}</b> ⇄ <b>${esc(t.to_username)}</b> · ${t.offer_count} for ${t.request_count} card${t.request_count === 1 ? '' : 's'}</span><span class="spacer"></span><span class="muted">${ago(t.resolved_at)}</span></div>`).join('')
+      : `<span class="muted">No trades yet. <a href="#/trades">Find a trading partner</a></span>`;
+    if ($('#rpulls')) $('#rpulls').innerHTML = pu.length ? pu.map(p => `<div class="feeditem t-${p.tier}"><span class="tt">${p.holo ? '✦ ' : ''}${p.tier.toUpperCase()}</span><span><b>${esc(p.username || '?')}</b> pulled #${p.rank ?? '—'} ${esc(p.name)}${p.holo ? ' (holo)' : ''}</span><span class="spacer"></span><span class="muted">${ago(p.pulled_at)}</span></div>`).join('')
+      : `<span class="muted">Nobody has pulled a Legendary or better yet.</span>`;
+  } catch (e) { console.warn(e); }
+}
+async function merge(target) {
+  try { setState(await rpc('merge_packs', {p_token: S.token, p_target: target})); toast(`Merged into 1 ${target} pack`); renderHome(); }
+  catch (e) { toast(e.message, true); }
+}
 
-  if p_kind = 'normal' then
-    was_full := p.packs >= s.pack_cap;
-    if n <= p.packs then p.packs := p.packs - n;
-    else p.bonus_packs := p.bonus_packs - (n - p.packs); p.packs := 0; end if;
-    if was_full and p.packs < s.pack_cap then p.pack_anchor := now(); end if;
-  elsif p_kind = 'epic' then p.epic_packs := p.epic_packs - n;
-  else p.legendary_packs := p.legendary_packs - n;
-  end if;
-  update profiles set packs = p.packs, bonus_packs = p.bonus_packs, epic_packs = p.epic_packs,
-    legendary_packs = p.legendary_packs, pack_anchor = p.pack_anchor where id = u;
+// ---------------- opening & picking ----------------
+let busy = false;
+async function openPacks(kind, count) {
+  if (busy) return; busy = true;
+  const top = document.querySelector('.stack .pack:last-child');
+  if (top && kind === 'normal') top.classList.add('tearing');
+  document.querySelectorAll('main button').forEach(b => b.disabled = true);
+  let r;
+  try { [r] = await Promise.all([rpc('open_packs', {p_token: S.token, p_kind: kind, p_count: count}), sleep(650)]); }
+  catch (e) { busy = false; toast(e.message, true); renderHome(); return; }
+  setState(r.state);
+  busy = false;
+  runPicks(r.picks);
+}
+async function resumePicks() {
+  try { const p = await rpc('my_picks', {p_token: S.token}); if (p.length) runPicks(p); else { await refreshState(); renderHome(); } }
+  catch (e) { toast(e.message, true); }
+}
+// What picking this card would do for you
+function pickHints(lk, holo) {
+  const own = ownership(S.myCards), l = S.byKey[lk], o = own[lk], hints = [];
+  if (!o) hints.push(['new', '✦ NEW']);
+  else if (holo && !o.holo) hints.push(['new', '✦ NEW HOLO']);
+  else hints.push(['dupe', `Dupe (you have ${o.count})`]);
+  if (S.me && ckey(l.author) === ckey(S.me.username)) hints.push(['mine', '★ Your level!']);
+  if (!o) {
+    for (const p of S.packs) if (p.level_keys.includes(lk)) {
+      const miss = p.level_keys.filter(k => !own[k]).length;
+      if (miss === 1) hints.push(['set', `Completes ${p.name}!`]);
+      else if (miss === 2) hints.push(['set', `1 more for ${p.name}`]);
+    }
+    const c = S.creators.find(c => c.keys.includes(lk));
+    if (c) {
+      const st = creatorStatus(c, own);
+      if (st.have + 1 === st.n) hints.push(['creator', `Collects ${c.name}!`]);
+      else if (st.halfAt && st.have + 1 === st.halfAt) hints.push(['creator', `${c.name} half bonus!`]);
+    }
+  }
+  return hints.map(([c, t]) => `<div class="hint ${c}">${esc(t)}</div>`).join('');
+}
+function runPicks(picks) {
+  if (!picks.length) return;
+  let idx = 0;
+  const ov = document.createElement('div'); ov.className = 'overlay';
+  document.body.appendChild(ov);
+  const closeAll = () => { ov.remove(); route(); };
+  const showPick = async () => {
+    const pk = picks[idx];
+    const lv = o => S.byKey[o.level_key];
+    const left = picks.length - idx - 1;
+    const kindName = pk.kind === 'normal' ? 'Demon ' : pk.kind[0].toUpperCase() + pk.kind.slice(1) + ' ';
+    ov.innerHTML = `<div class="inner">
+      <div class="muted">${kindName}pack ${picks.length > 1 ? `${idx + 1} of ${picks.length}` : ''}</div>
+      <h1 id="pTitle">Revealing…</h1>
+      <div class="muted" id="pSub">You can keep one of these ${pk.options.length} cards.</div>
+      <div class="pickrow">${pk.options.map((o, i) => `<div class="opt deal" data-i="${i}" style="animation-delay:${i * 130}ms">
+        <div class="flip t-${lv(o).tier}"><div class="flip-in"><div class="fr">${cardHTML(lv(o), {holo: o.holo})}</div><div class="cback"><img src="${LOGO}" alt=""></div></div></div>
+        <div class="hints">${pickHints(o.level_key, o.holo)}</div></div>`).join('')}</div>
+    </div>
+    <div class="actions" id="pAct"><button class="btn light" id="revAll">Reveal all</button><button class="btn" id="later">Pick later</button></div>`;
+    const opts = [...ov.querySelectorAll('.opt')];
+    let skip = false, ready = false;
+    const flip = o => { const f = o.querySelector('.flip'); f.classList.remove('charge'); f.classList.add('open'); o.classList.add('revealed'); };
+    const allOpen = () => {
+      if (ready) return; ready = true;
+      opts.forEach(flip);
+      ov.querySelector('#pTitle').textContent = 'Pick one to keep';
+      ov.querySelector('#pSub').textContent = 'The other cards are lost.';
+      ov.querySelector('#pAct').innerHTML = `<button class="btn" id="later">Pick later</button>`;
+      ov.querySelector('#later').onclick = closeAll;
+      opts.forEach(o => o.classList.add('choosable'));
+    };
+    ov.querySelector('#revAll').onclick = () => { skip = true; allOpen(); };
+    ov.querySelector('#later').onclick = closeAll;
+    opts.forEach(o => o.onclick = async () => {
+      if (!o.classList.contains('revealed')) { flip(o); if (opts.every(x => x.classList.contains('revealed'))) allOpen(); return; }
+      if (!ready || o.dataset.busy) return;
+      opts.forEach(x => x.dataset.busy = 1);
+      let r;
+      try { r = await rpc('pick_card', {p_token: S.token, p_pick_id: pk.id, p_index: +o.dataset.i}); }
+      catch (e) { toast(e.message, true); opts.forEach(x => delete x.dataset.busy); return; }
+      setState(r.state);
+      S.myCards.push({id: r.card.id, level_key: r.card.level_key, holo: r.card.holo});
+      opts.forEach(x => { x.classList.remove('choosable'); x.classList.add(x === o ? 'kept' : 'gone'); });
+      const l = S.byKey[r.card.level_key];
+      ov.querySelector('#pTitle').textContent = `Kept ${l.name}!`;
+      ov.querySelector('#pSub').textContent = r.card.is_new ? 'New for your collection ✦' : r.card.is_new_holo ? 'Your first holo of this level ✦' : 'Added to your stack.';
+      const packsLeft = pk.kind === 'normal' ? S.me.packs + S.me.bonus_packs : pk.kind === 'epic' ? S.me.epic_packs : S.me.legendary_packs;
+      ov.querySelector('#pAct').innerHTML = left
+        ? `<button class="btn primary" id="next">Next pack (${left} left)</button><button class="btn light" id="cont">Stop for now</button>`
+        : `${packsLeft ? `<button class="btn primary" id="again">Open another (${packsLeft} left)</button>` : ''}<button class="btn light" id="toCol">View collection</button><button class="btn light" id="cont">Continue</button>`;
+      ov.querySelector('#cont').onclick = closeAll;
+      if (left) ov.querySelector('#next').onclick = () => { idx++; showPick(); };
+      else {
+        ov.querySelector('#toCol').onclick = () => { ov.remove(); go('#/collection'); route(); };
+        if (packsLeft) ov.querySelector('#again').onclick = () => { ov.remove(); renderHome(); openPacks(pk.kind, 1); };
+      }
+      rpc('leaderboard').then(b => S.board = b).catch(() => {});
+    });
+    // reveal sequence: worst first, best last; Epic or better glows before flipping
+    await sleep(pk.options.length * 130 + 450);
+    const order = [...opts].sort((a, b) => TIERS.indexOf(lv(pk.options[b.dataset.i]).tier) - TIERS.indexOf(lv(pk.options[a.dataset.i]).tier));
+    for (const o of order) {
+      if (skip || ready) return;
+      if (o.classList.contains('revealed')) continue;
+      const t = TIERS.indexOf(lv(pk.options[o.dataset.i]).tier);
+      if (t <= 3) { o.querySelector('.flip').classList.add('charge'); await sleep(1000); }
+      if (skip || ready) return;
+      flip(o); await sleep(550);
+    }
+    await sleep(250); allOpen();
+  };
+  showPick();
+}
 
-  for i in 1..n loop
-    opts := '[]'::jsonb;
-    for j in 1..s.cards_per_pack loop
-      t := _roll_tier(p_kind);
-      select key into lk from levels where rank is not null and tier = t order by random() limit 1;
-      if lk is null then
-        select key into lk from levels where rank is not null order by random() limit 1;
-      end if;
-      opts := opts || jsonb_build_object('level_key', lk, 'holo', random() < s.holo_chance);
-    end loop;
-    insert into pending_picks (user_id, kind, options) values (u, p_kind, opts) returning id into pid;
-    out := out || jsonb_build_object('id', pid, 'kind', p_kind, 'options', opts);
-  end loop;
-  return jsonb_build_object('state', _state_json(p), 'picks', out);
-end $$;
+// ---------------- timer ----------------
+setInterval(async () => {
+  if (!S.me || !S.me.next_pack_at) return;
+  const ms = new Date(S.me.next_pack_at) - (Date.now() + S.clock);
+  const t = $('#timer');
+  if (ms <= 0) {
+    S.me.next_pack_at = null;
+    try { await refreshState(); if ((location.hash === '' || location.hash === '#/') && !document.querySelector('.overlay')) renderHome(); } catch {}
+    return;
+  }
+  if (t) { const s = Math.ceil(ms / 1000); t.textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; }
+}, 1000);
 
-create or replace function public.my_picks(p_token text) returns jsonb
-language sql security definer set search_path = public as $$
-  select coalesce(jsonb_agg(jsonb_build_object('id', id, 'kind', kind, 'options', options) order by id), '[]')
-  from pending_picks where user_id = _uid(p_token)
-$$;
+// ---------------- collection ----------------
+function collectionGrid(cards) {
+  const cp = copiesOf(cards), f = S.filter;
+  let lv = S.levels.filter(l => l.rank || cp[l.key]);
+  if (f.tier !== 'all') lv = lv.filter(l => l.tier === f.tier);
+  if (f.show === 'owned') lv = lv.filter(l => cp[l.key]);
+  if (f.show === 'missing') lv = lv.filter(l => !cp[l.key]);
+  if (f.show === 'holo') lv = lv.filter(l => cp[l.key] && cp[l.key].some(c => c.holo));
+  if (f.show === 'dupes') lv = lv.filter(l => cp[l.key] && cp[l.key].length > 1);
+  return lv.length ? `<div class="grid" style="row-gap:24px">${lv.map(l => cp[l.key] ? stackHTML(l, cp[l.key]) : cardHTML(l, {missing: true})).join('')}</div>` : '<p class="muted">Nothing here.</p>';
+}
+function filterChips(rerender) {
+  const f = S.filter;
+  const chip = (grp, v, label) => `<button class="chip ${f[grp] === v ? 'on' : ''}" data-g="${grp}" data-v="${v}">${label}</button>`;
+  setTimeout(() => document.querySelectorAll('.chip[data-g]').forEach(b => b.onclick = () => { S.filter[b.dataset.g] = b.dataset.v; rerender(); }));
+  return `<div class="chips">${chip('show','all','All')}${chip('show','owned','Owned')}${chip('show','missing','Missing')}${chip('show','holo','✦ Holo')}${chip('show','dupes','Dupes')}</div>
+    <div class="chips">${chip('tier','all','Every tier')}${[...TIERS].reverse().map(t => chip('tier', t, t[0].toUpperCase() + t.slice(1))).join('')}</div>`;
+}
+function renderCollection() {
+  const info = myInfo(), listed = S.levels.filter(l => l.rank);
+  app.innerHTML = `<div class="panel"><h2>Your collection · ${info.uniq}/${listed.length} · ${S.myCards.length} cards total</h2>
+    ${filterChips(renderCollection)}${collectionGrid(S.myCards)}</div>
+    <div class="panel"><h2>GDPS pack sets</h2><p class="muted" style="margin-top:-6px">Own every level in a set (normal or holo) to earn its bonus points, plus a one-time reward pack.</p>${setCards(info.sets)}</div>
+    <div class="panel"><h2>Your score</h2>${scoreTable(info)}</div>`;
+  bindClaims();
+}
+function renderCreators() {
+  const info = myInfo();
+  const list = [...info.creators].sort((a, b) => b.done - a.done || (a.n - a.have) - (b.n - b.have) || b.allBonus - a.allBonus);
+  app.innerHTML = `<div class="panel"><h2>Creators · ${info.creatorsDone}/${S.creators.length} collected</h2>
+    <p class="muted" style="margin-top:-6px">Creators with ${RULES.creatorMinLevels}+ levels on the list. Own half of a creator's levels for a bonus; own all of them to collect the creator for a bigger one.</p>
+    ${creatorCards(list.map(x => x))}</div>`;
+  // creatorCards hides nothing when list given directly
+}
 
--- Keep one option from an opened pack. Returns { state, card: {id, level_key, holo, is_new, is_new_holo} }
-create or replace function public.pick_card(p_token text, p_pick_id bigint, p_index int)
-returns jsonb language plpgsql security definer set search_path = public as $$
-declare u uuid := _uid(p_token); pk pending_picks; o jsonb; lk text; h boolean; cid bigint;
-        owned boolean; owned_h boolean; p profiles;
-begin
-  select * into pk from pending_picks where id = p_pick_id and user_id = u for update;
-  if pk.id is null then raise exception 'That pack was already picked from'; end if;
-  o := pk.options -> p_index;
-  if o is null then raise exception 'Invalid choice'; end if;
-  lk := o->>'level_key'; h := (o->>'holo')::boolean;
-  select exists(select 1 from cards where owner = u and level_key = lk),
-         exists(select 1 from cards where owner = u and level_key = lk and holo) into owned, owned_h;
-  insert into cards (owner, level_key, holo, pulled_by, pack_kind) values (u, lk, h, u, pk.kind) returning id into cid;
-  delete from pending_picks where id = pk.id;
-  p := _refresh_packs(u);
-  return jsonb_build_object('state', _state_json(p), 'card', jsonb_build_object('id', cid, 'level_key', lk, 'holo', h,
-    'is_new', not owned, 'is_new_holo', h and not owned_h));
-end $$;
+// ---------------- leaderboard / players ----------------
+async function renderBoard() {
+  app.innerHTML = `<div class="panel"><h2>Leaderboard</h2><p class="muted" style="margin-top:-6px">Harder levels are worth more points. Holos count ${RULES.holoMult}×, plus set and creator bonuses. Dupes don't count, so trade them.</p><div id="lb">Loading…</div></div>`;
+  S.board = await rpc('leaderboard');
+  const n = S.levels.filter(l => l.rank).length;
+  $('#lb').innerHTML = `<table class="lb"><thead><tr><th>#</th><th>Player</th><th>Score</th><th>Unique</th><th>Holo</th><th>Sets</th><th>Creators</th></tr></thead><tbody>
+    ${boardRows().map((r, i) => `<tr class="${r.user_id === S.me.user_id ? 'me' : ''}" data-u="${esc(r.username)}"><td><b>${i + 1}</b></td><td><b>${esc(r.username)}</b></td><td>${fmt(r.info.total)}</td><td>${r.info.uniq}/${n}</td><td>${r.info.holos}</td><td>${r.info.setsDone}</td><td>${r.info.creatorsDone}</td></tr>`).join('')}
+  </tbody></table>`;
+  document.querySelectorAll('tr[data-u]').forEach(tr => tr.onclick = () => go('#/player/' + encodeURIComponent(tr.dataset.u)));
+}
+async function renderPlayer(name) {
+  if (!S.board.length) S.board = await rpc('leaderboard');
+  const row = boardRows().find(r => r.username.toLowerCase() === name.toLowerCase());
+  if (!row) { app.innerHTML = '<div class="panel">Player not found.</div>'; return; }
+  app.innerHTML = '<div class="panel">Loading…</div>';
+  const cards = await cardsOf(row.user_id);
+  const own = ownership(cards);
+  const draw = () => {
+    app.innerHTML = `<div class="panel"><div class="row between"><h2 style="margin:0">${esc(row.username)} · ${fmt(row.info.total)} pts</h2>
+      ${row.user_id !== S.me.user_id ? `<button class="btn primary sm" id="tw">Trade with ${esc(row.username)}</button>` : ''}</div><br>
+      ${filterChips(draw)}${collectionGrid(cards)}</div>
+      <div class="panel"><h2>Sets</h2>${setCards(row.info.sets, own, true)}</div>
+      <div class="panel"><h2>Score</h2>${scoreTable(row.info)}</div>`;
+    const tw = $('#tw'); if (tw) tw.onclick = () => go('#/trades/new/' + encodeURIComponent(row.username));
+  };
+  draw();
+}
 
--- Merge 4 normal packs -> 1 epic pack, or 4 epic -> 1 legendary.
-create or replace function public.merge_packs(p_token text, p_target text)
-returns jsonb language plpgsql security definer set search_path = public as $$
-declare u uuid := _uid(p_token); p profiles; s settings; was_full boolean;
-begin
-  select * into s from settings where id = 1;
-  p := _refresh_packs(u);
-  if p_target = 'epic' then
-    if p.packs + p.bonus_packs < s.merge_cost then raise exception 'Need % packs to merge', s.merge_cost; end if;
-    was_full := p.packs >= s.pack_cap;
-    if s.merge_cost <= p.packs then p.packs := p.packs - s.merge_cost;
-    else p.bonus_packs := p.bonus_packs - (s.merge_cost - p.packs); p.packs := 0; end if;
-    if was_full and p.packs < s.pack_cap then p.pack_anchor := now(); end if;
-    p.epic_packs := p.epic_packs + 1;
-  elsif p_target = 'legendary' then
-    if p.epic_packs < s.merge_cost then raise exception 'Need % epic packs to merge', s.merge_cost; end if;
-    p.epic_packs := p.epic_packs - s.merge_cost;
-    p.legendary_packs := p.legendary_packs + 1;
-  else raise exception 'Unknown merge';
-  end if;
-  update profiles set packs = p.packs, bonus_packs = p.bonus_packs, epic_packs = p.epic_packs,
-    legendary_packs = p.legendary_packs, pack_anchor = p.pack_anchor where id = u;
-  return _state_json(p);
-end $$;
+// ---------------- trades ----------------
+async function renderTrades() {
+  app.innerHTML = `<div class="panel"><div class="row between"><h2 style="margin:0">Trades</h2>
+    <div class="row"><select class="field" id="pickP"><option value="">Trade with…</option></select><button class="btn primary sm" id="newT">New trade</button></div></div>
+    <p class="muted">Both players must agree. Trades are final, so check the cards before accepting.</p><div id="tl">Loading…</div></div>`;
+  if (!S.board.length) S.board = await rpc('leaderboard');
+  $('#pickP').innerHTML += S.board.filter(r => r.user_id !== S.me.user_id).map(r => `<option>${esc(r.username)}</option>`).join('');
+  $('#newT').onclick = () => { const v = $('#pickP').value; if (v) go('#/trades/new/' + encodeURIComponent(v)); else toast('Pick a player first', true); };
+  const list = await rpc('my_trades', {p_token: S.token});
+  updateTradeDot(list);
+  const mini = arr => arr.length ? `<div class="minis nomodal">${arr.map(c => cardHTML(S.byKey[c.level_key], {holo: c.holo, mini: true})).join('')}</div>` : '<span class="muted">nothing</span>';
+  $('#tl').innerHTML = list.length ? list.map(t => {
+    const youGive = t.incoming ? t.request : t.offer, youGet = t.incoming ? t.offer : t.request;
+    const other = t.incoming ? t.from_username : t.to_username;
+    return `<div class="trade"><div class="row between">
+      <b>${t.incoming ? `From ${esc(other)}` : `To ${esc(other)}`}</b><span class="status ${t.status}">${t.status}</span></div>
+      <div class="sides"><div><div class="label">You give</div>${mini(youGive)}</div><div><div class="label">You get</div>${mini(youGet)}</div></div>
+      ${t.status === 'pending' ? `<div class="row">${t.incoming ? `<button class="btn primary sm" data-acc="${t.id}">Accept</button><button class="btn sm" data-dec="${t.id}">Decline</button>` : `<span class="muted">Waiting for ${esc(other)}…</span><button class="btn sm" data-dec="${t.id}">Cancel</button>`}</div>` : ''}
+    </div>`;
+  }).join('') : '<p class="muted">No trades yet.</p>';
+  document.querySelectorAll('[data-acc],[data-dec]').forEach(b => b.onclick = async () => {
+    const acc = !!b.dataset.acc, id = +(b.dataset.acc || b.dataset.dec);
+    if (acc && !confirm('Accept this trade? It can\'t be undone.')) return;
+    b.disabled = true;
+    try {
+      const r = await rpc('respond_trade', {p_token: S.token, p_trade_id: id, p_accept: acc});
+      if (r.ok === false) toast(r.message, true); else toast('Trade ' + r.status);
+      await loadMyCards(); renderTrades();
+    } catch (e) { toast(e.message, true); b.disabled = false; }
+  });
+}
+function updateTradeDot(list) {
+  const n = list.filter(t => t.incoming && t.status === 'pending').length;
+  $('#navTrades').innerHTML = 'Trades' + (n ? `<span class="dot">${n}</span>` : '');
+}
+async function renderNewTrade(name) {
+  if (!S.board.length) S.board = await rpc('leaderboard');
+  const row = S.board.find(r => r.username.toLowerCase() === name.toLowerCase());
+  if (!row || row.user_id === S.me.user_id) { app.innerHTML = '<div class="panel">Player not found.</div>'; return; }
+  app.innerHTML = '<div class="panel">Loading…</div>';
+  const theirs = await cardsOf(row.user_id);
+  const give = [], get = [];   // selected card objects
+  const myOwn = ownership(S.myCards), theirOwn = ownership(theirs);
+  const sortKeys = m => Object.keys(m).sort((a, b) => (S.byKey[a].rank ?? 999) - (S.byKey[b].rank ?? 999));
+  const side = (cards, sel) => {
+    const cp = copiesOf(cards.filter(c => !sel.some(s => s.id === c.id)));
+    return `<div class="grid">${sortKeys(cp).map(k => stackHTML(S.byKey[k], cp[k], {trade: true, step: 30})).join('')}</div>`;
+  };
+  const tray = (sel, otherOwn) => sel.map(c => cardHTML(S.byKey[c.level_key], {holo: c.holo, id: c.id, mini: true})).join('');
+  const draw = () => {
+    const ys = [$('#pg')?.scrollTop, $('#pt')?.scrollTop];
+    app.innerHTML = `<div class="panel"><div class="row between"><h2 style="margin:0">Trade with ${esc(row.username)}</h2><a href="#/trades">Back</a></div>
+      <p class="muted">Hover a stack to slide out a card, click to add it. Click a card in the tray to put it back.</p>
+      <div class="tradecols">
+        <div><h3>You give (${give.length})</h3><div class="tray" id="tg">${tray(give)}</div></div>
+        <div><h3>You get (${get.length})</h3><div class="tray" id="tt">${tray(get)}</div></div>
+      </div>
+      <div class="row" style="margin:14px 0"><button class="btn primary" id="send" ${give.length + get.length ? '' : 'disabled'}>Send trade offer</button></div>
+      <div class="tradecols">
+        <div><h3>Your cards</h3><div class="tpick" id="pg">${side(S.myCards, give)}</div></div>
+        <div><h3>${esc(row.username)}'s cards</h3><div class="tpick" id="pt">${side(theirs, get)}</div></div>
+      </div></div>`;
+    if (ys[0] != null) { $('#pg').scrollTop = ys[0]; $('#pt').scrollTop = ys[1]; }
+    const bind = (el, cards, sel) => el.querySelectorAll('.tstack').forEach(st => {
+      const layerOf = li => st.querySelector(`.layer[data-li="${li}"],.front[data-li="${li}"]`);
+      st.querySelectorAll('.hit').forEach(h => {
+        h.onmouseenter = () => { st.querySelectorAll('.peek').forEach(x => x.classList.remove('peek')); if (h.dataset.li !== '0') layerOf(h.dataset.li).classList.add('peek'); };
+        h.onmouseleave = () => layerOf(h.dataset.li).classList.remove('peek');
+        h.onclick = () => {
+          const id = +layerOf(h.dataset.li).querySelector('.card').dataset.id;
+          const c = cards.find(x => x.id === id); if (c) sel.push(c); draw();
+        };
+      });
+    });
+    bind($('#pg'), S.myCards, give); bind($('#pt'), theirs, get);
+    $('#tg').querySelectorAll('.card').forEach(c => c.onclick = () => { give.splice(give.findIndex(x => x.id === +c.dataset.id), 1); draw(); });
+    $('#tt').querySelectorAll('.card').forEach(c => c.onclick = () => { get.splice(get.findIndex(x => x.id === +c.dataset.id), 1); draw(); });
+    $('#send').onclick = async () => {
+      $('#send').disabled = true;
+      try { await rpc('create_trade', {p_token: S.token, p_to_username: row.username, p_offer: give.map(c => c.id), p_request: get.map(c => c.id)}); toast('Trade offer sent!'); go('#/trades'); }
+      catch (e) { toast(e.message, true); $('#send').disabled = false; }
+    };
+  };
+  draw();
+}
 
-create or replace function public.redeem_code(p_token text, p_code text)
-returns jsonb language plpgsql security definer set search_path = public as $$
-declare u uuid := _uid(p_token); c codes; p profiles;
-begin
-  select * into c from codes where code = upper(trim(p_code)) for update;
-  if c.code is null then raise exception 'Invalid code'; end if;
-  if c.expires_at is not null and c.expires_at < now() then raise exception 'That code has expired'; end if;
-  if c.uses >= c.max_uses then raise exception 'That code has been used up'; end if;
-  if exists (select 1 from code_redemptions where code = c.code and user_id = u) then
-    raise exception 'You already used this code';
-  end if;
-  insert into code_redemptions values (c.code, u);
-  update codes set uses = uses + 1 where code = c.code;
-  update profiles set
-    bonus_packs = bonus_packs + case when c.pack_kind = 'normal' then c.packs else 0 end,
-    epic_packs = epic_packs + case when c.pack_kind = 'epic' then c.packs else 0 end,
-    legendary_packs = legendary_packs + case when c.pack_kind = 'legendary' then c.packs else 0 end
-  where id = u;
-  p := _refresh_packs(u);
-  return jsonb_build_object('state', _state_json(p), 'packs', c.packs, 'kind', c.pack_kind);
-end $$;
+// ---------------- admin ----------------
+function renderAdmin() {
+  if (!S.me.is_admin) { go('#/'); return; }
+  app.innerHTML = `<div class="panel"><h2>Admin</h2>
+    <h3>Sync with the demonlist</h3>
+    <p class="muted">Pulls the current list and packs from the GDPS demonlist GitHub. New levels get added, ranks, points and tiers update, and removed levels become "vaulted" (people keep their cards, but they stop dropping).</p>
+    <button class="btn primary" id="sync">Sync now</button> <span id="syncMsg" class="muted"></span>
+    <hr style="border-color:var(--line);margin:24px 0">
+    <h3>Create a code</h3>
+    <div class="row"><input class="field" id="cCode" placeholder="CODE"><input class="field" id="cPacks" type="number" value="3" style="width:80px">
+      <select class="field" id="cKind"><option value="normal">normal packs</option><option value="epic">epic packs</option><option value="legendary">legendary packs</option></select>
+      <input class="field" id="cUses" type="number" value="100" style="width:90px" title="max uses"><button class="btn sm" id="cGo">Create</button></div>
+    <p class="muted" style="font-size:13px">The last box is the max number of people who can use it.</p>
+    <hr style="border-color:var(--line);margin:24px 0">
+    <h3>Reset someone's PIN</h3>
+    <div class="row"><input class="field" id="rUser" placeholder="username"><input class="field" id="rPin" placeholder="new PIN" maxlength="4"><button class="btn sm" id="rGo">Reset</button></div>
+  </div>`;
+  $('#sync').onclick = async () => {
+    $('#sync').disabled = true; const msg = $('#syncMsg');
+    try {
+      msg.textContent = 'Downloading list…';
+      const base = CFG.LIST_REPO_RAW;
+      const list = await (await fetch(base + '_list.json', {cache: 'no-store'})).json();
+      const packs = await (await fetch(base + '_packlist.json', {cache: 'no-store'})).json();
+      const vid = u => { const m = String(u || '').match(/(?:youtu\.be\/|v=|shorts\/|embed\/)([A-Za-z0-9_-]{11})/); return m ? m[1] : null; };
+      const levels = [];
+      for (let i = 0; i < list.length; i += 10) {
+        msg.textContent = `Downloading levels ${i + 1}–${Math.min(i + 10, list.length)} of ${list.length}…`;
+        const chunk = await Promise.all(list.slice(i, i + 10).map(async k => {
+          const d = await (await fetch(base + encodeURIComponent(k) + '.json', {cache: 'no-store'})).json();
+          return {key: k, name: d.name, author: d.author, verifier: d.verifier, video_id: vid(d.verification)};
+        }));
+        levels.push(...chunk);
+      }
+      const r = await rpc('admin_sync', {p_token: S.token, p_levels: levels, p_packs: packs.map(p => ({name: p.name, colour: p.colour, levels: p.levels}))});
+      await loadLevels();
+      msg.textContent = `Done: ${r.levels} levels, ${r.packs} packs.`;
+    } catch (e) { msg.textContent = 'Failed: ' + e.message; }
+    $('#sync').disabled = false;
+  };
+  $('#cGo').onclick = async () => {
+    try { await rpc('admin_create_code', {p_token: S.token, p_code: $('#cCode').value, p_packs: +$('#cPacks').value, p_kind: $('#cKind').value, p_max_uses: +$('#cUses').value}); toast('Code created: ' + $('#cCode').value.toUpperCase()); }
+    catch (e) { toast(e.message, true); }
+  };
+  $('#rGo').onclick = async () => {
+    try { await rpc('admin_reset_pin', {p_token: S.token, p_username: $('#rUser').value, p_new_pin: $('#rPin').value}); toast('PIN reset'); }
+    catch (e) { toast(e.message, true); }
+  };
+}
 
--- Reward for completing a GDPS pack set: an Epic pack, or a Legendary pack
--- if the set contains a Legendary-or-better level. Claimable once per player per set.
-create or replace function public.set_reward_kind(p_keys text[]) returns text
-language sql stable security definer set search_path = public as $$
-  select case when exists (select 1 from levels where key = any(p_keys) and tier in ('apex','mythic','legendary'))
-              then 'legendary' else 'epic' end
-$$;
+// ---------------- router / boot ----------------
+async function route() {
+  if (!S.me) return;
+  document.querySelectorAll('.modal').forEach(m => m.remove());
+  const h = location.hash || '#/';
+  document.querySelectorAll('nav a').forEach(a => a.classList.toggle('on', a.getAttribute('href') === h || (h.startsWith('#/trades') && a.id === 'navTrades')));
+  try {
+    if (h.startsWith('#/collection')) renderCollection();
+    else if (h.startsWith('#/creators')) renderCreators();
+    else if (h.startsWith('#/leaderboard')) await renderBoard();
+    else if (h.startsWith('#/player/')) await renderPlayer(decodeURIComponent(h.slice(9)));
+    else if (h.startsWith('#/trades/new/')) await renderNewTrade(decodeURIComponent(h.slice(13)));
+    else if (h.startsWith('#/trades')) await renderTrades();
+    else if (h.startsWith('#/admin')) renderAdmin();
+    else renderHome();
+  } catch (e) { app.innerHTML = `<div class="panel">Something went wrong: ${esc(e.message)}</div>`; }
+  window.scrollTo(0, 0);
+}
+window.addEventListener('hashchange', route);
+$('#packPill').onclick = () => go('#/');
 
-create or replace function public.claim_set(p_token text, p_set_name text)
-returns jsonb language plpgsql security definer set search_path = public as $$
-declare u uuid := _uid(p_token); ps list_packs; kind text; p profiles;
-begin
-  select * into ps from list_packs where name = p_set_name;
-  if ps.id is null then raise exception 'Set not found'; end if;
-  if exists (select 1 from unnest(ps.level_keys) k
-             where not exists (select 1 from cards where owner = u and level_key = k)) then
-    raise exception 'You don''t own every level in this set yet';
-  end if;
-  if exists (select 1 from set_claims where user_id = u and set_name = ps.name) then
-    raise exception 'Already claimed';
-  end if;
-  insert into set_claims (user_id, set_name) values (u, ps.name);
-  kind := set_reward_kind(ps.level_keys);
-  update profiles set epic_packs = epic_packs + case when kind = 'epic' then 1 else 0 end,
-                      legendary_packs = legendary_packs + case when kind = 'legendary' then 1 else 0 end
-  where id = u;
-  p := _refresh_packs(u);
-  return jsonb_build_object('state', _state_json(p), 'kind', kind);
-end $$;
-
--- ---------- Trading ---------------------------------------------------
-create or replace function public.create_trade(p_token text, p_to_username text, p_offer bigint[], p_request bigint[])
-returns bigint language plpgsql security definer set search_path = public as $$
-declare u uuid := _uid(p_token); v uuid; tid bigint; o bigint[]; r bigint[];
-begin
-  select id into v from profiles where lower(username) = lower(trim(p_to_username));
-  if v is null then raise exception 'Player not found'; end if;
-  if v = u then raise exception 'You cannot trade with yourself'; end if;
-  o := array(select distinct x from unnest(coalesce(p_offer, '{}')) x);
-  r := array(select distinct x from unnest(coalesce(p_request, '{}')) x);
-  if cardinality(o) + cardinality(r) = 0 then raise exception 'Pick at least one card'; end if;
-  if cardinality(o) > 20 or cardinality(r) > 20 then raise exception 'Max 20 cards per side'; end if;
-  if (select count(*) from cards where id = any(o) and owner = u) <> cardinality(o) then
-    raise exception 'You no longer own some of those cards';
-  end if;
-  if (select count(*) from cards where id = any(r) and owner = v) <> cardinality(r) then
-    raise exception 'They no longer own some of those cards';
-  end if;
-  if (select count(*) from trades where from_user = u and status = 'pending') >= 20 then
-    raise exception 'Too many pending trades';
-  end if;
-  insert into trades (from_user, to_user, offer, request) values (u, v, o, r) returning id into tid;
-  return tid;
-end $$;
-
--- The anti-dupe part: everything below happens in ONE transaction with the
--- trade and every card locked. Either all cards swap, or nothing changes.
-create or replace function public.respond_trade(p_token text, p_trade_id bigint, p_accept boolean)
-returns jsonb language plpgsql security definer set search_path = public as $$
-declare u uuid := _uid(p_token); t trades;
-begin
-  select * into t from trades where id = p_trade_id for update;
-  if t.id is null then raise exception 'Trade not found'; end if;
-  if t.status <> 'pending' then raise exception 'This trade is already %', t.status; end if;
-  if not p_accept then
-    if u not in (t.from_user, t.to_user) then raise exception 'Not your trade'; end if;
-    update trades set status = case when u = t.from_user then 'cancelled' else 'declined' end,
-      resolved_at = now() where id = t.id;
-    return jsonb_build_object('ok', true, 'status', case when u = t.from_user then 'cancelled' else 'declined' end);
-  end if;
-  if u <> t.to_user then raise exception 'Only the other player can accept'; end if;
-
-  perform 1 from cards where id = any(t.offer || t.request) order by id for update;
-  if (select count(*) from cards where id = any(t.offer) and owner = t.from_user) <> cardinality(t.offer)
-     or (select count(*) from cards where id = any(t.request) and owner = t.to_user) <> cardinality(t.request) then
-    update trades set status = 'failed', resolved_at = now() where id = t.id;
-    return jsonb_build_object('ok', false, 'status', 'failed',
-      'message', 'Some cards in this trade changed owner since it was sent, so it was cancelled.');
-  end if;
-  update cards set owner = t.to_user where id = any(t.offer);
-  update cards set owner = t.from_user where id = any(t.request);
-  update trades set status = 'accepted', resolved_at = now() where id = t.id;
-  return jsonb_build_object('ok', true, 'status', 'accepted');
-end $$;
-
-create or replace function public.my_trades(p_token text) returns jsonb
-language sql security definer set search_path = public as $$
-  select coalesce(jsonb_agg(jsonb_build_object(
-      'id', t.id, 'status', t.status, 'created_at', t.created_at, 'resolved_at', t.resolved_at,
-      'incoming', t.to_user = me.u,
-      'from_username', pf.username, 'to_username', pt.username,
-      'offer', (select coalesce(jsonb_agg(jsonb_build_object('id', c.id, 'level_key', c.level_key, 'holo', c.holo) order by c.id), '[]') from cards c where c.id = any(t.offer)),
-      'request', (select coalesce(jsonb_agg(jsonb_build_object('id', c.id, 'level_key', c.level_key, 'holo', c.holo) order by c.id), '[]') from cards c where c.id = any(t.request))
-    ) order by (t.status = 'pending') desc, t.created_at desc), '[]')
-  from (select _uid(p_token) u) me
-  join trades t on me.u in (t.from_user, t.to_user)
-  join profiles pf on pf.id = t.from_user
-  join profiles pt on pt.id = t.to_user
-  where t.status = 'pending' or t.resolved_at > now() - interval '3 days'
-$$;
-
--- ---------- Public feeds ---------------------------------------------
--- Everyone's collection summary. The website calculates scores from this
--- (points by list placement, holo 3x, set bonuses, creator bonuses).
-drop function if exists public.leaderboard();
-create or replace function public.leaderboard() returns jsonb
-language sql stable security definer set search_path = public as $$
-  select coalesce(jsonb_agg(jsonb_build_object(
-      'user_id', pr.id, 'username', pr.username,
-      'owned', coalesce((select jsonb_agg(jsonb_build_array(o.level_key, o.holo, o.n)) from
-                 (select level_key, bool_or(holo) holo, count(*) n from cards where owner = pr.id group by level_key) o), '[]'),
-      'claimed_sets', coalesce((select jsonb_agg(set_name) from set_claims where user_id = pr.id), '[]')
-    ) order by pr.created_at), '[]')
-  from profiles pr
-$$;
-
-create or replace function public.recent_pulls() returns jsonb
-language sql stable security definer set search_path = public as $$
-  select coalesce(jsonb_agg(x order by x.pulled_at desc), '[]') from (
-    select c.level_key, c.holo, c.pulled_at, c.pack_kind, p.username, l.tier, l.rank, l.name
-    from cards c join levels l on l.key = c.level_key
-    left join profiles p on p.id = c.pulled_by
-    where l.tier in ('apex','mythic','legendary') or (c.holo and l.tier = 'epic')
-    order by c.pulled_at desc limit 20
-  ) x
-$$;
-
-create or replace function public.recent_trades() returns jsonb
-language sql stable security definer set search_path = public as $$
-  select coalesce(jsonb_agg(x order by x.resolved_at desc), '[]') from (
-    select t.resolved_at, pf.username from_username, pt.username to_username,
-           cardinality(t.offer) offer_count, cardinality(t.request) request_count
-    from trades t join profiles pf on pf.id = t.from_user join profiles pt on pt.id = t.to_user
-    where t.status = 'accepted' order by t.resolved_at desc limit 10
-  ) x
-$$;
-
--- ---------- Admin -----------------------------------------------------
-create or replace function public._require_admin(p_token text) returns uuid
-language plpgsql security definer set search_path = public as $$
-declare u uuid := _uid(p_token);
-begin
-  if not exists (select 1 from profiles where id = u and is_admin) then raise exception 'Admins only'; end if;
-  return u;
-end $$;
-
--- Replace the level list. p_levels = [{key,name,author,verifier,video_id}, ...] in list order.
--- Levels that are no longer on the list keep their cards but stop dropping ("vaulted").
-create or replace function public._seed_levels(p_levels jsonb) returns int
-language plpgsql security definer set search_path = public as $$
-declare e jsonb; i int := 0;
-begin
-  update levels set rank = null;
-  for e in select * from jsonb_array_elements(p_levels) loop
-    i := i + 1;
-    insert into levels (key, rank, name, author, verifier, video_id, tier)
-    values (e->>'key', i, e->>'name', e->>'author', e->>'verifier', e->>'video_id', tier_for_rank(i))
-    on conflict (key) do update set rank = excluded.rank, name = excluded.name, author = excluded.author,
-      verifier = excluded.verifier, video_id = excluded.video_id, tier = excluded.tier;
-  end loop;
-  -- points by list placement: last place = 10, each place higher is worth 8% more
-  update levels set points = round(10 * power(1.08, i - rank)) where rank is not null;
-  return i;
-end $$;
-
-create or replace function public._seed_packs(p_packs jsonb) returns int
-language plpgsql security definer set search_path = public as $$
-declare e jsonb; i int := 0; keys text[];
-begin
-  delete from list_packs;
-  for e in select * from jsonb_array_elements(p_packs) loop
-    keys := array(select k from jsonb_array_elements_text(e->'levels') k
-                  where exists (select 1 from levels l where l.key = k and l.rank is not null));
-    if cardinality(keys) > 0 then
-      i := i + 1;
-      insert into list_packs (sort, name, colour, level_keys) values (i, e->>'name', e->>'colour', keys);
-    end if;
-  end loop;
-  return i;
-end $$;
-
-create or replace function public.admin_sync(p_token text, p_levels jsonb, p_packs jsonb) returns jsonb
-language plpgsql security definer set search_path = public as $$
-begin
-  perform _require_admin(p_token);
-  return jsonb_build_object('levels', _seed_levels(p_levels), 'packs', _seed_packs(p_packs));
-end $$;
-
-create or replace function public.admin_create_code(p_token text, p_code text, p_packs int, p_kind text default 'normal', p_max_uses int default 1000)
-returns void language plpgsql security definer set search_path = public as $$
-begin
-  perform _require_admin(p_token);
-  insert into codes (code, packs, pack_kind, max_uses) values (upper(trim(p_code)), p_packs, p_kind, p_max_uses)
-  on conflict (code) do update set packs = excluded.packs, pack_kind = excluded.pack_kind, max_uses = excluded.max_uses;
-end $$;
-
-create or replace function public.admin_reset_pin(p_token text, p_username text, p_new_pin text)
-returns void language plpgsql security definer set search_path = public, extensions as $$
-declare v uuid;
-begin
-  perform _require_admin(p_token);
-  select id into v from profiles where lower(username) = lower(trim(p_username));
-  if v is null then raise exception 'Player not found'; end if;
-  update secrets set pin_hash = crypt(_check_pin(p_new_pin), gen_salt('bf')), failed = 0, locked_until = null where user_id = v;
-  delete from sessions where user_id = v;
-end $$;
-
--- ---------- Permissions ----------------------------------------------
-grant usage on schema public to anon, authenticated;
-grant select on public.settings, public.levels, public.list_packs, public.profiles, public.cards to anon, authenticated;
-revoke insert, update, delete, truncate on all tables in schema public from anon, authenticated;
-revoke all on public.secrets, public.sessions, public.trades, public.codes, public.code_redemptions, public.set_claims, public.pending_picks from anon, authenticated;
-revoke all on all functions in schema public from public, anon, authenticated;
-grant execute on function
-  public.signup(text, text), public.login(text, text), public.logout(text),
-  public.get_state(text), public.open_packs(text, text, int), public.merge_packs(text, text),
-  public.redeem_code(text, text), public.claim_set(text, text), public.my_picks(text), public.pick_card(text, bigint, int), public.set_reward_kind(text[]), public.create_trade(text, text, bigint[], bigint[]),
-  public.respond_trade(text, bigint, boolean), public.my_trades(text),
-  public.leaderboard(), public.recent_pulls(), public.recent_trades(),
-  public.admin_sync(text, jsonb, jsonb), public.admin_create_code(text, text, int, text, int),
-  public.admin_reset_pin(text, text, text),
-  public.tier_for_rank(int), public.tier_points(text)
-to anon, authenticated;
-
--- ---------- v3 changes ----------
-update public.settings set start_packs = 10, cards_per_pack = 3, pack_minutes = 10, pack_cap = 10 where id = 1;
--- recalculate level points (by list placement)
--- Seed: the 90 levels and GDPS packs (generated from the GDPS demonlist repo)
-select public._seed_levels($json$[{"key": "TheAbyss", "name": "The Abyss", "author": "Gamer862", "verifier": "Gamer862", "video_id": "wa_AxYg7dj4"}, {"key": "PlanumAstrale", "name": "Planum Astrale", "author": "Ke2", "verifier": "Gamer862", "video_id": "zAaDGpur5lY"}, {"key": "HAILTOTHETHIEF", "name": "HAIL TO THE THIEF", "author": "beeguy", "verifier": "beeguy", "video_id": null}, {"key": "Sakupenhouse", "name": "Sakupenhouse", "author": "Syne", "verifier": "Emmber", "video_id": "zVCrhsbfp6g"}, {"key": "SixxSevvend", "name": "Sixx Sevvend", "author": "Syne", "verifier": "Emmber", "video_id": "X6NkkPSjzKE"}, {"key": "Heatwave", "name": "Heatwave", "author": "Quacc", "verifier": "miokii", "video_id": "mL4gWbbFLd4"}, {"key": "NoCure", "name": "No Cure", "author": "Nange", "verifier": "Nange", "video_id": "WjDNFxWoG9w"}, {"key": "RareAnimal", "name": "rare animal", "author": "beeguy", "verifier": "beeguy", "video_id": "7cEbBNIVTCw"}, {"key": "GoldenfyreChallenge", "name": "Goldenfyre Challenge", "author": "Nange", "verifier": "Nange", "video_id": "g2k0Gkxfx3M"}, {"key": "GoingHome", "name": "Going Home", "author": "Firelia", "verifier": "Firelia", "video_id": "uXflz2r5Cqg"}, {"key": "GiltChin", "name": "Gilt Chin", "author": "Firelia", "verifier": "Firelia", "video_id": "ZCeH1p-Xw9s"}, {"key": "GLEAMING", "name": "GLEAMING", "author": "EpikGuy", "verifier": "EpikGuy", "video_id": "F6bHB8U0lrQ"}, {"key": "Octane", "name": "Octane", "author": "Emmber", "verifier": "Emmber", "video_id": "c09X5wNir0A"}, {"key": "Gate", "name": "Gate", "author": "Firelia", "verifier": "Firelia", "video_id": "41sDyG7RPlE"}, {"key": "TheSuperCatguy", "name": "The Super Catguy", "author": "Beeguy", "verifier": "Beeguy", "video_id": "Lv9eDn9Xq3A"}, {"key": "EGGNEVERCLEARRE", "name": "EGG NEVER CLEAR RE", "author": "EpikGuy", "verifier": "Gamer862", "video_id": "8iI3n4nNyAY"}, {"key": "Pyrarrmaniac", "name": "Pyrarrmaniac", "author": "", "verifier": "Nange", "video_id": "P_pH-sMr1_M"}, {"key": "BRIGHTNESS", "name": "BRIGHTNESS", "author": "EpikGuy", "verifier": "Gamer862", "video_id": "0_BcTi4F6dY"}, {"key": "MIOKIIALWAYSCLEAR", "name": "MIOKII ALWAYS CLEAR", "author": "3Doffisa", "verifier": "3Doffisa", "video_id": "StZNeDi4xNs"}, {"key": "TheCityOfBattle", "name": "The City Of Battle", "author": "Xc4pk", "verifier": "Xc4pk", "video_id": "uPY-kJR8EEY"}, {"key": "Petal", "name": "Petal", "author": "beeguy", "verifier": "beeguy", "video_id": "32daBxXV4U4"}, {"key": "PlasmaPulseX", "name": "Plasma Pulse X", "author": "Firelia", "verifier": "Firelia", "video_id": "GUj0dwONCas"}, {"key": "SaySo", "name": "Say So", "author": "pure", "verifier": "GDNOBRAIN", "video_id": "xlfyarz5l2g"}, {"key": "PolarBear", "name": "PolarBear", "author": "Firelia", "verifier": "Firelia", "video_id": "45BdoMQcIoI"}, {"key": "DoodleRush", "name": "Doodle Rush", "author": "beeguy", "verifier": "beeguy", "video_id": "KB9S1KX1WH8"}, {"key": "Limbotism", "name": "Limbotism", "author": "Unnatural", "verifier": "Unnatural", "video_id": "fvpLRNyuk3Q"}, {"key": "ClothOfRoses", "name": "Cloth Of Roses", "author": "Electrow", "verifier": "Electrow", "video_id": "tr_eJqNYcpg"}, {"key": "ColonThreeCircles", "name": "colon three circles", "author": "Cheese", "verifier": "Cheese", "video_id": null}, {"key": "BlossomSea", "name": "Blossom Sea", "author": "Firelia", "verifier": "Firelia", "video_id": "xDmjDvt9O74"}, {"key": "JumpForMe", "name": "Jump For Me", "author": "Xc4pk", "verifier": "Xc4pk", "video_id": "K2iD6eBBVNk"}, {"key": "OctagonForce", "name": "Octagon Force", "author": "JPCPro", "verifier": "JPCPro", "video_id": null}, {"key": "Interstellrarr", "name": "Interstellrarr", "author": "syne", "verifier": "geo", "video_id": "HSyMH2szS6k"}, {"key": "CaesiumFactorial3", "name": "Caesium Factorial 3", "author": "JPCPro", "verifier": "JPCPro", "video_id": "Gaevi63Gpzc"}, {"key": "SynetosignLeashed", "name": "Synetosign Leashed", "author": "Alya", "verifier": "Alya", "video_id": "Yp3nfJiEDz4"}, {"key": "CaesiumFactorial1", "name": "Caesium Factorial 1", "author": "JPCPro", "verifier": "JPCPro", "video_id": "jJAKSpHIiZ8"}, {"key": "InItsRightPlace", "name": "In Its Right Place", "author": "Beeguy", "verifier": "Beeguy", "video_id": "_sYXkwcLw-I"}, {"key": "Cubed", "name": "CUBED", "author": "JPCPro", "verifier": "JPCPro", "video_id": "jk6ZQlUM9tk"}, {"key": "XENOSCAPE", "name": "XENOSCAPE", "author": "hortus", "verifier": "Moss", "video_id": "Qo9QvTsDUiU"}, {"key": "planetrarrium", "name": "planetrarrium", "author": "Luna", "verifier": "Nange", "video_id": "7e2t6NsshwM"}, {"key": "TormentedSentience", "name": "Tormented Sentience", "author": "Goldenfyre101", "verifier": "Goldenfyre101", "video_id": "rKZbdtsVTjg"}, {"key": "Stroll", "name": "Stroll", "author": "Nange", "verifier": "Nange", "video_id": "rpbkG_QUKdU"}, {"key": "EveryEndLeashed", "name": "Every End Leashed", "author": "syne", "verifier": "Emmber", "video_id": "qQ1tNR4k_W0"}, {"key": "SaveMe", "name": "Save Me", "author": "Electrow", "verifier": "Electrow", "video_id": "x9ffuE5zpnU"}, {"key": "GLORINESS", "name": "GLORINESS", "author": "EpikGuy", "verifier": "EpikGuy", "video_id": "7Jp0HcfmxCM"}, {"key": "LancerDeltarune", "name": "lancer deltarune", "author": "beeguy", "verifier": "beeguy", "video_id": "mjVUzHkVR7s"}, {"key": "DeadmansHandle", "name": "Deadmans Handle", "author": "luna", "verifier": "Goldenfyre101", "video_id": "aP_c-Eu4HA4"}, {"key": "Aurora", "name": "Aurora", "author": "Emmber", "verifier": "Emmber", "video_id": "zMhZ7Kuo_n8"}, {"key": "MyMeat", "name": "My Meat", "author": "Gamer862", "verifier": "Gamer862", "video_id": "8IZS5hL-DnY"}, {"key": "Firewall", "name": "Firewall", "author": "Syne", "verifier": "beeguy", "video_id": "v0XSx-63r80"}, {"key": "Sonicbreaker", "name": "Sonicbreaker", "author": "Hyperfixation66", "verifier": "AltifyNeverDies", "video_id": "Lwlms5IO5zU"}, {"key": "DeepEnd", "name": "Deep End", "author": "Electrow", "verifier": "Electrow", "video_id": "haKpv5ynoic"}, {"key": "DancingUntilIFall", "name": "Dancing Until I Fall", "author": "beeguy", "verifier": "beeguy", "video_id": "h_WJNfNqQTY"}, {"key": "AltiAdventures", "name": "Alti Adventures", "author": "AltifyNeverDies", "verifier": "AltifyNeverDies", "video_id": "HykmlGYYGEY"}, {"key": "BlankPlanet", "name": "Blank Planet", "author": "RecorderChannel2", "verifier": "Nange", "video_id": "1EY7ThG88nE"}, {"key": "LimboButRarrIg", "name": "limbo but rarr ig", "author": "Luna", "verifier": "Luna", "video_id": "fyEtGpne_Us"}, {"key": "ProcessedMachine", "name": "Processed Machine", "author": "spec", "verifier": "spec", "video_id": "SO-P5wLghnA"}, {"key": "Stalemate", "name": "Stalemate", "author": "GooeyG", "verifier": "Emmber", "video_id": "4oyQF0pW1KA"}, {"key": "Budgetscapes", "name": "Budgetscapes", "author": "Beeguy", "verifier": "Nange", "video_id": "PABjjAT57EM"}, {"key": "NoSurprises", "name": "No Surprises", "author": "EpikGuy", "verifier": "Gamer862", "video_id": "Kd-JiOBGZR0"}, {"key": "Stratus", "name": "Stratus", "author": "AltifyNeverDies", "verifier": "AltifyNeverDies", "video_id": "3YuGr2EEsjA"}, {"key": "growingonme", "name": "growing on me", "author": "qwerty2048", "verifier": "qwerty2048", "video_id": "vUwJwJZXzJQ"}, {"key": "Genesis", "name": "Genesis", "author": "altifyneverdies", "verifier": "Xc4pk", "video_id": "Sv3_cvLFiwM"}, {"key": "OnlyYou", "name": "Only You", "author": "Electrow", "verifier": "Electrow", "video_id": "MWRT7aAmo9o"}, {"key": "SHINING", "name": "SHINING", "author": "EpikGuy", "verifier": "EpikGuy", "video_id": "d_52Bqzi40Q"}, {"key": "CaesiumFactorial2", "name": "Caesium Factorial 2", "author": "JPCPro", "verifier": "JPCPro", "video_id": "gDN1JI8LzNI"}, {"key": "ViprinSpider", "name": "ViPriN Spider", "author": "altifyneverdies", "verifier": "Nange", "video_id": "MLyu3Co47qM"}, {"key": "CriesForTheLonely", "name": "Cries For The Lonely", "author": "", "verifier": "Alya", "video_id": "WSTW0710mV4"}, {"key": "Duality", "name": "Duality", "author": "Unnatural", "verifier": "Unnatural", "video_id": "DBqqiCvP310"}, {"key": "Bananas", "name": "Bananas", "author": "Nange", "verifier": "Nange", "video_id": "5KE__meSI9A"}, {"key": "Paparazzi", "name": "Paparazzi", "author": "Electrow", "verifier": "Electrow", "video_id": "wihpFJxgBSU"}, {"key": "FastTravel", "name": "Fast Travel", "author": "Kimichii", "verifier": "Kimichii", "video_id": null}, {"key": "TheKiller", "name": "the killer", "author": "", "verifier": "beeguy", "video_id": "iNXJoTW2n44"}, {"key": "TungWaveTrials", "name": "Tung Wave Trials", "author": "syne", "verifier": "miokii", "video_id": "235nQ6_MyjM"}, {"key": "ReturnEnd", "name": "Return End", "author": "Absoluteinf1", "verifier": "Absoluteinf1", "video_id": "W5dnIBUuMO0"}, {"key": "HappyBirthdayGoldie", "name": "Happy Birthday Goldie", "author": "", "verifier": "Quacc", "video_id": "twukrpd9-K0"}, {"key": "1Up", "name": "1 Up", "author": "Absoluteinf1", "verifier": "Absoluteinf1", "video_id": "26JEHyxNMz4"}, {"key": "DiscoDance", "name": "Disco Dance", "author": "Xc4pk", "verifier": "Xc4pk", "video_id": "XGeJ6ROuNa0"}, {"key": "Chess", "name": "Chess", "author": "3Doffisa", "verifier": "3Doffisa", "video_id": "7pvM1B5ZTQI"}, {"key": "KineticDisorption", "name": "Kinetic Disorption", "author": "Goldenfyre101", "verifier": "Kimichii", "video_id": null}, {"key": "ToBeComplete", "name": "TO be complete", "author": "beeguy", "verifier": "beeguy", "video_id": "SFQ6UCN-_u0"}, {"key": "TheGolden", "name": "The Golden", "author": "Alya", "verifier": "Alya", "video_id": "BXs81SQ1ies"}, {"key": "ChaosConstruct", "name": "Chaos Construct", "author": "xxLettucex", "verifier": "xxLettucex", "video_id": "iyDMMboN5LQ"}, {"key": "FutureCircles", "name": "Future Circles", "author": "Hyperfixation66", "verifier": "Hyperfixation66", "video_id": null}, {"key": "CutYouOff", "name": "Cut You Off", "author": "Quacc", "verifier": "Quacc", "video_id": "rLQkrjPhrAg"}, {"key": "MoonshipWelters", "name": "Moonship Welters", "author": "Goldenfyre101", "verifier": "Goldenfyre101", "video_id": "h3UkJ9AdIbs"}, {"key": "LARP", "name": "LARP", "author": "spec", "verifier": "spec", "video_id": "0rUmuN4MQiY"}, {"key": "Thumper", "name": "Thumper", "author": "Syne", "verifier": "Syne", "video_id": "ln-Zi0RwFKg"}, {"key": "Darkness", "name": "Darkness", "author": "Electrow", "verifier": "Nange", "video_id": "lcXEodAVlwY"}, {"key": "RadiationWave", "name": "Radiation Wave", "author": "WIZARD", "verifier": "WIZARD", "video_id": "Rh8mLJkSODI"}, {"key": "Runaway", "name": "Runaway", "author": "Electrow", "verifier": "Nange", "video_id": "N-tuyZM9TXA"}]$json$::jsonb);
-select public._seed_packs($json$[{"name": "Top 1 Pack", "colour": "#ff0000", "levels": ["TheAbyss", "GoldenfyreChallenge", "EGGNEVERCLEARRE", "NoCure"]}, {"name": "The Beeguy Pack", "colour": "#ff69b4", "levels": ["ToBeComplete", "Budgetscapes", "DancingUntilIFall", "InItsRightPlace"]}, {"name": "The Beeguy Pack II", "colour": "#e0108a", "levels": ["LancerDeltarune", "DoodleRush", "Petal", "TheSuperCatguy"]}, {"name": "Inspiration Pack", "colour": "#ffee00", "levels": ["PlasmaPulseX", "TheCityOfBattle", "MIOKIIALWAYSCLEAR", "Aurora"]}, {"name": "Light Pack", "colour": "#ffffff", "levels": ["SHINING", "GLEAMING", "GLORINESS", "BRIGHTNESS"]}, {"name": "Rarr Pack", "colour": "#ffd28a", "levels": ["Pyrarrmaniac", "planetrarrium", "LimboButRarrIg", "Interstellrarr"]}, {"name": "XL Pack", "colour": "#6a5cff", "levels": ["Darkness", "TheKiller", "Paparazzi", "OnlyYou"]}, {"name": "XL Pack II", "colour": "#4b3fd1", "levels": ["SaveMe", "Firewall", "XENOSCAPE"]}, {"name": "XXL+ Pack", "colour": "#3226a3", "levels": ["DeepEnd", "EveryEndLeashed", "growingonme"]}, {"name": "Nine Circles Pack", "colour": "#ff4d4d", "levels": ["FutureCircles", "Stratus", "ProcessedMachine"]}, {"name": "Nine Circles Pack II", "colour": "#c81e1e", "levels": ["BlankPlanet", "Sonicbreaker", "ColonThreeCircles"]}, {"name": "Caesium Factorial Pack", "colour": "#ff7a00", "levels": ["CaesiumFactorial1", "CaesiumFactorial2", "CaesiumFactorial3"]}, {"name": "Joke Pack", "colour": "#22e04a", "levels": ["LARP", "TungWaveTrials", "Bananas", "MyMeat"]}, {"name": "Goldenfyre Pack", "colour": "#ffc300", "levels": ["TormentedSentience", "MoonshipWelters", "KineticDisorption"]}, {"name": "Flow Pack", "colour": "#5e8bff", "levels": ["Runaway", "RadiationWave", "Thumper"]}, {"name": "Flow Pack II", "colour": "#3f6be0", "levels": ["Chess", "FastTravel", "CriesForTheLonely"]}]$json$::jsonb);
+async function boot() {
+  if (!sb) { app.innerHTML = `<div class="panel auth"><h2>Almost there</h2><p>Paste your Supabase URL and key into the CONFIG section at the top of index.html.</p></div>`; return; }
+  if (!S.token) { renderAuth(); return; }
+  app.innerHTML = '<div class="panel" style="text-align:center">Loading…</div>';
+  try {
+    await refreshState();
+    await Promise.all([loadLevels(), loadMyCards(), rpc('leaderboard').then(b => S.board = b)]);
+  } catch (e) {
+    if (!S.token) { renderAuth(); return; }
+    app.innerHTML = `<div class="panel">Couldn't connect: ${esc(e.message)}</div>`; return;
+  }
+  $('#top').classList.remove('hidden');
+  route();
+  rpc('my_trades', {p_token: S.token}).then(updateTradeDot).catch(() => {});
+}
+setInterval(() => { if (S.token && S.me) rpc('my_trades', {p_token: S.token}).then(updateTradeDot).catch(() => {}); }, 30000);
+boot();
+</script>
+</body>
+</html>
