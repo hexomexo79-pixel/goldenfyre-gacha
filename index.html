@@ -230,6 +230,9 @@ tr.me td{background:rgba(255,179,64,.07)}
 .lb tbody tr{cursor:pointer}.lb tbody tr:hover td{background:var(--panel2)}
 .scoretbl td{padding:7px 6px}.scoretbl tr.tot td{border-top:2px solid var(--line);border-bottom:none}
 .chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.holotog{vertical-align:middle;margin-left:8px;font-size:12px}
+.chip.holotog.on{background:linear-gradient(135deg,#ff6b6b,#ffd36b,#6bff9c,#6bd0ff,#b46bff);color:#111;border-color:transparent}
+.holobar i{background:linear-gradient(90deg,#ff6b6b,#ffd36b,#6bff9c,#6bd0ff,#b46bff)!important}
 .chip{border:1px solid var(--line);background:var(--panel2);color:var(--muted);border-radius:999px;padding:5px 12px;font-size:13px;font-weight:700}
 .chip.on{color:#111;background:#f2eef6;border-color:#f2eef6}
 
@@ -453,7 +456,7 @@ if (window.supabase && !/PASTE/.test(CFG.SUPABASE_URL)) sb = window.supabase.cre
 const S = {
   token: localStorage.getItem('gacha_token'),
   me: null, levels: [], byKey: {}, packs: [], creators: [],
-  myCards: [], board: [], clans: [], clock: 0,
+  myCards: [], board: [], clans: [], clock: 0, holoView: (() => { try { return localStorage.getItem('gacha_holoview') === '1'; } catch (e) { return false; } })(),
   filter: {show: 'all', tier: 'all'}, picks: []
 };
 
@@ -759,7 +762,8 @@ function renderHome() {
     const off = i - (stackN - 1);
     stack += packHTML('normal', total ? '' : 'empty', `transform:translate(${off * 7}px,${off * -3}px) rotate(${off * 2.5}deg);opacity:${1 + off * 0.12}`);
   }
-  const nearCreators = info.creators.filter(x => !x.done).sort((a, b) => b.nextGain - a.nextGain).slice(0, 3);
+  const nearCreators = S.holoView ? orderCreators(info.creators.filter(x => !x.holoDone)).slice(0, 3)
+    : info.creators.filter(x => !x.done).sort((a, b) => b.nextGain - a.nextGain).slice(0, 3);
   app.innerHTML = `
   ${dropBanner()}
   ${st.pending_picks ? `<div class="banner"><b>You have ${st.pending_picks} opened pack${st.pending_picks > 1 ? 's' : ''} waiting for you to pick a card.</b><span class="spacer"></span><button class="btn primary sm" id="resume">Pick now</button></div>` : ''}
@@ -802,12 +806,12 @@ function renderHome() {
   </div>
 
   <div class="panel">
-    <div class="row between"><h2 style="margin:0">Goldenfyre pack sets</h2><a href="#/collection">All ${S.packs.length} sets →</a></div>
-    ${setCards(info.sets.slice(0, 4))}
+    <div class="row between"><h2 style="margin:0">Goldenfyre pack sets ${holoToggle()}</h2><a href="#/collection">All ${S.packs.length} sets →</a></div>
+    ${setCards(orderSets(info.sets).slice(0, 4))}
   </div>
 
   <div class="panel">
-    <div class="row between"><h2 style="margin:0">Creator bonuses</h2><a href="#/creators">All creators →</a></div>
+    <div class="row between"><h2 style="margin:0">Creator bonuses ${holoToggle()}</h2><a href="#/creators">All creators →</a></div>
     ${creatorBlocks(nearCreators)}
   </div>
 
@@ -870,8 +874,24 @@ function scoreTable(info) {
     <tr class="tot"><td><b>Total</b></td><td></td><td style="text-align:right"><b>${fmt(info.total)}</b></td></tr>
   </tbody></table>`;
 }
+function holoToggle(redraw) {
+  setTimeout(() => document.querySelectorAll('.holotog').forEach(b => b.onclick = () => {
+    S.holoView = !S.holoView; try { localStorage.setItem('gacha_holoview', S.holoView ? '1' : '0'); } catch (e) {}
+    (redraw || route)();
+  }));
+  return `<button class="chip holotog ${S.holoView ? 'on' : ''}">✦ Holo</button>`;
+}
+function orderSets(sets) {
+  if (!S.holoView) return sets;
+  return [...sets].sort((a, b) => a.holoDone - b.holoDone || (a.p.level_keys.length - a.holoHave) - (b.p.level_keys.length - b.holoHave) || b.bonus - a.bonus);
+}
+function orderCreators(list) {
+  if (!S.holoView) return list;
+  return [...list].sort((a, b) => a.holoDone - b.holoDone || (a.n - a.holoHave) - (b.n - b.holoHave) || b.full - a.full);
+}
 function minisHTML(keys, own) {
-  return `<div class="minis">${keys.map(k => S.byKey[k] ? cardHTML(S.byKey[k], {mini: true, missing: !own[k], holo: own[k] && own[k].holo}) : '').join('')}</div>`;
+  const has = k => S.holoView && S.byKey[k]?.tier !== 'unverified' ? own[k] && own[k].holo : own[k];
+  return `<div class="minis">${keys.map(k => S.byKey[k] ? cardHTML(S.byKey[k], {mini: true, missing: !has(k), holo: own[k] && own[k].holo}) : '').join('')}</div>`;
 }
 function hardestKey(keys) { return [...keys].filter(k => S.byKey[k]).sort((a, b) => (S.byKey[a].rank ?? 999) - (S.byKey[b].rank ?? 999))[0]; }
 function setCards(sets, own, readOnly) {
@@ -880,12 +900,15 @@ function setCards(sets, own, readOnly) {
   return `<div class="sets">${sets.map(x => {
     const n = x.p.level_keys.length, away = x.missing.length;
     const hk = hardestKey(x.p.level_keys), tier = S.byKey[hk]?.tier || 'common', bg = thumbUrl(hk);
-    const status = x.done
+    const hAway = n - x.holoHave;
+    const status = S.holoView
+      ? (x.holoDone ? `<span class="sdone">✦ Holo complete · +${fmt(x.bonus)} pts</span>` : `<span class="saway">✦ ${hAway === 1 ? '1 away!' : `${hAway} away`}</span><span class="muted">+${fmt(x.bonus)}</span>`)
+      : x.done
       ? (x.claimed ? `<span class="sdone">✓ Already redeemed · +${fmt(x.bonus)} pts</span>` : readOnly ? '<span class="sdone">Complete</span>' : `<button class="btn primary sm redeem" data-claim="${esc(x.p.name)}">Redeem +${fmt(x.bonus)} & ${x.reward} packs</button>`)
       : x.claimed ? `<span class="saway">${away} away</span><span class="muted">Already redeemed · get it back for +${fmt(x.bonus)}</span>`
       : `<span class="saway">${away === 1 ? '1 away!' : `${away} away`}</span><span class="muted">+${fmt(x.bonus)} · ${x.reward} packs</span>`;
     return `<div class="stile st-${tier} ${x.holoDone ? 'holodone' : ''} ${x.done && x.claimed ? 'won' : ''} ${x.done && !x.claimed ? 'ready' : ''}" style="--sc:${esc(x.p.colour || '#888')}${bg ? `;--bn:url('${bg}')` : ''}" data-set="${esc(x.p.name)}">
-      <div class="stin"><div class="row between"><b class="sname">${esc(x.p.name)}${x.holoDone ? ' <span class="cbadge plus">✦ HOLO</span>' : ''}</b><span class="scount">${x.have}/${n}${x.done ? ` <span class="hcount">✦ ${x.holoHave}/${n}</span>` : ''}</span></div>
+      <div class="stin"><div class="row between"><b class="sname">${esc(x.p.name)}${x.holoDone ? ' <span class="cbadge plus">✦ HOLO</span>' : ''}</b><span class="scount">${S.holoView ? `<span class="hcount">✦ ${x.holoHave}/${n}</span>` : `${x.have}/${n}${x.done ? ` <span class="hcount">✦ ${x.holoHave}/${n}</span>` : ''}`}</span></div>
       ${minisHTML(x.p.level_keys, own)}
       <div class="row between" style="gap:6px">${status}</div></div></div>`;
   }).join('')}</div>`;
@@ -897,6 +920,11 @@ function creatorBlocks(list, own) {
     + (small.length ? `<div class="sets" style="margin-top:14px">${small.map(x => creatorBox(x, own)).join('')}</div>` : '');
 }
 function creatorProgress(x) {
+  if (S.holoView) {
+    const away = x.n - x.holoHave;
+    return `<div class="cprog"><div class="row between"><b><span class="hcount">✦ ${x.holoHave}/${x.n}</span>${x.holoDone ? ' <span class="cbadge plus">✦ HOLO</span>' : ''}</b>${x.holoDone ? `<span class="sdone">✦ Holo complete · +${fmt(x.full)}</span>` : `<span>${away === 1 ? '1 away!' : `${away} away`} <span class="muted">· +${fmt(x.full)}</span></span>`}</div>
+    <div class="bar holobar" style="margin:6px 0 0"><i style="width:${Math.round(x.holoHave / x.n * 100)}%"></i></div></div>`;
+  }
   const right = x.claimed && x.done ? `<span class="sdone">✓ Already redeemed · +${fmt(x.full)}</span>`
     : x.redeemable ? `<button class="btn primary sm redeem" data-cclaim="${esc(x.c.key)}">Redeem +${fmt(x.full)}</button>`
     : `<span>+${fmt(x.bonus)} <span class="muted">/ ${fmt(x.full)}</span></span>`;
@@ -911,7 +939,7 @@ function creatorRow(x, own) {
       ${creatorIcon(x.c, true)}
       <div class="cinfo"><div class="cname">${esc(x.c.name)}${x.done && unvOf(x.c).some(l => own[l.key]) ? ' <span class="cbadge plus">COLLECTED+</span>' : ''}</div>${creatorProgress(x)}</div>
     </div>
-    <div class="hscroll">${x.c.keys.map(k => cardHTML(S.byKey[k], {missing: !own[k], holo: own[k] && own[k].holo})).join('')}${unvOf(x.c).map(l => cardHTML(l, {missing: !own[l.key]})).join('')}</div>
+    <div class="hscroll">${x.c.keys.map(k => cardHTML(S.byKey[k], {missing: S.holoView ? !(own[k] && own[k].holo) : !own[k], holo: own[k] && own[k].holo})).join('')}${unvOf(x.c).map(l => cardHTML(l, {missing: !own[l.key]})).join('')}</div>
   </div>`;
 }
 function creatorBox(x, own) {
@@ -1202,15 +1230,15 @@ function renderCollection() {
   const info = myInfo(), listed = S.levels.filter(l => l.rank);
   app.innerHTML = `<div class="panel"><h2>Your collection · ${info.uniq}/${listed.length} · <span class="hcount">✦ ${info.holos}/${listed.length} holo</span> · ${S.myCards.length} cards</h2>
     ${filterChips(renderCollection)}${collectionGrid(S.myCards)}</div>
-    <div class="panel"><h2>Goldenfyre pack sets</h2>${setCards(info.sets)}</div>
+    <div class="panel"><h2>Goldenfyre pack sets ${holoToggle()}</h2>${setCards(orderSets(info.sets))}</div>
     <div class="panel"><h2>Your score</h2>${scoreTable(info)}</div>`;
   bindClaims();
 }
 function renderCreators() {
   const info = myInfo();
   const list = [...info.creators].sort((a, b) => b.n - a.n || b.c.value - a.c.value);
-  app.innerHTML = `<div class="panel"><h2>Creators · ${info.creatorsDone}/${S.creators.length} collected</h2>
-    ${creatorBlocks(list)}</div>`;
+  app.innerHTML = `<div class="panel"><h2>Creators · ${S.holoView ? `<span class="hcount">✦ ${info.holoCreatorsDone}/${S.creators.length} in holo</span>` : `${info.creatorsDone}/${S.creators.length} collected`} ${holoToggle()}</h2>
+    ${creatorBlocks(orderCreators(list))}</div>`;
   bindClaims();
 }
 
@@ -1368,7 +1396,7 @@ async function renderPlayer(name) {
       <div class="panel"><div class="row between"><h2 style="margin:0">Collection</h2>
       ${row.user_id !== S.me.user_id ? `<button class="btn primary sm" id="tw">Trade with ${esc(row.username)}</button>` : `<a href="#/profile">Edit profile</a>`}</div><br>
       ${filterChips(draw)}${collectionGrid(cards)}</div>
-      <div class="panel"><h2>Sets</h2>${setCards(row.info.sets, own, true)}</div>
+      <div class="panel"><h2>Sets ${holoToggle(draw)}</h2>${setCards(orderSets(row.info.sets), own, true)}</div>
       <div class="panel"><h2>Score</h2>${scoreTable(row.info)}</div>`;
     const tw = $('#tw'); if (tw) tw.onclick = () => go('#/trades/new/' + encodeURIComponent(row.username));
   };
