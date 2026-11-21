@@ -373,6 +373,8 @@ footer{text-align:center;color:#6d6975;font-size:12px;padding:20px;line-height:1
 .locks{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}.lockb.on{background:#2a2110;border-color:#6b4a1f;color:#ffcf70}
 .lockic{position:absolute;right:6px;top:-6px;z-index:31;font-size:16px;filter:drop-shadow(0 2px 3px #000)}
 .owners{font-size:11px;color:var(--muted);margin-top:5px;line-height:1.3;text-align:center}
+.delta{display:inline-block;font-weight:800;font-size:14px;padding:4px 10px;border-radius:8px;background:#26242c;border:1px solid var(--line)}
+.delta.up{color:#6ee08c;border-color:#2f6b3c;background:#173320}.delta.down{color:#ff8a8a;border-color:#6b2f2f;background:#331717}
 </style>
 </head>
 <body>
@@ -1308,7 +1310,8 @@ async function renderTrades() {
     const other = t.incoming ? t.from_username : t.to_username;
     return `<div class="trade"><div class="row between">
       <b>${t.incoming ? `From ${esc(other)}` : `To ${esc(other)}`}</b><span class="status ${t.status}">${t.status}</span></div>
-      <div class="sides"><div><div class="label">You give</div>${mini(youGive)}</div><div><div class="label">You get</div>${mini(youGet)}</div></div>
+      <div class="sides"><div><div class="label">You give · ${fmt(sideValue(youGive))} pts of cards</div>${mini(youGive)}</div><div><div class="label">You get · ${fmt(sideValue(youGet))} pts of cards</div>${mini(youGet)}</div></div>
+      ${t.status === 'pending' ? `<div style="margin-bottom:8px">${deltaHTML(scoreDelta(S.myCards, youGive.map(c => c.id), youGet, S.me.claimed_sets || [], S.me.claimed_creators || []), 'Your score')}</div>` : ''}
       ${t.status === 'pending' ? `<div class="row">${t.incoming ? `<button class="btn primary sm" data-acc="${t.id}">Accept</button><button class="btn sm" data-dec="${t.id}">Decline</button>` : `<span class="muted">Waiting for ${esc(other)}…</span><button class="btn sm" data-dec="${t.id}">Cancel</button>`}</div>` : ''}
     </div>`;
   }).join('') : '<p class="muted">No trades yet.</p>';
@@ -1322,6 +1325,18 @@ async function renderTrades() {
       await loadMyCards(); renderTrades();
     } catch (e) { toast(e.message, true); b.disabled = false; }
   });
+}
+// How a trade changes a player's real score (cards, holos, set + creator bonuses)
+function scoreDelta(cards, removeIds, add, claimedSets = [], claimedCreators = []) {
+  const before = scoreInfo(ownership(cards), claimedSets, claimedCreators).total;
+  const rm = new Set(removeIds);
+  const after = scoreInfo(ownership([...cards.filter(c => !rm.has(c.id)), ...add]), claimedSets, claimedCreators).total;
+  return after - before;
+}
+const sideValue = arr => arr.reduce((s, c) => s + (S.byKey[c.level_key]?.points || 0) * (c.holo ? RULES.holoMult : 1), 0);
+function deltaHTML(d, who) {
+  const cls = d > 0 ? 'up' : d < 0 ? 'down' : '';
+  return `<span class="delta ${cls}">${who}: ${d > 0 ? '+' : ''}${fmt(d)} pts</span>`;
 }
 function updateTradeDot(list) {
   const n = list.filter(t => t.incoming && t.status === 'pending').length;
@@ -1346,9 +1361,13 @@ async function renderNewTrade(name) {
     app.innerHTML = `<div class="panel"><div class="row between"><h2 style="margin:0">Trade with ${esc(row.username)}</h2><a href="#/trades">Back</a></div>
 
       <div class="tradecols">
-        <div><h3>You give (${give.length})</h3><div class="tray" id="tg">${tray(give)}</div></div>
-        <div><h3>You get (${get.length})</h3><div class="tray" id="tt">${tray(get)}</div></div>
+        <div><h3>You give (${give.length}) <span class="muted" style="font-weight:600">· ${fmt(sideValue(give))} pts</span></h3><div class="tray" id="tg">${tray(give)}</div></div>
+        <div><h3>You get (${get.length}) <span class="muted" style="font-weight:600">· ${fmt(sideValue(get))} pts</span></h3><div class="tray" id="tt">${tray(get)}</div></div>
       </div>
+      ${give.length + get.length ? `<div class="row" style="margin-top:12px;gap:8px">
+        ${deltaHTML(scoreDelta(S.myCards, give.map(c => c.id), get, S.me.claimed_sets || [], S.me.claimed_creators || []), 'Your score')}
+        ${deltaHTML(scoreDelta(theirs, get.map(c => c.id), give, row.claimed_sets || [], row.claimed_creators || []), esc(row.username) + "'s score")}
+        <span class="muted" style="font-size:12px">includes new levels, holos, set and creator bonuses. Dupes add nothing.</span></div>` : ''}
       <div class="row" style="margin:14px 0"><button class="btn primary" id="send" ${give.length + get.length ? '' : 'disabled'}>Send trade offer</button></div>
       <div class="tradecols">
         <div><h3>Your cards</h3><div class="tpick" id="pg">${side(S.myCards, give)}</div></div>
@@ -1544,6 +1563,7 @@ async function boot() {
 setInterval(() => { if (S.token && S.me) { rpc('my_trades', {p_token: S.token}).then(updateTradeDot).catch(() => {}); rpc('my_clan', {p_token: S.token}).then(updateClanDot).catch(() => {}); } }, 30000);
 // ---- What's new: add a new entry at the TOP for each update ----
 const CHANGELOG = [
+  {v: 6, title: 'Update', items: ['Trades now show how many points each side is worth, and how much the trade changes your score']},
   {v: 5, title: 'Update', items: ['Click any clan to see every card the clan owns together, and who owns each one']},
   {v: 4, title: 'Update', items: [
     'Collab levels now count for every creator on them (Pyrarrmaniac, Cries For The Lonely, The Killer, Happy Birthday Goldie)'
