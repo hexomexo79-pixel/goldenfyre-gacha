@@ -1342,7 +1342,7 @@ async function renderClans() {
   } else {
     if (mine.invites.length) html += `<div class="panel"><h2>Clan invites</h2><div class="feed">${mine.invites.map(i => `<div class="row" style="border:1px solid var(--line);border-radius:10px;padding:8px 10px">
       <b><span class="ctag">[${esc(i.tag)}]</span> ${esc(i.name)}</b><span class="spacer"></span><button class="btn primary sm" data-ia="${i.clan_id}">Join</button><button class="btn sm" data-idc="${i.clan_id}">Decline</button></div>`).join('')}</div></div>`;
-    html += `<div class="panel"><h2>Make a clan</h2><div class="row">
+    html += `<div class="panel"><h2>Make a clan</h2><p class="muted" style="margin:-4px 0 10px">Free pack for starting one. Max 2 clans per person.</p><div class="row">
       <input class="field" id="cName" placeholder="Clan name" maxlength="24"><input class="field" id="cTag" placeholder="TAG" maxlength="5" style="width:90px;text-transform:uppercase">
       <button class="btn primary" id="mk">Create</button></div></div>`;
   }
@@ -1355,10 +1355,10 @@ async function renderClans() {
   app.innerHTML = html;
   document.querySelectorAll('.clrow[data-c]').forEach(r => r.onclick = e => { if (!e.target.closest('button,input,label,details')) go('#/clan/' + r.dataset.c); });
   if ($('#mk')) $('#mk').onclick = async () => {
-    try { await rpc('create_clan', {p_token: S.token, p_name: $('#cName').value, p_tag: $('#cTag').value}); toast('Clan created!'); renderClans(); }
+    try { await rpc('create_clan', {p_token: S.token, p_name: $('#cName').value, p_tag: $('#cTag').value}); toast('Clan created! +1 free pack'); await refreshState(); renderClans(); }
     catch (e) { toast(e.message, true); }
   };
-  if ($('#leave')) $('#leave').onclick = () => { if (confirm('Leave your clan?')) act('leave', my.id); };
+  if ($('#leave')) $('#leave').onclick = () => { if (confirm('Leave your clan? You won\'t be able to join or make another one for 1 day.')) act('leave', my.id); };
   if ($('#ceSave')) {
     let icon = my.icon || '', ban = my.banner_key || '';
     $('#ceIcon').onchange = async e => { const f = e.target.files[0]; if (!f) return; try { icon = await shrinkImage(f); toast('Icon ready, press Save'); } catch (er) { toast(er.message, true); } };
