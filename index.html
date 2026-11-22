@@ -460,7 +460,7 @@ const S = {
   token: localStorage.getItem('gacha_token'),
   me: null, levels: [], byKey: {}, packs: [], creators: [],
   myCards: [], board: [], clans: [], clock: 0, holoView: (() => { try { return localStorage.getItem('gacha_holoview') === '1'; } catch (e) { return false; } })(),
-  filter: {show: 'all', tier: 'all'}, picks: []
+  filter: {show: 'all', tier: 'all', q: ''}, picks: []
 };
 
 async function rpc(name, args) {
@@ -1231,31 +1231,39 @@ setInterval(async () => {
 }, 1000);
 
 // ---------------- collection ----------------
+// Search by name, creator, verifier or #rank
+function matchQ(l, q) {
+  q = (q || '').trim().toLowerCase(); if (!q) return true;
+  if (/^#?\d+$/.test(q)) return String(l.rank) === q.replace('#', '');
+  return [l.name, l.verifier, ...creatorsOf(l)].some(x => String(x || '').toLowerCase().includes(q));
+}
+function searchBox(id, val, ph) { return `<input class="field" id="${id}" type="search" placeholder="${ph || 'Search name, creator or #rank'}" value="${esc(val || '')}" style="width:100%;max-width:340px;margin-bottom:10px">`; }
 function collectionGrid(cards) {
   const cp = copiesOf(cards), f = S.filter;
-  let lv = S.levels.filter(l => l.rank || cp[l.key] || (f.tier === 'unverified' && l.tier === 'unverified'));
+  let lv = S.levels.filter(l => (l.rank || cp[l.key] || (f.tier === 'unverified' && l.tier === 'unverified')) && matchQ(l, f.q));
   if (f.tier !== 'all') lv = lv.filter(l => l.tier === f.tier);
   if (f.show === 'owned') lv = lv.filter(l => cp[l.key]);
   if (f.show === 'missing') lv = lv.filter(l => !cp[l.key]);
   if (f.show === 'holo') {   // every listed level: holo ones lit up, everything else grayed out
-    const hl = S.levels.filter(l => l.rank && (f.tier === 'all' || l.tier === f.tier));
+    const hl = S.levels.filter(l => l.rank && (f.tier === 'all' || l.tier === f.tier) && matchQ(l, f.q));
     return `<div class="grid" style="row-gap:24px">${hl.map(l => { const hc = (cp[l.key] || []).filter(c => c.holo); return hc.length ? stackHTML(l, hc) : cardHTML(l, {missing: true, holo: true}); }).join('')}</div>`;
   }
   if (f.show === 'dupes') lv = lv.filter(l => cp[l.key] && cp[l.key].length > 1);
   return lv.length ? `<div class="grid" style="row-gap:24px">${lv.map(l => cp[l.key] ? stackHTML(l, cp[l.key]) : cardHTML(l, {missing: true})).join('')}</div>` : '<p class="muted">Nothing here.</p>';
 }
-function filterChips(rerender) {
+function filterChips(rerender, cards) {
   const f = S.filter;
+  setTimeout(() => { const q = $('#cq'); if (q) q.oninput = () => { S.filter.q = q.value; $('#cgrid').innerHTML = collectionGrid(cards); }; });
   const chip = (grp, v, label) => `<button class="chip ${f[grp] === v ? 'on' : ''}" data-g="${grp}" data-v="${v}">${label}</button>`;
   setTimeout(() => document.querySelectorAll('.chip[data-g]').forEach(b => b.onclick = () => { S.filter[b.dataset.g] = b.dataset.v; rerender(); }));
-  return `<div class="chips">${chip('show','all','All')}${chip('show','owned','Owned')}${chip('show','missing','Missing')}${chip('show','holo','✦ Holo')}${chip('show','dupes','Dupes')}</div>
+  return `${searchBox('cq', f.q)}<div class="chips">${chip('show','all','All')}${chip('show','owned','Owned')}${chip('show','missing','Missing')}${chip('show','holo','✦ Holo')}${chip('show','dupes','Dupes')}</div>
     <div class="chips">${chip('tier','all','Every tier')}${[...TIERS].reverse().map(t => chip('tier', t, t[0].toUpperCase() + t.slice(1))).join('')}${chip('tier','unverified','Unverified')}</div>`;
 }
 function renderCollection() {
   const info = myInfo(), listed = S.levels.filter(l => l.rank);
   app.innerHTML = `<div class="panel"><div class="row between"><h2 style="margin:0">Your collection · ${info.uniq}/${listed.length} · <span class="hcount">✦ ${info.holos}/${listed.length} holo</span> · ${S.myCards.length} cards</h2>
     <button class="holotog" id="craftAll">✦ Turn all dupes into holos</button></div><br>
-    ${filterChips(renderCollection)}${collectionGrid(S.myCards)}</div>
+    ${filterChips(renderCollection, S.myCards)}<div id="cgrid">${collectionGrid(S.myCards)}</div></div>
     <div class="panel"><h2>Your score</h2>${scoreTable(info)}</div>`;
   $('#craftAll').onclick = async () => {
     try {
@@ -1434,7 +1442,7 @@ async function renderPlayer(name) {
     app.innerHTML = `${profileHead(row)}
       <div class="panel"><div class="row between"><h2 style="margin:0">Collection</h2>
       ${row.user_id !== S.me.user_id ? `<button class="btn primary sm" id="tw">Trade with ${esc(row.username)}</button>` : `<a href="#/profile">Edit profile</a>`}</div><br>
-      ${filterChips(draw)}${collectionGrid(cards)}</div>
+      ${filterChips(draw, cards)}<div id="cgrid">${collectionGrid(cards)}</div></div>
       <div class="panel"><h2>Sets ${holoToggle(draw)}</h2>${setCards(orderSets(row.info.sets), own, true)}</div>
       <div class="panel"><h2>Score</h2>${scoreTable(row.info)}</div>`;
     const tw = $('#tw'); if (tw) tw.onclick = () => go('#/trades/new/' + encodeURIComponent(row.username));
@@ -1545,12 +1553,13 @@ async function renderNewTrade(name) {
   app.innerHTML = '<div class="panel">Loading…</div>';
   const theirs = await cardsOf(row.user_id);
   const give = [], get = [];   // selected card objects
-  let note = '';
+  let note = '', qG = '', qT = '';
   const myOwn = ownership(S.myCards), theirOwn = ownership(theirs);
   const sortKeys = m => Object.keys(m).sort((a, b) => (S.byKey[a].rank ?? 999) - (S.byKey[b].rank ?? 999));
-  const side = (cards, sel) => {
-    const cp = copiesOf(cards.filter(c => !c.locked && !sel.some(s => s.id === c.id)));
-    return `<div class="grid">${sortKeys(cp).map(k => stackHTML(S.byKey[k], cp[k], {trade: true, step: 30})).join('')}</div>`;
+  const side = (cards, sel, q) => {
+    const cp = copiesOf(cards.filter(c => !c.locked && !sel.some(s => s.id === c.id) && matchQ(S.byKey[c.level_key], q)));
+    const ks = sortKeys(cp);
+    return ks.length ? `<div class="grid">${ks.map(k => stackHTML(S.byKey[k], cp[k], {trade: true, step: 30})).join('')}</div>` : '<p class="muted">No cards match.</p>';
   };
   const tray = (sel, otherOwn) => sel.map(c => cardHTML(S.byKey[c.level_key], {holo: c.holo, id: c.id, mini: true})).join('');
   const draw = () => {
@@ -1568,8 +1577,8 @@ async function renderNewTrade(name) {
         <span class="muted" style="font-size:12px">includes new levels, holos, set and creator bonuses. Dupes add nothing.</span></div>` : ''}
       <div class="row" style="margin:14px 0"><input class="field" id="tnote" maxlength="140" placeholder="Add a message (optional)" style="flex:1;min-width:200px" value="${esc(note)}"><button class="btn primary" id="send" ${give.length + get.length ? '' : 'disabled'}>Send trade offer</button></div>
       <div class="tradecols">
-        <div><h3>Your cards</h3><div class="tpick" id="pg">${side(S.myCards, give)}</div></div>
-        <div><h3>${esc(row.username)}'s cards</h3><div class="tpick" id="pt">${side(theirs, get)}</div></div>
+        <div><h3>Your cards</h3>${searchBox('qg', qG)}<div class="tpick" id="pg">${side(S.myCards, give, qG)}</div></div>
+        <div><h3>${esc(row.username)}'s cards</h3>${searchBox('qt', qT)}<div class="tpick" id="pt">${side(theirs, get, qT)}</div></div>
       </div></div>`;
     if (ys[0] != null) { $('#pg').scrollTop = ys[0]; $('#pt').scrollTop = ys[1]; }
     const bind = (el, cards, sel) => el.querySelectorAll('.tstack').forEach(st => {
@@ -1584,6 +1593,8 @@ async function renderNewTrade(name) {
       });
     });
     bind($('#pg'), S.myCards, give); bind($('#pt'), theirs, get);
+    $('#qg').oninput = e => { qG = e.target.value; $('#pg').innerHTML = side(S.myCards, give, qG); bind($('#pg'), S.myCards, give); };
+    $('#qt').oninput = e => { qT = e.target.value; $('#pt').innerHTML = side(theirs, get, qT); bind($('#pt'), theirs, get); };
     $('#tg').querySelectorAll('.card').forEach(c => c.onclick = () => { give.splice(give.findIndex(x => x.id === +c.dataset.id), 1); draw(); });
     $('#tt').querySelectorAll('.card').forEach(c => c.onclick = () => { get.splice(get.findIndex(x => x.id === +c.dataset.id), 1); draw(); });
     $('#send').onclick = async () => {
