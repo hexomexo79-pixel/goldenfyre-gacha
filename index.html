@@ -1895,10 +1895,13 @@ async function boot() {
 setInterval(() => { if (S.token && S.me) { rpc('my_trades', {p_token: S.token}).then(updateTradeDot).catch(() => {}); rpc('my_clan', {p_token: S.token}).then(updateClanDot).catch(() => {}); } }, 30000);
 // ---- What's new: add a new entry at the TOP for each update ----
 const CHANGELOG = [
-  {v: 6, title: 'Update', items: [
+  {v: 7, title: 'Update', items: [
     'NEW: ★ Player cards. One for every creator and verifier on the list. Each one gives +25% points on every level that person verified or made',
-    'Every 5 packs you open earns a ★ Player pack (pick 1 of 3 player cards)',
+    'Every 5 packs you open earns a ★ Player pack (pick 1 of 3 player cards). Find it on the Packs page',
     'NEW: ✦ Holo milestones. Every 10 holos, claim a faster pack timer: 10:00 down to 5:00 at 90/90 holos, plus a ✦ COMPLETED badge',
+    'Clans moved into the Leaderboard tab (Players, Clans, Your clan)'
+  ]},
+  {v: 6, title: 'Update', items: [
     'Search for cards in your collection and when trading',
     '✦ Turn all dupes into holos button in your collection',
     'Pack picks now show how many normal and holo copies you have'
