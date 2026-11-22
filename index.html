@@ -1852,7 +1852,7 @@ async function adminTrades(un) {
 async function route(reset) {
   if (!S.me) return;
   const keepY = window.scrollY;
-  document.querySelectorAll('.modal').forEach(m => m.remove());
+  document.querySelectorAll('.modal:not(.sticky)').forEach(m => m.remove());   // What's new / disclaimer stay until closed
   const h = location.hash || '#/';
   document.querySelectorAll('nav a').forEach(a => a.classList.toggle('on', a.getAttribute('href') === h || (h.startsWith('#/trades') && a.id === 'navTrades') || (h.startsWith('#/clan') && a.id === 'navBoard')));
   try {
@@ -1933,7 +1933,7 @@ function whatsNew() {
   const latest = CHANGELOG[0].v, seen = +(localStorage.getItem('gacha_seen_v') || 0);
   if (localStorage.getItem('gacha_disclaimer') !== '1' || seen >= latest) { localStorage.setItem('gacha_seen_v', latest); return; }
   const items = CHANGELOG.filter(c => c.v > seen).flatMap(c => c.items);
-  const m = document.createElement('div'); m.className = 'modal'; m.style.zIndex = 300;
+  const m = document.createElement('div'); m.className = 'modal sticky'; m.style.zIndex = 140;   // under the big pull/drop reveals (150)
   m.innerHTML = `<div class="box"><h2 style="margin:0 0 10px">✦ What's new</h2><ul class="wn">${items.map(i => `<li>${esc(i)}</li>`).join('')}</ul>
     <button class="btn primary" style="width:100%;margin-top:6px">Nice</button></div>`;
   m.querySelector('button').onclick = () => { localStorage.setItem('gacha_seen_v', latest); m.remove(); };
@@ -1941,7 +1941,7 @@ function whatsNew() {
 }
 function disclaimer() {
   if (localStorage.getItem('gacha_disclaimer') === '1') return;
-  const m = document.createElement('div'); m.className = 'modal'; m.style.zIndex = 300;
+  const m = document.createElement('div'); m.className = 'modal sticky'; m.style.zIndex = 140;   // under the big pull/drop reveals (150)
   m.innerHTML = `<div class="box" style="text-align:center">
     <img src="${LOGO}" alt="" style="width:56px">
     <h2 style="margin:10px 0">Heads up</h2>
