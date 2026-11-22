@@ -1600,7 +1600,7 @@ function renderAdmin() {
     <p class="muted" style="font-size:13px">The last box is the max number of people who can use it.</p>
     <hr style="border-color:var(--line);margin:24px 0">
     <h3>Unverified cards</h3>
-    <p class="muted">They drop from packs on their own (about 1 in 1,200). This button gives one to a random player who opened a pack in the last 24 hours.</p><button class="btn sm" id="dropNow">Give one out now</button>
+    <p class="muted">They drop from packs on their own (about 1 in 1,200). This button puts one in the next pack anyone opens.</p><button class="btn sm" id="dropNow">Put one in the next pack</button>
     <hr style="border-color:var(--line);margin:24px 0">
     <h3>All pulls</h3>
     <div class="row"><input class="field" id="apU" placeholder="Filter by player (optional)"><select class="field" id="apT"><option value="">Every tier</option>${TIERS.map(t => `<option>${t}</option>`).join('')}</select><label class="row" style="gap:4px"><input type="checkbox" id="apH"> holo only</label><button class="btn sm" id="apGo">Show</button></div>
@@ -1637,8 +1637,8 @@ function renderAdmin() {
     $('#sync').disabled = false;
   };
   $('#dropNow').onclick = async () => {
-    if (!confirm('Give an Unverified card to a random active player right now?')) return;
-    try { await rpc('admin_drop_now', {p_token: S.token}); await loadDrops(); await loadBoard(); toast('Dropped!'); dropPopup(); renderAdmin(); }
+    if (!confirm('Put an Unverified card in the next pack anyone opens?')) return;
+    try { await rpc('admin_drop_now', {p_token: S.token}); toast('Done. The next pack anyone opens will have one'); }
     catch (e) { toast(e.message, true); }
   };
   let apOff = 0;
@@ -1691,7 +1691,7 @@ function adminGive(un) {
   m.innerHTML = `<div class="box"><h2 style="margin-top:0">Give to ${esc(un)}</h2>
     <h3>A card</h3><div class="row"><select class="field" id="gL" style="flex:1"><option value="">— none —</option>${S.levels.map(l => `<option value="${esc(l.key)}">${l.rank ? '#' + l.rank : 'vaulted'} ${esc(l.name)}</option>`).join('')}</select>
       <label class="row" style="gap:4px"><input type="checkbox" id="gH"> holo</label></div>
-    <h3 style="margin-top:14px">Bonus packs</h3><input class="field" id="gP" type="number" value="0" style="width:100px"> <span class="muted" style="font-size:13px">use a negative number to take packs away</span>
+    <h3 style="margin-top:14px">Packs</h3><input class="field" id="gP" type="number" value="0" style="width:100px"> <span class="muted" style="font-size:13px">use a negative number to take packs away</span>
     <div class="row" style="margin-top:16px"><button class="btn primary" id="gGo">Give</button><button class="btn" id="gX">Cancel</button></div></div>`;
   document.body.appendChild(m);
   m.querySelector('#gX').onclick = () => m.remove();
