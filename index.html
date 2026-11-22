@@ -239,6 +239,7 @@ tr.me td{background:rgba(255,179,64,.07)}
 .holotog:hover{filter:brightness(1.25)}
 .holotog.on{color:#111;background:linear-gradient(135deg,#ff6b6b,#ffd36b,#6bff9c,#6bd0ff,#b46bff) border-box;box-shadow:0 0 14px rgba(180,107,255,.45)}
 .holobar i{background:linear-gradient(90deg,#ff6b6b,#ffd36b,#6bff9c,#6bd0ff,#b46bff)!important}
+.odds summary{cursor:pointer;list-style:revert}.odds tbody td{padding:6px 8px}
 .chip{border:1px solid var(--line);background:var(--panel2);color:var(--muted);border-radius:999px;padding:5px 12px;font-size:13px;font-weight:700}
 .chip.on{color:#111;background:#f2eef6;border-color:#f2eef6}
 
@@ -512,6 +513,7 @@ async function loadLevels() {
   lv.sort((a, b) => (a.rank ?? 1e9) - (b.rank ?? 1e9) || (a.tier === 'player') - (b.tier === 'player') || a.name.localeCompare(b.name));
   S.levels = lv; S.byKey = Object.fromEntries(lv.map(l => [l.key, l])); S._pl = {};
   const { data } = await sb.from('list_packs').select('*').order('sort');
+  try { const o = await sb.from('settings').select('holo_chance,unverified_chance,tier_weights'); S.odds = (o.data || [])[0] || null; } catch (e) {}
   S.packs = data || [];
   // creators: group listed levels by author (case-insensitive)
   const m = {};
@@ -665,7 +667,7 @@ function stackHTML(l, copies, opts = {}) {
     h += `<div class="hit" data-li="0" style="top:${(layers - 1) * step}px;bottom:0"></div>`;
   }
   if (!opts.trade && copies.some(c => c.locked)) h += `<div class="lockic" title="Locked">🔒</div>`;
-  if (opts.hd) h += `<div class="hdbadge">✦ 3 → 2 holo packs</div>`;
+  if (opts.hd) h += `<div class="hdbadge">✦ 3 → 1 holo pack</div>`;
   if (copies.length > 5) h += `<div class="many">${copies.length}×</div>`;
   else if (copies.length > 1 && opts.trade) h += `<div class="cnt">${copies.length}×</div>`;
   return h + '</div>';
@@ -717,7 +719,7 @@ function showLevel(key) {
     ${own && S.me.holo_dupe_packs && !['unverified', 'player'].includes(l.tier) && S.myCards.filter(c => c.level_key === key && c.holo).length >= 3 ? (() => {
       const hn = S.myCards.filter(c => c.level_key === key && c.holo && !c.locked).length;
       const tot = S.myCards.filter(c => c.level_key === key && c.holo).length;
-      return `<div style="margin-top:12px"><button class="btn sm ${hn >= 3 ? 'primary' : ''}" id="hdTrade" ${hn >= 3 ? '' : 'disabled'}>✦ Trade 3 holos for 2 holo packs</button>
+      return `<div style="margin-top:12px"><button class="btn sm ${hn >= 3 ? 'primary' : ''}" id="hdTrade" ${hn >= 3 ? '' : 'disabled'}>✦ Trade 3 holos for 1 holo pack</button>
         <div class="muted" style="font-size:12px;margin-top:4px">${hn < 3 ? `Needs 3 unlocked holos (you have ${hn})` : tot - 3 > 0 ? `You'll have ${tot - 3} holo left after this` : `⚠ You only have 3, so you won't have this holo anymore`}</div></div>`; })() : ''}
     ${own && !['unverified', 'player'].includes(l.tier) ? (() => { const n = S.myCards.filter(c => c.level_key === key && !c.holo && !c.locked).length, need = craftCost(l.tier);
       return `<div style="margin-top:12px"><button class="btn sm ${n >= need ? 'primary' : ''}" id="craft" ${n >= need ? '' : 'disabled'}>✦ Combine ${need} copies into a holo</button> <span class="muted" style="font-size:12px">${n}/${need} unlocked normal copies</span></div>`; })() : ''}
@@ -727,10 +729,10 @@ function showLevel(key) {
   const hb = m.querySelector('#hdTrade');
   if (hb) hb.onclick = async () => {
     const left = S.myCards.filter(c => c.level_key === key && c.holo).length - 3;
-    if (!confirm(`Trade 3 holo ${l.name} for 2 holo packs?` + (left > 0 ? `\nYou'll have ${left} holo ${l.name} left after this.` : `\n⚠ By the way: you only have 3, so you won't have a holo ${l.name} anymore!`))) return;
+    if (!confirm(`Trade 3 holo ${l.name} for 1 holo pack?` + (left > 0 ? `\nYou'll have ${left} holo ${l.name} left after this.` : `\n⚠ By the way: you only have 3, so you won't have a holo ${l.name} anymore!`))) return;
     hb.disabled = true;
     try { const r = await rpc('holo_dupes_to_packs', {p_token: S.token, p_level_key: key}); setState(r.state);
-      S.myCards = S.myCards.filter(c => !r.used.includes(c.id)); m.remove(); toast('+2 holo packs!'); route(); }
+      S.myCards = S.myCards.filter(c => !r.used.includes(c.id)); m.remove(); toast('+1 holo pack!'); route(); }
     catch (e) { toast(e.message, true); hb.disabled = false; }
   };
   const cb = m.querySelector('#craft');
@@ -799,6 +801,27 @@ async function doLogout() {
 function packHTML(kind = 'normal', cls = '', style = '') {
   const label = {normal: 'DEMON PACK', epic: 'EPIC PACK', legendary: 'LEGENDARY', holo: 'HOLO PACK'}[kind];
   return `<div class="pack ${kind === 'normal' ? '' : kind} ${cls}" style="${style}"><img class="pk-face" src="${LOGO}" alt=""><div class="pk-title">GOLDENFYRE</div><div class="pk-kind">${label}</div><div class="pk-sub">PICK 1 OF ${S.me.cards_per_pack}</div></div>`;
+}
+// Small "Pack odds" box at the bottom of the Packs page (worked out from the live settings)
+function oddsHTML() {
+  const w = (S.odds && S.odds.tier_weights) || S.me.tier_weights || [0.0667, 0.4, 1.5, 5, 13, 30, 50.0333];
+  const hc = S.odds?.holo_chance ?? 0.1, uc = S.odds?.unverified_chance ?? 1 / 777, n = S.me.cards_per_pack || 3;
+  const tot = w.reduce((a, b) => a + b, 0), one = x => x >= 1 ? '1 in 1' : '1 in ' + fmt(Math.round(1 / x));
+  const rows = TIERS.map((t, i) => {
+    const lv = S.levels.filter(l => l.rank && l.tier === t); if (!lv.length) return '';
+    const q = w[i] / tot, each = q / lv.length, pack = 1 - (1 - q) ** n, lp = 1 - (1 - each) ** n, hp = 1 - (1 - each * hc) ** n;
+    return `<tr><td><span style="color:var(--${t});font-weight:800">${t.toUpperCase()}</span> <span class="muted">#${lv[0].rank}${lv.length > 1 ? '–' + lv[lv.length - 1].rank : ''}</span></td>
+      <td style="text-align:right">${(q * 100).toFixed(q < .01 ? 2 : 1)}%</td><td style="text-align:right">${pack >= .5 ? Math.round(pack * 100) + '% of packs' : one(pack)}</td><td style="text-align:right">${one(lp)}</td><td style="text-align:right">${one(hp)}</td></tr>`;
+  }).join('') + (() => {   // Unverified: a free bonus on top of your pick, shown here as the same chance spread over the options
+    const left = S.levels.filter(l => l.tier === 'unverified' && !unvOwner(l.key)).length; if (!left) return '';
+    const per = 1 - (1 - uc) ** (1 / n);
+    return `<tr><td><span class="unvtxt">UNVERIFIED</span> <span class="muted">${left} left</span></td><td style="text-align:right">${(per * 100).toFixed(3)}%</td><td style="text-align:right">${one(uc)}</td><td style="text-align:right">${one(uc / left)}</td><td style="text-align:right" class="muted">no holo</td></tr>`;
+  })();
+  return `<details class="panel odds"><summary><b>Pack odds</b></summary>
+    <div style="overflow-x:auto"><table class="scoretbl" style="margin-top:10px"><thead><tr class="muted" style="font-size:12px"><td>Rarity</td><td style="text-align:right">Per option</td><td style="text-align:right">In a pack</td><td style="text-align:right">A specific level</td><td style="text-align:right">That level in holo</td></tr></thead>
+    <tbody>${rows}</tbody></table></div>
+    <p class="muted" style="font-size:13px;margin:10px 0 0">Each pack shows ${n} options and every option rolls on its own. ${Math.round(hc * 100)}% of options are holo. Unverified cards come as a free bonus on top of your pick, and only one of each exists. In a holo pack every option is holo, so "a specific level" is also your chance at its holo.</p>
+  </details>`;
 }
 function renderHome() {
   const st = S.me, total = st.packs + st.bonus_packs;
@@ -900,6 +923,7 @@ function renderHome() {
       setTimeout(renderHome, 1700); }
     catch (er) { toast(er.message, true); b.disabled = false; }
   };
+  app.insertAdjacentHTML('beforeend', oddsHTML());
   $('#redeem').onclick = async () => {
     const code = $('#code').value.trim(); if (!code) return;
     try { const r = await rpc('redeem_code', {p_token: S.token, p_code: code}); setState(r.state); toast(`+${r.packs} ${r.kind === 'normal' ? '' : r.kind + ' '}pack${r.packs > 1 ? 's' : ''}!`); renderHome(); }
@@ -1156,7 +1180,7 @@ function pickHints(lk, holo) {
 function showcase(o) {
   return new Promise(res => {
     const l = S.byKey[o.level_key];
-    const w = S.me.tier_weights || [0.08, 0.4, 1.5, 5, 13, 30, 50.02];
+    const w = S.me.tier_weights || [0.0667, 0.4, 1.5, 5, 13, 30, 50.0333];
     const tot = w.reduce((a, b) => a + b, 0), ti = TIERS.indexOf(l.tier);
     const inTier = S.levels.filter(x => x.rank && x.tier === l.tier).length || 1;
     const odds = Math.round(tot / w[ti] * inTier * (o.holo ? 10 : 1));
@@ -1325,7 +1349,7 @@ function collectionGrid(cards) {
   if (f.tier !== 'all') lv = lv.filter(l => l.tier === f.tier);
   if (f.show === 'owned') lv = lv.filter(l => cp[l.key]);
   if (f.show === 'missing') lv = lv.filter(l => !cp[l.key]);
-  if (f.show === 'hdupes') {   // levels with 2+ holos; 3+ glow (can become 2 holo packs)
+  if (f.show === 'hdupes') {   // levels with 2+ holos; 3+ glow (can become a holo pack)
     const hl = S.levels.filter(l => l.rank && (f.tier === 'all' || l.tier === f.tier) && matchQ(l, f.q)).map(l => [l, (cp[l.key] || []).filter(c => c.holo)]).filter(([, hc]) => hc.length >= 2);
     return hl.length ? `<div class="grid" style="row-gap:24px">${hl.map(([l, hc]) => stackHTML(l, hc, {hd: hc.length >= 3})).join('')}</div>` : '<p class="muted">No holo dupes yet. You need 2+ holos of the same level.</p>';
   }
@@ -1716,7 +1740,7 @@ function renderAdmin() {
     <p class="muted" style="font-size:13px">The last box is the max number of people who can use it.</p>
     <hr style="border-color:var(--line);margin:24px 0">
     <h3>Unverified cards</h3>
-    <p class="muted">They drop from packs on their own (about 1 in 777). This button puts one in the next pack anyone opens.</p><button class="btn sm" id="dropNow">Put one in the next pack</button>
+    <p class="muted">They drop from packs on their own (about 1 in 900). This button puts one in the next pack anyone opens.</p><button class="btn sm" id="dropNow">Put one in the next pack</button>
     <hr style="border-color:var(--line);margin:24px 0">
     <h3>Put a card in someone's next pack</h3>
     <p class="muted">It shows up as one of the 3 options. They still have to pick it. Leave the player blank for whoever opens a pack next.</p>
@@ -1824,12 +1848,13 @@ function adminGive(un) {
   m.innerHTML = `<div class="box"><h2 style="margin-top:0">Give to ${esc(un)}</h2>
     <h3>A card</h3><div class="row"><select class="field" id="gL" style="flex:1"><option value="">— none —</option>${S.levels.map(l => `<option value="${esc(l.key)}">${l.rank ? '#' + l.rank : 'vaulted'} ${esc(l.name)}</option>`).join('')}</select>
       <label class="row" style="gap:4px"><input type="checkbox" id="gH"> holo</label></div>
-    <h3 style="margin-top:14px">Packs</h3><input class="field" id="gP" type="number" value="0" style="width:100px"> <span class="muted" style="font-size:13px">use a negative number to take packs away</span>
+    <h3 style="margin-top:14px">Packs</h3><div class="row"><input class="field" id="gP" type="number" value="0" style="width:100px"><select class="field" id="gK"><option value="normal">normal packs</option><option value="bonus">bonus packs</option><option value="holo">holo packs</option></select></div>
+    <span class="muted" style="font-size:13px">Normal adds to their regular count (no "+bonus" label). Use a negative number to take packs away.</span>
     <div class="row" style="margin-top:16px"><button class="btn primary" id="gGo">Give</button><button class="btn" id="gX">Cancel</button></div></div>`;
   document.body.appendChild(m);
   m.querySelector('#gX').onclick = () => m.remove();
   m.querySelector('#gGo').onclick = async () => {
-    try { await rpc('admin_give', {p_token: S.token, p_username: un, p_level_key: m.querySelector('#gL').value, p_holo: m.querySelector('#gH').checked, p_packs: +m.querySelector('#gP').value || 0});
+    try { await rpc('admin_give', {p_token: S.token, p_username: un, p_level_key: m.querySelector('#gL').value, p_holo: m.querySelector('#gH').checked, p_packs: +m.querySelector('#gP').value || 0, p_pack_kind: m.querySelector('#gK').value});
       toast('Given to ' + un); m.remove(); if (un.toLowerCase() === S.me.username.toLowerCase()) { await loadMyCards(); await refreshState(); } }
     catch (e) { toast(e.message, true); }
   };
@@ -1896,7 +1921,7 @@ setInterval(() => { if (S.token && S.me) { rpc('my_trades', {p_token: S.token}).
 // ---- What's new: add a new entry at the TOP for each update ----
 const CHANGELOG = [
   {v: 8, title: 'Update', items: [
-    'NEW: Holo packs (every option is holo). Use the new ✦ Holo dupes filter in your collection: tap a level you have 3+ holos of to trade 3 of them for 2 holo packs',
+    'NEW: Holo packs (every option is holo). Use the new ✦ Holo dupes filter in your collection: tap a level you have 3+ holos of to trade 3 of them for 1 holo pack',
     'NEW: ✦ Holo milestones. Every 10 holos, claim a faster pack timer: 10:00 down to 5:00 at 90/90 holos, plus a ✦ COMPLETED badge',
     'Clans moved into the Leaderboard tab (Players, Clans, Your clan)'
   ]},
