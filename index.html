@@ -1253,9 +1253,19 @@ function filterChips(rerender) {
 }
 function renderCollection() {
   const info = myInfo(), listed = S.levels.filter(l => l.rank);
-  app.innerHTML = `<div class="panel"><h2>Your collection · ${info.uniq}/${listed.length} · <span class="hcount">✦ ${info.holos}/${listed.length} holo</span> · ${S.myCards.length} cards</h2>
+  app.innerHTML = `<div class="panel"><div class="row between"><h2 style="margin:0">Your collection · ${info.uniq}/${listed.length} · <span class="hcount">✦ ${info.holos}/${listed.length} holo</span> · ${S.myCards.length} cards</h2>
+    <button class="holotog" id="craftAll">✦ Turn all dupes into holos</button></div><br>
     ${filterChips(renderCollection)}${collectionGrid(S.myCards)}</div>
     <div class="panel"><h2>Your score</h2>${scoreTable(info)}</div>`;
+  $('#craftAll').onclick = async () => {
+    try {
+      const d = await rpc('craft_all', {p_token: S.token, p_dry: true});
+      if (!d.made) { toast('Nothing to combine. You need 3 unlocked normal copies of a level'); return; }
+      if (!confirm(`Turn ${d.used} normal copies into ${d.made} holo${d.made > 1 ? 's' : ''} (${d.levels} level${d.levels > 1 ? 's' : ''})?\nLocked cards and cards in pending trades are left alone.`)) return;
+      const r = await rpc('craft_all', {p_token: S.token, p_dry: false});
+      await loadMyCards(); toast(`✦ Made ${r.made} holo${r.made > 1 ? 's' : ''}!`); route();
+    } catch (e) { toast(e.message, true); }
+  };
   bindClaims();
 }
 function renderSets() {
@@ -1602,6 +1612,13 @@ function renderAdmin() {
     <h3>Unverified cards</h3>
     <p class="muted">They drop from packs on their own (about 1 in 777). This button puts one in the next pack anyone opens.</p><button class="btn sm" id="dropNow">Put one in the next pack</button>
     <hr style="border-color:var(--line);margin:24px 0">
+    <h3>Put a card in someone's next pack</h3>
+    <p class="muted">It shows up as one of the 3 options. They still have to pick it. Leave the player blank for whoever opens a pack next.</p>
+    <div class="row"><select class="field" id="rgL" style="flex:1;min-width:200px"><option value="">— pick a level —</option>${S.levels.filter(l => l.rank).map(l => `<option value="${esc(l.key)}">#${l.rank} ${esc(l.name)}</option>`).join('')}</select>
+      <label class="row" style="gap:4px"><input type="checkbox" id="rgH"> holo</label>
+      <input class="field" id="rgU" placeholder="Player (optional)" style="width:170px"><button class="btn sm" id="rgGo">Queue</button></div>
+    <div id="rgList" class="feed" style="margin-top:10px"></div>
+    <hr style="border-color:var(--line);margin:24px 0">
     <h3>All pulls</h3>
     <div class="row"><input class="field" id="apU" placeholder="Filter by player (optional)"><select class="field" id="apT"><option value="">Every tier</option>${TIERS.map(t => `<option>${t}</option>`).join('')}</select><label class="row" style="gap:4px"><input type="checkbox" id="apH"> holo only</label><button class="btn sm" id="apGo">Show</button></div>
     <div id="apList" class="feed" style="margin-top:10px;max-height:480px;overflow-y:auto"></div>
@@ -1635,6 +1652,16 @@ function renderAdmin() {
       msg.textContent = `Done: ${r.levels} levels, ${r.packs} packs.`;
     } catch (e) { msg.textContent = 'Failed: ' + e.message; }
     $('#sync').disabled = false;
+  };
+  const drawRigs = list => { $('#rgList').innerHTML = list.length ? list.map(r => `<div class="row" style="border:1px solid var(--line);border-radius:10px;padding:6px 10px">
+      <span style="flex:1">#${S.byKey[r.level_key]?.rank ?? '?'} ${esc(S.byKey[r.level_key]?.name || r.level_key)}${r.holo ? ' ✦ holo' : ''} → <b>${r.username ? esc(r.username) : 'anyone'}</b></span>
+      <button class="btn sm" data-rgx="${r.id}">Cancel</button></div>`).join('') : '<span class="muted">Nothing queued.</span>';
+    document.querySelectorAll('[data-rgx]').forEach(b => b.onclick = async () => { try { drawRigs(await rpc('admin_rig', {p_token: S.token, p_action: 'remove', p_id: +b.dataset.rgx})); } catch (e) { toast(e.message, true); } }); };
+  rpc('admin_rig', {p_token: S.token, p_action: 'list'}).then(drawRigs).catch(() => {});
+  $('#rgGo').onclick = async () => {
+    try { drawRigs(await rpc('admin_rig', {p_token: S.token, p_action: 'add', p_level_key: $('#rgL').value, p_holo: $('#rgH').checked, p_username: $('#rgU').value}));
+      toast('Queued'); $('#rgL').value = ''; $('#rgH').checked = false; }
+    catch (e) { toast(e.message, true); }
   };
   $('#dropNow').onclick = async () => {
     if (!confirm('Put an Unverified card in the next pack anyone opens?')) return;
