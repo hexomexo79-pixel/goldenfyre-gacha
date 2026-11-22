@@ -586,7 +586,7 @@ function scoreInfo(own, claimed = [], cclaimed = []) {
   // player cards: +25% on every owned level that player verified or created (one copy is enough)
   let playerBonus = 0, players = 0;
   for (const k of Object.keys(own)) {
-    const l = S.byKey[k]; if (!l || l.tier !== 'player') continue;
+    const l = S.byKey[k]; if (!l || l.tier !== 'player' || !S.me?.player_cards) continue;
     players++;
     for (const lk of playerLevels(l)) if (own[lk]) playerBonus += S.byKey[lk].points * (own[lk].holo ? RULES.holoMult : 1) * RULES.playerBoost;
   }
@@ -840,15 +840,15 @@ function renderHome() {
   </div>
   </div>
   </div>
-  <div class="panel"><div class="row" style="gap:16px;flex-wrap:wrap;align-items:center">
+  <div class="panel">${st.player_cards ? `<div class="row" style="gap:16px;flex-wrap:wrap;align-items:center">
     <div style="flex:1;min-width:220px"><b>★ Player packs: ${st.player_packs || 0}</b>
       <div class="muted" style="font-size:13px">Every ${RULES.playerEvery} packs you open = 1 player pack. ${(st.pack_progress || 0)}/${RULES.playerEvery} to the next one.</div>
       <div class="pbar"><i style="width:${(st.pack_progress || 0) / RULES.playerEvery * 100}%"></i></div></div>
     ${st.player_packs ? `<button class="btn primary sm" id="opPlayer">Open player pack</button>` : ''}
-  </div>
+  </div>` : ''}
   ${(() => { const m = st.holo_milestone || 0; if (m >= 9) return `<div style="margin-top:12px"><span class="donebadge">✦ COMPLETED</span> <span class="muted" style="font-size:13px">All holo milestones claimed. Fastest timer: 5:00</span></div>`;
     const need = (m + 1) * 10, have = info.holos;
-    return `<div class="row" style="gap:12px;margin-top:12px;flex-wrap:wrap"><div style="flex:1;min-width:220px"><b>✦ Holo milestone ${m + 1}/9</b>
+    return `<div class="row" style="gap:12px;${st.player_cards ? 'margin-top:12px;' : ''}flex-wrap:wrap"><div style="flex:1;min-width:220px"><b>✦ Holo milestone ${m + 1}/9</b>
       <div class="muted" style="font-size:13px">${have >= need ? `You have ${have} holos!` : `${have}/${need} holos.`} Timer ${fmtSecs(RULES.timerSecs[m])} → ${fmtSecs(RULES.timerSecs[m + 1])}${m + 1 === 9 ? ' and a ✦ COMPLETED badge' : ''}</div>
       <div class="pbar"><i style="width:${Math.min(100, (have - m * 10) / 10 * 100)}%;background:linear-gradient(90deg,#ff6b6b,#ffd36b,#6bff9c,#6bd0ff,#b46bff)"></i></div></div>
       ${have >= need ? `<button class="btn primary sm redeem" id="claimMs">✦ Claim: faster timer</button>` : ''}</div>`; })()}
@@ -1321,7 +1321,7 @@ function matchQ(l, q) {
 function searchBox(id, val, ph) { return `<input class="field" id="${id}" type="search" placeholder="${ph || 'Search name, creator or #rank'}" value="${esc(val || '')}" style="width:100%;max-width:340px;margin-bottom:10px">`; }
 function collectionGrid(cards) {
   const cp = copiesOf(cards), f = S.filter;
-  let lv = S.levels.filter(l => (l.rank || cp[l.key] || (f.tier === 'unverified' && l.tier === 'unverified') || (f.tier === 'player' && l.tier === 'player')) && matchQ(l, f.q));
+  let lv = S.levels.filter(l => (l.tier !== 'player' || S.me.player_cards) && (l.rank || cp[l.key] || (f.tier === 'unverified' && l.tier === 'unverified') || (f.tier === 'player' && l.tier === 'player')) && matchQ(l, f.q));
   if (f.tier !== 'all') lv = lv.filter(l => l.tier === f.tier);
   if (f.show === 'owned') lv = lv.filter(l => cp[l.key]);
   if (f.show === 'missing') lv = lv.filter(l => !cp[l.key]);
@@ -1342,7 +1342,7 @@ function filterChips(rerender, cards) {
   const chip = (grp, v, label) => `<button class="chip ${f[grp] === v ? 'on' : ''}" data-g="${grp}" data-v="${v}">${label}</button>`;
   setTimeout(() => document.querySelectorAll('.chip[data-g]').forEach(b => b.onclick = () => { S.filter[b.dataset.g] = b.dataset.v; rerender(); }));
   return `${searchBox('cq', f.q)}<div class="chips">${chip('show','all','All')}${chip('show','owned','Owned')}${chip('show','missing','Missing')}${chip('show','holo','✦ Holo')}${S.me.holo_dupe_packs ? chip('show','hdupes','✦ Holo dupes') : ''}${chip('show','dupes','Dupes')}</div>
-    <div class="chips">${chip('tier','all','Every tier')}${[...TIERS].reverse().map(t => chip('tier', t, t[0].toUpperCase() + t.slice(1))).join('')}${chip('tier','unverified','Unverified')}${chip('tier','player','★ Players')}</div>`;
+    <div class="chips">${chip('tier','all','Every tier')}${[...TIERS].reverse().map(t => chip('tier', t, t[0].toUpperCase() + t.slice(1))).join('')}${chip('tier','unverified','Unverified')}${S.me.player_cards ? chip('tier','player','★ Players') : ''}</div>`;
 }
 function renderCollection() {
   const info = myInfo(), listed = S.levels.filter(l => l.rank);
@@ -1896,8 +1896,6 @@ setInterval(() => { if (S.token && S.me) { rpc('my_trades', {p_token: S.token}).
 // ---- What's new: add a new entry at the TOP for each update ----
 const CHANGELOG = [
   {v: 7, title: 'Update', items: [
-    'NEW: ★ Player cards. One for every creator and verifier on the list. Each one gives +25% points on every level that person verified or made',
-    'Every 5 packs you open earns a ★ Player pack (pick 1 of 3 player cards). Find it on the Packs page',
     'NEW: ✦ Holo milestones. Every 10 holos, claim a faster pack timer: 10:00 down to 5:00 at 90/90 holos, plus a ✦ COMPLETED badge',
     'Clans moved into the Leaderboard tab (Players, Clans, Your clan)'
   ]},
