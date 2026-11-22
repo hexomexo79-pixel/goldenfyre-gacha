@@ -1895,7 +1895,8 @@ async function boot() {
 setInterval(() => { if (S.token && S.me) { rpc('my_trades', {p_token: S.token}).then(updateTradeDot).catch(() => {}); rpc('my_clan', {p_token: S.token}).then(updateClanDot).catch(() => {}); } }, 30000);
 // ---- What's new: add a new entry at the TOP for each update ----
 const CHANGELOG = [
-  {v: 7, title: 'Update', items: [
+  {v: 8, title: 'Update', items: [
+    'NEW: Holo packs (every option is holo). Use the new ✦ Holo dupes filter in your collection: tap a level you have 3+ holos of to trade 3 of them for 3 holo packs',
     'NEW: ✦ Holo milestones. Every 10 holos, claim a faster pack timer: 10:00 down to 5:00 at 90/90 holos, plus a ✦ COMPLETED badge',
     'Clans moved into the Leaderboard tab (Players, Clans, Your clan)'
   ]},
