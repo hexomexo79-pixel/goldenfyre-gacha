@@ -665,7 +665,7 @@ function stackHTML(l, copies, opts = {}) {
     h += `<div class="hit" data-li="0" style="top:${(layers - 1) * step}px;bottom:0"></div>`;
   }
   if (!opts.trade && copies.some(c => c.locked)) h += `<div class="lockic" title="Locked">🔒</div>`;
-  if (opts.hd) h += `<div class="hdbadge">✦ 3 → 3 holo packs</div>`;
+  if (opts.hd) h += `<div class="hdbadge">✦ 3 → 2 holo packs</div>`;
   if (copies.length > 5) h += `<div class="many">${copies.length}×</div>`;
   else if (copies.length > 1 && opts.trade) h += `<div class="cnt">${copies.length}×</div>`;
   return h + '</div>';
@@ -717,7 +717,7 @@ function showLevel(key) {
     ${own && S.me.holo_dupe_packs && !['unverified', 'player'].includes(l.tier) && S.myCards.filter(c => c.level_key === key && c.holo).length >= 3 ? (() => {
       const hn = S.myCards.filter(c => c.level_key === key && c.holo && !c.locked).length;
       const tot = S.myCards.filter(c => c.level_key === key && c.holo).length;
-      return `<div style="margin-top:12px"><button class="btn sm ${hn >= 3 ? 'primary' : ''}" id="hdTrade" ${hn >= 3 ? '' : 'disabled'}>✦ Trade 3 holos for 3 holo packs</button>
+      return `<div style="margin-top:12px"><button class="btn sm ${hn >= 3 ? 'primary' : ''}" id="hdTrade" ${hn >= 3 ? '' : 'disabled'}>✦ Trade 3 holos for 2 holo packs</button>
         <div class="muted" style="font-size:12px;margin-top:4px">${hn < 3 ? `Needs 3 unlocked holos (you have ${hn})` : tot - 3 > 0 ? `You'll have ${tot - 3} holo left after this` : `⚠ You only have 3, so you won't have this holo anymore`}</div></div>`; })() : ''}
     ${own && !['unverified', 'player'].includes(l.tier) ? (() => { const n = S.myCards.filter(c => c.level_key === key && !c.holo && !c.locked).length, need = craftCost(l.tier);
       return `<div style="margin-top:12px"><button class="btn sm ${n >= need ? 'primary' : ''}" id="craft" ${n >= need ? '' : 'disabled'}>✦ Combine ${need} copies into a holo</button> <span class="muted" style="font-size:12px">${n}/${need} unlocked normal copies</span></div>`; })() : ''}
@@ -727,10 +727,10 @@ function showLevel(key) {
   const hb = m.querySelector('#hdTrade');
   if (hb) hb.onclick = async () => {
     const left = S.myCards.filter(c => c.level_key === key && c.holo).length - 3;
-    if (!confirm(`Trade 3 holo ${l.name} for 3 holo packs?` + (left > 0 ? `\nYou'll have ${left} holo ${l.name} left after this.` : `\n⚠ By the way: you only have 3, so you won't have a holo ${l.name} anymore!`))) return;
+    if (!confirm(`Trade 3 holo ${l.name} for 2 holo packs?` + (left > 0 ? `\nYou'll have ${left} holo ${l.name} left after this.` : `\n⚠ By the way: you only have 3, so you won't have a holo ${l.name} anymore!`))) return;
     hb.disabled = true;
     try { const r = await rpc('holo_dupes_to_packs', {p_token: S.token, p_level_key: key}); setState(r.state);
-      S.myCards = S.myCards.filter(c => !r.used.includes(c.id)); m.remove(); toast('+3 holo packs!'); route(); }
+      S.myCards = S.myCards.filter(c => !r.used.includes(c.id)); m.remove(); toast('+2 holo packs!'); route(); }
     catch (e) { toast(e.message, true); hb.disabled = false; }
   };
   const cb = m.querySelector('#craft');
@@ -1325,7 +1325,7 @@ function collectionGrid(cards) {
   if (f.tier !== 'all') lv = lv.filter(l => l.tier === f.tier);
   if (f.show === 'owned') lv = lv.filter(l => cp[l.key]);
   if (f.show === 'missing') lv = lv.filter(l => !cp[l.key]);
-  if (f.show === 'hdupes') {   // levels with 2+ holos; 3+ glow (can become 3 holo packs)
+  if (f.show === 'hdupes') {   // levels with 2+ holos; 3+ glow (can become 2 holo packs)
     const hl = S.levels.filter(l => l.rank && (f.tier === 'all' || l.tier === f.tier) && matchQ(l, f.q)).map(l => [l, (cp[l.key] || []).filter(c => c.holo)]).filter(([, hc]) => hc.length >= 2);
     return hl.length ? `<div class="grid" style="row-gap:24px">${hl.map(([l, hc]) => stackHTML(l, hc, {hd: hc.length >= 3})).join('')}</div>` : '<p class="muted">No holo dupes yet. You need 2+ holos of the same level.</p>';
   }
@@ -1896,7 +1896,7 @@ setInterval(() => { if (S.token && S.me) { rpc('my_trades', {p_token: S.token}).
 // ---- What's new: add a new entry at the TOP for each update ----
 const CHANGELOG = [
   {v: 8, title: 'Update', items: [
-    'NEW: Holo packs (every option is holo). Use the new ✦ Holo dupes filter in your collection: tap a level you have 3+ holos of to trade 3 of them for 3 holo packs',
+    'NEW: Holo packs (every option is holo). Use the new ✦ Holo dupes filter in your collection: tap a level you have 3+ holos of to trade 3 of them for 2 holo packs',
     'NEW: ✦ Holo milestones. Every 10 holos, claim a faster pack timer: 10:00 down to 5:00 at 90/90 holos, plus a ✦ COMPLETED badge',
     'Clans moved into the Leaderboard tab (Players, Clans, Your clan)'
   ]},
