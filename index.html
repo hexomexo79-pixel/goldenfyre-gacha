@@ -699,7 +699,7 @@ function oddsCtx() {
   const w = (S.me && S.me.tier_weights) || [0.0667, 0.4, 1.5, 5, 13, 30, 50.0333], tot = w.reduce((a, b) => a + b, 0);
   const cnt = {}; for (const l of S.levels) if (l.rank && TIERS.includes(l.tier)) cnt[l.tier] = (cnt[l.tier] || 0) + 1;
   const gold = new Set(); for (const r of S.board || []) for (const o of r.owned) if (o[3]) gold.add(o[0]);
-  const PW = {apex: 1.25, mythic: 3, legendary: 8, epic: 20, rare: 40, uncommon: 60, common: 80};
+  const PW = {apex: 1.72, mythic: 3, legendary: 8, epic: 20, rare: 40, uncommon: 60, common: 80};
   const lw = l => w[TIERS.indexOf(l.tier)] / tot / cnt[l.tier];                       // share of options for a level
   const players = S.levels.filter(l => l.tier === 'player' && !l.info?.retired), pTot = players.reduce((s, l) => s + PW[pInfo(l).rarity], 0);
   const gl = (list, wf) => { let all = 0, left = 0; for (const l of list) { all += wf(l); if (!gold.has(l.key)) left += wf(l); } return {all, left}; };
@@ -963,7 +963,7 @@ function oddsHTML() {
     <div style="overflow-x:auto"><table class="scoretbl" style="margin-top:10px"><thead><tr class="muted" style="font-size:12px"><td>Rarity</td><td style="text-align:right">Per option</td><td style="text-align:right">In a pack</td><td style="text-align:right">A specific level</td><td style="text-align:right">That level in holo</td></tr></thead>
     <tbody>${rows}</tbody></table></div>
     ${S.me.player_cards ? (() => {
-      const PW = {apex: 1.25, mythic: 3, legendary: 8, epic: 20, rare: 40, uncommon: 60, common: 80};
+      const PW = {apex: 1.72, mythic: 3, legendary: 8, epic: 20, rare: 40, uncommon: 60, common: 80};
       const pl = S.levels.filter(l => l.tier === 'player' && !l.info?.retired), sum = pl.reduce((s, l) => s + PW[pInfo(l).rarity], 0); if (!sum) return '';
       const rows = TIERS.map(t => { const g = pl.filter(l => pInfo(l).rarity === t); if (!g.length) return '';
         const share = g.length * PW[t] / sum, each = PW[t] / sum, pack = 1 - (1 - share) ** 3;
