@@ -168,6 +168,7 @@ h3{margin:0 0 10px;font-size:16px}
 .annbar.out{opacity:0;transform:translate(-50%,-12px);transition:.3s}
 .annbar .annmini{width:46px;flex:none}.annbar .annwho{font-weight:900;font-size:18px}
 @keyframes anndown{from{opacity:0;transform:translate(-50%,-16px)}}
+a.chip{text-decoration:none}a.chip:not(.on){color:inherit}a.chip.on .muted{color:inherit;opacity:.6}
 .card.missing{filter:grayscale(1) brightness(.42)}
 .card.missing.holo::after,.card.missing.holo::before{display:none}
 .card.missing .thumb img{opacity:.35}
@@ -448,8 +449,7 @@ footer{text-align:center;color:#6d6975;font-size:12px;padding:20px;line-height:1
   <nav id="nav">
     <a href="#/">Packs</a>
     <a href="#/collection">Collection</a>
-    <a href="#/sets">Sets</a>
-    <a href="#/creators">Creators</a>
+    <a href="#/sets" id="navSets">Sets</a>
     <a href="#/leaderboard" id="navBoard">Leaderboard</a>
     <a href="#/trades" id="navTrades">Trades</a>
     <a href="#/news" id="navNews">News</a>
@@ -1587,19 +1587,28 @@ function playerSetCards(list, own) {
       ${minisHTML(x.keys, own)}<div class="row between" style="gap:6px">${status}</div>${holoBtn}</div></div>`;
   }).join('')}</div>`;
 }
-function renderSets() {
-  const info = myInfo();
-  app.innerHTML = `<div class="panel"><h2>Sets · ${S.holoView ? `<span class="hcount">✦ ${info.holoSetsDone}/${S.packs.length} in holo</span>` : `${info.setsDone}/${S.packs.length} redeemed`} ${holoToggle()}</h2>${setCards(orderSets(info.sets))}</div>
-    ${S.me.player_cards && info.psets.length ? `<div class="panel"><h2>★ Player sets · ${S.holoView ? `<span class="hcount">✦ ${info.psets.filter(x => x.holoDone && x.holoClaimed).length}/${info.psets.length} in holo</span>` : `${info.psets.filter(x => x.done && x.claimed).length}/${info.psets.length} redeemed`}</h2>${playerSetCards(S.holoView ? [...info.psets].sort((a, b) => a.holoDone - b.holoDone || (a.n - a.holoHave) - (b.n - b.holoHave)) : info.psets)}</div>` : ''}`;
+// Sets tab: level sets, creators and player sets behind three buttons (#/sets, #/creators, #/sets/players)
+function renderSets(tab = 'levels') {
+  const info = myInfo(), pOn = S.me.player_cards && info.psets.length;
+  if (tab === 'players' && !pOn) tab = 'levels';
+  const hv = S.holoView, n = (a, b) => `<span class="muted" style="font-weight:600">${a}/${b}</span>`;
+  const chips = `<div class="chips" style="margin:0 0 14px">
+    <a class="chip ${tab === 'levels' ? 'on' : ''}" href="#/sets">Level sets ${n(hv ? info.holoSetsDone : info.setsDone, S.packs.length)}</a>
+    <a class="chip ${tab === 'creators' ? 'on' : ''}" href="#/creators">Creators ${n(hv ? info.holoCreatorsDone : info.creatorsDone, S.creators.length)}</a>
+    ${pOn ? `<a class="chip ${tab === 'players' ? 'on' : ''}" href="#/sets/players">★ Player sets ${n(info.psets.filter(x => hv ? x.holoDone && x.holoClaimed : x.done && x.claimed).length, info.psets.length)}</a>` : ''}</div>`;
+  let body;
+  if (tab === 'creators') {
+    const list = [...info.creators].sort((a, b) => b.n - a.n || b.c.value - a.c.value);
+    body = `<h2>Creators · ${hv ? `<span class="hcount">✦ ${info.holoCreatorsDone}/${S.creators.length} in holo</span>` : `${info.creatorsDone}/${S.creators.length} collected`} ${holoToggle()}</h2>${creatorBlocks(orderCreators(list))}`;
+  } else if (tab === 'players') {
+    body = `<h2>★ Player sets · ${hv ? `<span class="hcount">✦ ${info.psets.filter(x => x.holoDone && x.holoClaimed).length}/${info.psets.length} in holo</span>` : `${info.psets.filter(x => x.done && x.claimed).length}/${info.psets.length} redeemed`} ${holoToggle()}</h2>${playerSetCards(hv ? [...info.psets].sort((a, b) => a.holoDone - b.holoDone || (a.n - a.holoHave) - (b.n - b.holoHave)) : info.psets)}`;
+  } else {
+    body = `<h2>Level sets · ${hv ? `<span class="hcount">✦ ${info.holoSetsDone}/${S.packs.length} in holo</span>` : `${info.setsDone}/${S.packs.length} redeemed`} ${holoToggle()}</h2>${setCards(orderSets(info.sets))}`;
+  }
+  app.innerHTML = `<div class="panel">${chips}${body}</div>`;
   bindClaims();
 }
-function renderCreators() {
-  const info = myInfo();
-  const list = [...info.creators].sort((a, b) => b.n - a.n || b.c.value - a.c.value);
-  app.innerHTML = `<div class="panel"><h2>Creators · ${S.holoView ? `<span class="hcount">✦ ${info.holoCreatorsDone}/${S.creators.length} in holo</span>` : `${info.creatorsDone}/${S.creators.length} collected`} ${holoToggle()}</h2>
-    ${creatorBlocks(orderCreators(list))}</div>`;
-  bindClaims();
-}
+function renderCreators() { renderSets('creators'); }
 
 // ---------------- leaderboard / players ----------------
 async function renderBoard(tab = 'players') {
@@ -2087,9 +2096,10 @@ async function route(reset) {
   const keepY = window.scrollY;
   document.querySelectorAll('.modal:not(.sticky)').forEach(m => m.remove());   // What's new / disclaimer stay until closed
   const h = location.hash || '#/';
-  document.querySelectorAll('nav a').forEach(a => a.classList.toggle('on', a.getAttribute('href') === h || (h.startsWith('#/trades') && a.id === 'navTrades') || (h.startsWith('#/clan') && a.id === 'navBoard')));
+  document.querySelectorAll('nav a').forEach(a => a.classList.toggle('on', a.getAttribute('href') === h || (h.startsWith('#/trades') && a.id === 'navTrades') || (h.startsWith('#/clan') && a.id === 'navBoard') || ((h.startsWith('#/sets') || h.startsWith('#/creators')) && a.id === 'navSets')));
   try {
     if (h.startsWith('#/collection')) renderCollection();
+    else if (h.startsWith('#/sets/players')) renderSets('players');
     else if (h.startsWith('#/sets')) renderSets();
     else if (h.startsWith('#/creators')) renderCreators();
     else if (h.startsWith('#/leaderboard')) await renderBoard(S.boardTab || 'players');
