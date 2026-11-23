@@ -533,7 +533,7 @@ function playerBoostOf(l, own, holo, maxed) {
 // little grid of a player's levels by rank: bright = you own it
 function playerGrid(l, own) {
   const p = pInfo(l), ks = [...new Set([...p.verified, ...p.beaten])].sort((a, b) => S.byKey[a].rank - S.byKey[b].rank);
-  return `<div class="pgrid">${ks.map(k => `<span class="${own[k] ? (own[k].holo ? 'own holo' : 'own') : ''} ${p.verified.includes(k) ? 'ver' : ''}" title="#${S.byKey[k].rank} ${esc(S.byKey[k].name)}${p.verified.includes(k) ? ' (verified)' : ''}">${S.byKey[k].rank}</span>`).join('')}</div>`;
+  return `<div class="pgrid">${ks.map(k => `<span class="${own[k] ? (own[k].holo ? 'own holo' : 'own') : ''} ${p.verified.includes(k) ? 'ver' : ''}" title="#${S.byKey[k].rank} ${esc(S.byKey[k].name)}${p.verified.includes(k) ? ' (verified)' : ''}">#${S.byKey[k].rank}</span>`).join('')}</div>`;
 }
 const fmtSecs = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 // everyone credited on a level: the main author plus collab creators (no duplicates)
@@ -626,9 +626,12 @@ function scoreInfo(own, claimed = [], cclaimed = []) {
   const psets = (S.me?.player_cards ? (S.psets || []) : []).map(ps => {
     const keys = ps.players.map(n => 'PLAYER_' + ckey(n)).filter(k => S.byKey[k]);
     const have = keys.filter(k => own[k]).length;
-    return {ps, keys, have, n: keys.length, done: keys.length > 0 && have === keys.length, claimed: claimed.includes('★' + ps.name)};
+    const holoHave = keys.filter(k => own[k] && own[k].holo).length;
+    return {ps, keys, have, n: keys.length, done: keys.length > 0 && have === keys.length, claimed: claimed.includes('★' + ps.name),
+            holoHave, holoDone: keys.length > 0 && holoHave === keys.length, holoClaimed: claimed.includes('✦★' + ps.name)};
   });
   const psetBonus = psets.filter(x => x.done && x.claimed).reduce((s, x) => s + x.ps.bonus, 0);
+  const psetHoloBonus = psets.filter(x => x.holoDone && x.holoClaimed).reduce((s, x) => s + x.ps.bonus, 0);
   const sets = S.packs.map(p => {
     const missing = p.level_keys.filter(k => !own[k]);
     const holoHave = p.level_keys.filter(k => own[k] && own[k].holo).length;
@@ -644,8 +647,8 @@ function scoreInfo(own, claimed = [], cclaimed = []) {
   return {byTier, base, holoBonus, setBonus, creatorBonus, uniq, holos, sets, creators,
           setsDone: sets.filter(x => x.done && x.claimed).length, creatorsDone: creators.filter(x => x.done && x.claimed).length,
           holoSetBonus, holoCreatorBonus, holoSetsDone: sets.filter(x => x.holoDone && x.holoClaimed).length, holoCreatorsDone: creators.filter(x => x.holoDone && x.holoClaimed).length,
-          playerBonus, players, psets, psetBonus,
-          total: base + holoBonus + setBonus + creatorBonus + holoSetBonus + holoCreatorBonus + playerBonus + psetBonus};
+          playerBonus, players, psets, psetBonus, psetHoloBonus,
+          total: base + holoBonus + setBonus + creatorBonus + holoSetBonus + holoCreatorBonus + playerBonus + psetBonus + psetHoloBonus};
 }
 const myInfo = () => scoreInfo(ownership(S.myCards), S.me.claimed_sets || [], S.me.claimed_creators || []);
 async function loadBoard() { [S.board, S.clans] = await Promise.all([rpc('leaderboard'), rpc('clans_list')]); return S.board; }
@@ -1050,6 +1053,7 @@ function scoreTable(info) {
     ${info.holoSetBonus || info.holoCreatorBonus ? `<tr><td><b>✦ Holo set & creator bonuses</b></td><td class="muted">${info.holoSetsDone} sets, ${info.holoCreatorsDone} creators all in holo</td><td style="text-align:right">+${fmt(info.holoSetBonus + info.holoCreatorBonus)}</td></tr>` : ''}
     ${info.players ? `<tr><td><b>★ Player cards</b></td><td class="muted">${info.players} player${info.players > 1 ? 's' : ''}</td><td style="text-align:right">+${fmt(info.playerBonus)}</td></tr>` : ''}
     ${info.psetBonus ? `<tr><td><b>★ Player sets</b></td><td class="muted">${info.psets.filter(x => x.done && x.claimed).length} redeemed</td><td style="text-align:right">+${fmt(info.psetBonus)}</td></tr>` : ''}
+    ${info.psetHoloBonus ? `<tr><td><b>✦ Holo player sets</b></td><td class="muted">${info.psets.filter(x => x.holoDone && x.holoClaimed).length} all in holo</td><td style="text-align:right">+${fmt(info.psetHoloBonus)}</td></tr>` : ''}
     <tr><td><b>Creator bonuses</b></td><td class="muted">${info.creatorsDone} collected · partial bonuses included</td><td style="text-align:right">+${fmt(info.creatorBonus)}</td></tr>
     <tr class="tot"><td><b>Total</b></td><td></td><td style="text-align:right"><b>${fmt(info.total)}</b></td></tr>
   </tbody></table>`;
@@ -1190,12 +1194,12 @@ function bindClaims() {
   document.querySelectorAll('[data-hclaim]').forEach(b => b.onclick = async e => {
     e.stopPropagation(); b.disabled = true;
     const kind = b.dataset.hclaim, name = b.dataset.hname, info = myInfo();
-    const x = kind === 'set' ? info.sets.find(s => s.p.name === name) : info.creators.find(c => c.c.key === name);
-    const el = b.closest('[data-set]') || b.closest('[data-creator]');
+    const x = kind === 'set' ? info.sets.find(s => s.p.name === name) : kind === 'pset' ? info.psets.find(s => s.ps.name === name) : info.creators.find(c => c.c.key === name);
+    const el = b.closest('[data-set]') || b.closest('[data-pset]') || b.closest('[data-creator]');
     try {
       const r = await rpc('claim_holo', {p_token: S.token, p_kind: kind, p_name: name});
       setState(r.state);
-      celebrate(el, '#b46bff', kind === 'set' ? (x?.bonus || 0) : (x?.full || 0), `✦ ${kind === 'set' ? name : (x?.c.name || '')} in holo! +${r.packs} packs`);
+      celebrate(el, '#b46bff', kind === 'set' ? (x?.bonus || 0) : kind === 'pset' ? (x?.ps.bonus || 0) : (x?.full || 0), kind === 'pset' ? `✦ ★ ${name} in holo! +1 player pack` : `✦ ${kind === 'set' ? name : (x?.c.name || '')} in holo! +${r.packs} packs`);
       setTimeout(route, 1700);
     } catch (er) { toast(er.message, true); b.disabled = false; }
   });
@@ -1446,6 +1450,10 @@ function searchBox(id, val, ph) { return `<input class="field" id="${id}" type="
 function collectionGrid(cards) {
   const cp = copiesOf(cards), f = S.filter;
   let lv = S.levels.filter(l => (l.tier !== 'player' || S.me.player_cards) && (l.rank || cp[l.key] || (f.tier === 'unverified' && l.tier === 'unverified') || (f.tier === 'player' && l.tier === 'player' && !l.info?.retired)) && matchQ(l, f.q));
+  if (f.tier === 'pholo') {   // every player: holo ones lit up, the rest grayed out
+    const pl = S.levels.filter(l => l.tier === 'player' && S.me.player_cards && (!l.info?.retired || cp[l.key]) && matchQ(l, f.q));
+    return pl.length ? `<div class="grid" style="row-gap:24px">${pl.map(l => { const hc = (cp[l.key] || []).filter(c => c.holo); return hc.length ? stackHTML(l, hc) : cardHTML(l, {missing: true, holo: true}); }).join('')}</div>` : '<p class="muted">Nothing here.</p>';
+  }
   if (f.tier !== 'all') lv = lv.filter(l => l.tier === f.tier);
   if (f.show === 'owned') lv = lv.filter(l => cp[l.key]);
   if (f.show === 'missing') lv = lv.filter(l => !cp[l.key]);
@@ -1469,7 +1477,7 @@ function filterChips(rerender, cards) {
   const chip = (grp, v, label) => `<button class="chip ${f[grp] === v ? 'on' : ''}" data-g="${grp}" data-v="${v}">${label}</button>`;
   setTimeout(() => document.querySelectorAll('.chip[data-g]').forEach(b => b.onclick = () => { S.filter[b.dataset.g] = b.dataset.v; rerender(); }));
   return `${searchBox('cq', f.q)}<div class="chips">${chip('show','all','All')}${chip('show','owned','Owned')}${chip('show','missing','Missing')}${chip('show','holo','✦ Holo')}${S.me.holo_dupe_packs ? chip('show','hdupes','✦ Holo dupes') : ''}${chip('show','dupes','Dupes')}</div>
-    <div class="chips">${chip('tier','all','Every tier')}${[...TIERS].reverse().map(t => chip('tier', t, t[0].toUpperCase() + t.slice(1))).join('')}${chip('tier','unverified','Unverified')}</div>${S.me.player_cards ? `<div class="chips">${chip('tier','player','★ Players')}</div>` : ''}`;
+    <div class="chips">${chip('tier','all','Every tier')}${[...TIERS].reverse().map(t => chip('tier', t, t[0].toUpperCase() + t.slice(1))).join('')}${chip('tier','unverified','Unverified')}</div>${S.me.player_cards ? `<div class="chips">${chip('tier','player','★ Players')}${chip('tier','pholo','✦ Holo players')}</div>` : ''}`;
 }
 function renderCollection() {
   const info = myInfo(), listed = S.levels.filter(l => l.rank);
@@ -1491,18 +1499,19 @@ function renderCollection() {
 function playerSetCards(list, own) {
   own = own || ownership(S.myCards);
   return `<div class="sets">${list.map(x => {
-    const away = x.n - x.have;
-    const status = x.done ? (x.claimed ? `<span class="sdone">✓ Already redeemed · +${fmt(x.ps.bonus)} pts</span>` : `<button class="btn primary sm redeem" data-psclaim="${esc(x.ps.name)}">Redeem +${fmt(x.ps.bonus)} & 1 player pack</button>`)
+    const hv = S.holoView, have = hv ? x.holoHave : x.have, done = hv ? x.holoDone : x.done, claimed = hv ? x.holoClaimed : x.claimed, away = x.n - have;
+    const status = done ? (claimed ? `<span class="sdone">✓ Already redeemed${hv ? ' in holo' : ''} · +${fmt(x.ps.bonus)} pts</span>` : `<button class="btn primary sm redeem" ${hv ? `data-hclaim="pset" data-hname="${esc(x.ps.name)}"` : `data-psclaim="${esc(x.ps.name)}"`}>${hv ? '✦ Redeem holo' : 'Redeem'} +${fmt(x.ps.bonus)} & 1 player pack</button>`)
       : `<span class="saway">${away === 1 ? '1 away!' : away + ' away'}</span><span class="muted">+${fmt(x.ps.bonus)} · 1 player pack</span>`;
-    return `<div class="stile ${x.done && x.claimed ? 'won' : ''} ${x.done && !x.claimed ? 'ready' : ''}" style="--sc:#2dd4bf" data-pset="${esc(x.ps.name)}">
-      <div class="stin"><div class="row between"><b class="sname">★ ${esc(x.ps.name)}</b><span class="scount">${x.have}/${x.n}</span></div>
-      ${minisHTML(x.keys, own)}<div class="row between" style="gap:6px">${status}</div></div></div>`;
+    const holoBtn = !hv && x.holoDone && !x.holoClaimed ? `<button class="btn primary sm redeem" style="margin-top:6px" data-hclaim="pset" data-hname="${esc(x.ps.name)}">✦ Redeem holo +${fmt(x.ps.bonus)} & 1 player pack</button>` : '';
+    return `<div class="stile ${x.holoDone ? 'holodone' : ''} ${x.done && x.claimed ? 'won' : ''} ${(done && !claimed) || holoBtn ? 'ready' : ''}" style="--sc:#2dd4bf" data-pset="${esc(x.ps.name)}">
+      <div class="stin"><div class="row between"><b class="sname">★ ${esc(x.ps.name)}${x.holoDone ? ' <span class="cbadge plus">✦ HOLO</span>' : ''}</b><span class="scount">${hv ? `<span class="hcount">✦ ${x.holoHave}/${x.n}</span>` : `${x.have}/${x.n}${x.done ? ` <span class="hcount">✦ ${x.holoHave}/${x.n}</span>` : ''}`}</span></div>
+      ${minisHTML(x.keys, own)}<div class="row between" style="gap:6px">${status}</div>${holoBtn}</div></div>`;
   }).join('')}</div>`;
 }
 function renderSets() {
   const info = myInfo();
   app.innerHTML = `<div class="panel"><h2>Sets · ${S.holoView ? `<span class="hcount">✦ ${info.holoSetsDone}/${S.packs.length} in holo</span>` : `${info.setsDone}/${S.packs.length} redeemed`} ${holoToggle()}</h2>${setCards(orderSets(info.sets))}</div>
-    ${S.me.player_cards && info.psets.length ? `<div class="panel"><h2>★ Player sets · ${info.psets.filter(x => x.done && x.claimed).length}/${info.psets.length} redeemed</h2>${playerSetCards(info.psets)}</div>` : ''}`;
+    ${S.me.player_cards && info.psets.length ? `<div class="panel"><h2>★ Player sets · ${S.holoView ? `<span class="hcount">✦ ${info.psets.filter(x => x.holoDone && x.holoClaimed).length}/${info.psets.length} in holo</span>` : `${info.psets.filter(x => x.done && x.claimed).length}/${info.psets.length} redeemed`}</h2>${playerSetCards(S.holoView ? [...info.psets].sort((a, b) => a.holoDone - b.holoDone || (a.n - a.holoHave) - (b.n - b.holoHave)) : info.psets)}</div>` : ''}`;
   bindClaims();
 }
 function renderCreators() {
@@ -2045,7 +2054,7 @@ const CHANGELOG = [
     'NEW: ★ Player cards for every player on the list (2+ completions). Rarer = higher on the list',
     'Each one boosts the levels they beat (+15%) or verified (+25%) that you own, plus +500. Holo = double',
     '★ Player pack every 20 min. 3 copies make a holo',
-    'NEW: ★ Player sets in the Sets tab. Finish one for points + a player pack'
+    'NEW: ★ Player sets in the Sets tab. Finish one for points + a player pack. All in holo = redeem again'
   ]},
   {v: 9, title: 'Update', items: [
     'NEW Unverified cards: ALT F4 (Quacc) and Start This Over (Beeguy)',
