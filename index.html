@@ -2048,9 +2048,9 @@ function renderAdmin() {
     <p class="muted">They drop from packs on their own (about 1 in 900). This button puts one in the next pack anyone opens.</p><button class="btn sm" id="dropNow">Put one in the next pack</button>
     <hr style="border-color:var(--line);margin:24px 0">
     <h3>Put a card in someone's next pack</h3>
-    <p class="muted">It shows up as one of the 3 options. They still have to pick it. Leave the player blank for whoever opens a pack next.</p>
-    <div class="row"><select class="field" id="rgL" style="flex:1;min-width:200px"><option value="">— pick a level —</option>${S.levels.filter(l => l.rank).map(l => `<option value="${esc(l.key)}">#${l.rank} ${esc(l.name)}</option>`).join('')}</select>
-      <label class="row" style="gap:4px"><input type="checkbox" id="rgH"> holo</label>
+    <p class="muted">It shows up as one of the 3 options. They still have to pick it. Player cards go in their next player pack. Leave the player blank for whoever opens a pack next.</p>
+    <div class="row"><select class="field" id="rgL" style="flex:1;min-width:200px"><option value="">— pick a level or player —</option><optgroup label="Levels">${S.levels.filter(l => l.rank).map(l => `<option value="${esc(l.key)}">#${l.rank} ${esc(l.name)}</option>`).join('')}</optgroup>${S.me.player_cards ? `<optgroup label="Player cards">${S.levels.filter(l => l.tier === 'player' && !l.info?.retired).map(l => `<option value="${esc(l.key)}">★ ${esc(l.name)} (${pInfo(l).rarity})</option>`).join('')}</optgroup>` : ''}</select>
+      <label class="row" style="gap:4px"><input type="checkbox" id="rgH"> holo</label>${S.me.golden_cards ? `<label class="row" style="gap:4px"><input type="checkbox" id="rgG"> <span class="goldtxt">golden</span></label>` : ''}
       <input class="field" id="rgU" placeholder="Player (optional)" style="width:170px"><button class="btn sm" id="rgGo">Queue</button></div>
     <div id="rgList" class="feed" style="margin-top:10px"></div>
     <hr style="border-color:var(--line);margin:24px 0">
@@ -2095,13 +2095,13 @@ function renderAdmin() {
     $('#sync').disabled = false;
   };
   const drawRigs = list => { $('#rgList').innerHTML = list.length ? list.map(r => `<div class="row" style="border:1px solid var(--line);border-radius:10px;padding:6px 10px">
-      <span style="flex:1">#${S.byKey[r.level_key]?.rank ?? '?'} ${esc(S.byKey[r.level_key]?.name || r.level_key)}${r.holo ? ' ✦ holo' : ''} → <b>${r.username ? esc(r.username) : 'anyone'}</b></span>
+      <span style="flex:1">${S.byKey[r.level_key]?.tier === 'player' ? '★' : '#' + (S.byKey[r.level_key]?.rank ?? '?')} ${esc(S.byKey[r.level_key]?.name || r.level_key)}${r.golden ? ' <b class="goldtxt">★ golden</b>' : r.holo ? ' ✦ holo' : ''} → <b>${r.username ? esc(r.username) : 'anyone'}</b>${S.byKey[r.level_key]?.tier === 'player' ? ' <span class="muted">(next player pack)</span>' : ''}</span>
       <button class="btn sm" data-rgx="${r.id}">Cancel</button></div>`).join('') : '<span class="muted">Nothing queued.</span>';
     document.querySelectorAll('[data-rgx]').forEach(b => b.onclick = async () => { try { drawRigs(await rpc('admin_rig', {p_token: S.token, p_action: 'remove', p_id: +b.dataset.rgx})); } catch (e) { toast(e.message, true); } }); };
   rpc('admin_rig', {p_token: S.token, p_action: 'list'}).then(drawRigs).catch(() => {});
   $('#rgGo').onclick = async () => {
-    try { drawRigs(await rpc('admin_rig', {p_token: S.token, p_action: 'add', p_level_key: $('#rgL').value, p_holo: $('#rgH').checked, p_username: $('#rgU').value}));
-      toast('Queued'); $('#rgL').value = ''; $('#rgH').checked = false; }
+    try { drawRigs(await rpc('admin_rig', {p_token: S.token, p_action: 'add', p_level_key: $('#rgL').value, p_holo: $('#rgH').checked, p_username: $('#rgU').value, ...($('#rgG')?.checked ? {p_golden: true} : {})}));
+      toast('Queued'); $('#rgL').value = ''; $('#rgH').checked = false; if ($('#rgG')) $('#rgG').checked = false; }
     catch (e) { toast(e.message, true); }
   };
   $('#dropNow').onclick = async () => {
@@ -2159,15 +2159,15 @@ function renderAdmin() {
 function adminGive(un) {
   const m = document.createElement('div'); m.className = 'modal';
   m.innerHTML = `<div class="box"><h2 style="margin-top:0">Give to ${esc(un)}</h2>
-    <h3>A card</h3><div class="row"><select class="field" id="gL" style="flex:1"><option value="">— none —</option>${S.levels.map(l => `<option value="${esc(l.key)}">${l.rank ? '#' + l.rank : 'vaulted'} ${esc(l.name)}</option>`).join('')}</select>
-      <label class="row" style="gap:4px"><input type="checkbox" id="gH"> holo</label></div>
+    <h3>A card</h3><div class="row"><select class="field" id="gL" style="flex:1"><option value="">— none —</option><optgroup label="Levels">${S.levels.filter(l => l.rank).map(l => `<option value="${esc(l.key)}">#${l.rank} ${esc(l.name)}</option>`).join('')}</optgroup>${S.me.player_cards ? `<optgroup label="Player cards">${S.levels.filter(l => l.tier === 'player' && !l.info?.retired).map(l => `<option value="${esc(l.key)}">★ ${esc(l.name)} (${pInfo(l).rarity})</option>`).join('')}</optgroup>` : ''}<optgroup label="Unverified">${S.levels.filter(l => l.tier === 'unverified').map(l => `<option value="${esc(l.key)}">${esc(l.name)}</option>`).join('')}</optgroup><optgroup label="Vaulted">${S.levels.filter(l => !l.rank && !['player', 'unverified'].includes(l.tier)).map(l => `<option value="${esc(l.key)}">${esc(l.name)}</option>`).join('')}</optgroup></select>
+      <label class="row" style="gap:4px"><input type="checkbox" id="gH"> holo</label>${S.me.golden_cards ? `<label class="row" style="gap:4px"><input type="checkbox" id="gG"> <span class="goldtxt">golden</span></label>` : ''}</div>
     <h3 style="margin-top:14px">Packs</h3><div class="row"><input class="field" id="gP" type="number" value="0" style="width:100px"><select class="field" id="gK"><option value="normal">normal packs</option><option value="bonus">bonus packs</option><option value="holo">holo packs</option><option value="player">player packs</option><option value="holo_player">holo player packs</option></select></div>
     <span class="muted" style="font-size:13px">Normal adds to their regular count (no "+bonus" label). Use a negative number to take packs away.</span>
     <div class="row" style="margin-top:16px"><button class="btn primary" id="gGo">Give</button><button class="btn" id="gX">Cancel</button></div></div>`;
   document.body.appendChild(m);
   m.querySelector('#gX').onclick = () => m.remove();
   m.querySelector('#gGo').onclick = async () => {
-    try { await rpc('admin_give', {p_token: S.token, p_username: un, p_level_key: m.querySelector('#gL').value, p_holo: m.querySelector('#gH').checked, p_packs: +m.querySelector('#gP').value || 0, p_pack_kind: m.querySelector('#gK').value});
+    try { await rpc('admin_give', {p_token: S.token, p_username: un, p_level_key: m.querySelector('#gL').value, p_holo: m.querySelector('#gH').checked, p_packs: +m.querySelector('#gP').value || 0, p_pack_kind: m.querySelector('#gK').value, ...(m.querySelector('#gG')?.checked ? {p_golden: true} : {})});
       toast('Given to ' + un); m.remove(); if (un.toLowerCase() === S.me.username.toLowerCase()) { await loadMyCards(); await refreshState(); } }
     catch (e) { toast(e.message, true); }
   };
