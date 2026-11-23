@@ -156,6 +156,17 @@ h3{margin:0 0 10px;font-size:16px}
   background:linear-gradient(110deg,transparent 30%,rgba(255,255,255,.22) 45%,rgba(255,255,255,.05) 55%,transparent 70%);background-size:300% 100%;animation:shine 5s ease-in-out infinite}
 .card.holo{box-shadow:0 0 16px color-mix(in srgb,var(--c) 35%,transparent)}
 @keyframes hue{to{filter:hue-rotate(360deg)}}
+.card.golden{border-color:#ffd36b!important;box-shadow:0 0 22px #ffc94d99,inset 0 0 0 1px #fff1b8}
+.card.golden::after{background:linear-gradient(120deg,#6b3f00,#ffcf4d 30%,#fff6cf 45%,#e2a000 62%,#6b3f00)!important;background-size:250% 250%!important;opacity:.62!important;animation:goldmove 5s linear infinite!important}
+@keyframes goldmove{to{background-position:250% 0}}
+.card .goldtag{background:linear-gradient(90deg,#ffd36b,#fff1b8);color:#4a2a00}
+.goldtxt{background:linear-gradient(90deg,#ffcf4d,#fff1b8,#e2a000);-webkit-background-clip:text;background-clip:text;color:transparent}
+.showcase.t-golden .rays{filter:sepia(1) saturate(4) hue-rotate(5deg)}
+.feeditem.gfeed .tt{color:#ffd36b}
+.annbar{position:fixed;top:70px;left:50%;transform:translateX(-50%);z-index:130;display:flex;align-items:center;gap:12px;background:#15131bf2;border:1px solid #ffffff40;border-radius:14px;padding:10px 12px;box-shadow:0 12px 40px #000c;animation:anndown .35s ease-out;max-width:calc(100vw - 24px)}
+.annbar.out{opacity:0;transform:translate(-50%,-12px);transition:.3s}
+.annbar .annmini{width:46px;flex:none}.annbar .annwho{font-weight:900;font-size:18px}
+@keyframes anndown{from{opacity:0;transform:translate(-50%,-16px)}}
 .card.missing{filter:grayscale(1) brightness(.42)}
 .card.missing.holo::after,.card.missing.holo::before{display:none}
 .card.missing .thumb img{opacity:.35}
@@ -472,6 +483,8 @@ const MIRROR = {name: 'Mirror', who: 'You', desc: 'Worth as many points as your 
 const ABILITIES = new Proxy({}, {get: (_, k) => S.byKey[k] && S.byKey[k].tier === 'unverified' ? MIRROR : undefined});
 const RULES = {
   holoMult: 3,            // a holo level counts 3x
+  goldMult: 10,           // a golden level counts 10x (only one of each exists)
+  playerGoldMult: 4,      // a golden player card boosts 4x (holo: 2x)
   setMin: 500,            // set bonus = value of its levels, at least this
   creatorMinLevels: 2,    // creators need at least this many levels on the list to count
   creatorFull: 0.5,       // owning ALL of a creator's levels: +50% of their levels' value
@@ -526,9 +539,9 @@ const pInfo = l => ({beaten: (l.info?.beaten || []).filter(k => S.byKey[k]?.rank
 function playerLevels(l) { const p = pInfo(l); return [...p.verified, ...p.beaten]; }
 // what a player card adds for someone who owns `own` (holo player card = x2). maxed = as if you owned all their levels in holo
 function playerBoostOf(l, own, holo, maxed) {
-  const p = pInfo(l), v = k => maxed ? S.byKey[k].points * RULES.holoMult : own[k] ? S.byKey[k].points * (own[k].holo ? RULES.holoMult : 1) : 0;
+  const p = pInfo(l), v = k => maxed ? S.byKey[k].points * Math.max(RULES.holoMult, lvMult(own[k])) : own[k] ? S.byKey[k].points * lvMult(own[k]) : 0;
   const b = RULES.playerBase + p.beaten.reduce((s, k) => s + v(k), 0) * RULES.playerBeat + p.verified.reduce((s, k) => s + v(k), 0) * RULES.playerVerify;
-  return Math.round(b * (holo ? RULES.playerHoloMult : 1));
+  return Math.round(b * (typeof holo === 'number' ? holo : holo ? RULES.playerHoloMult : 1));
 }
 // little grid of a player's levels by rank: bright = you own it
 function playerGrid(l, own) {
@@ -566,9 +579,9 @@ async function loadLevels() {
 function unvOwner(key) { const r = S.board.find(r => r.owned.some(o => o[0] === key)); return r ? r.username : null; }
 async function loadDrops() { const { data } = await sb.from('unverified_drops').select('*').order('dropped_at', {ascending: false}).range(0, 49); S.drops = data || []; }
 async function loadMyCards() {
-  S.myCards = await fetchAll(() => sb.from('cards').select('id,level_key,holo,locked').eq('owner', S.me.user_id).order('id'));
+  S.myCards = await fetchAll(() => sb.from('cards').select('id,level_key,holo,locked,golden').eq('owner', S.me.user_id).order('id'));
 }
-async function cardsOf(uid) { return fetchAll(() => sb.from('cards').select('id,level_key,holo,locked').eq('owner', uid).order('id')); }
+async function cardsOf(uid) { return fetchAll(() => sb.from('cards').select('id,level_key,holo,locked,golden').eq('owner', uid).order('id')); }
 function setState(st) {
   S.me = st;
   S.clock = new Date(st.server_now).getTime() - Date.now();
@@ -581,11 +594,16 @@ async function refreshState() { setState(await rpc('get_state', {p_token: S.toke
 
 function ownership(cards) {
   const o = {};
-  for (const c of cards) { const x = o[c.level_key] ||= {count: 0, holo: 0, ids: []}; x.count++; if (c.holo) x.holo++; x.ids.push(c.id); }
+  for (const c of cards) { const x = o[c.level_key] ||= {count: 0, holo: 0, golden: 0, ids: []}; x.count++; if (c.holo) x.holo++; if (c.golden) x.golden++; x.ids.push(c.id); }
   return o;
 }
 // owned map from leaderboard rows: [[key, holoAny, count]]
-function ownFromRows(rows) { const o = {}; for (const [k, h, n] of rows) o[k] = {count: n, holo: h ? 1 : 0}; return o; }
+function ownFromRows(rows) { const o = {}; for (const [k, h, n, g] of rows) o[k] = {count: n, holo: h ? 1 : 0, golden: g ? 1 : 0}; return o; }
+// level multiplier: golden 10x, holo 3x; player boost multiplier: golden 4x, holo 2x
+const lvMult = o => o?.golden ? RULES.goldMult : o?.holo ? RULES.holoMult : 1;
+const pMult = o => o?.golden ? RULES.playerGoldMult : o?.holo ? RULES.playerHoloMult : 1;
+// who owns the golden of a level (from the leaderboard data)
+function goldOwner(key) { const r = S.board.find(r => r.owned.some(o => o[0] === key && o[3])); return r ? r.username : null; }
 
 // ---------------- scoring ----------------
 function rewardPacks(keys) { return keys.some(k => ['apex','mythic','legendary'].includes(S.byKey[k]?.tier)) ? RULES.setPacksBig : RULES.setPacks; }
@@ -603,24 +621,25 @@ function creatorStatus(c, own, claimed = []) {
           holoHave, holoDone: holoHave === n, holoClaimed: claimed.includes('✦' + c.key)};
 }
 function scoreInfo(own, claimed = [], cclaimed = []) {
-  const byTier = {}; let base = 0, holoBonus = 0, uniq = 0, holos = 0;
+  const byTier = {}; let base = 0, holoBonus = 0, uniq = 0, holos = 0, goldens = 0, goldBonus = 0;
   for (const [k, o] of Object.entries(own)) {
     const l = S.byKey[k]; if (!l) continue;
     const t = byTier[l.tier] ||= {n: 0, pts: 0};
     t.n++; t.pts += l.points; base += l.points;
     if (l.rank) uniq++;
     if (o.holo) { holos++; holoBonus += l.points * (RULES.holoMult - 1); }
+    if (o.golden) { goldens++; goldBonus += l.points * (RULES.goldMult - RULES.holoMult); }
   }
   if (byTier.unverified) {   // Mirror: each Unverified card is worth your best card
     let best = 0;
-    for (const [k, o] of Object.entries(own)) { const l = S.byKey[k]; if (l && l.tier !== 'unverified') best = Math.max(best, l.points * (o.holo ? RULES.holoMult : 1)); }
+    for (const [k, o] of Object.entries(own)) { const l = S.byKey[k]; if (l && l.tier !== 'unverified') best = Math.max(best, l.points * (o.holo ? RULES.holoMult : 1)); }   // copies holo value, never golden
     const now = byTier.unverified.n * best; base += now - byTier.unverified.pts; byTier.unverified.pts = now;
   }
   // player cards: +25% on every owned level that player verified or created (one copy is enough)
   let playerBonus = 0, players = 0;
   for (const k of Object.keys(own)) {
     const l = S.byKey[k]; if (!l || l.tier !== 'player' || !S.me?.player_cards) continue;
-    players++; playerBonus += playerBoostOf(l, own, own[k].holo);
+    players++; playerBonus += playerBoostOf(l, own, pMult(own[k]));
   }
   // player sets: points while you own every player in the set (and redeemed it)
   const psets = (S.me?.player_cards ? (S.psets || []) : []).map(ps => {
@@ -647,8 +666,8 @@ function scoreInfo(own, claimed = [], cclaimed = []) {
   return {byTier, base, holoBonus, setBonus, creatorBonus, uniq, holos, sets, creators,
           setsDone: sets.filter(x => x.done && x.claimed).length, creatorsDone: creators.filter(x => x.done && x.claimed).length,
           holoSetBonus, holoCreatorBonus, holoSetsDone: sets.filter(x => x.holoDone && x.holoClaimed).length, holoCreatorsDone: creators.filter(x => x.holoDone && x.holoClaimed).length,
-          playerBonus, players, psets, psetBonus, psetHoloBonus,
-          total: base + holoBonus + setBonus + creatorBonus + holoSetBonus + holoCreatorBonus + playerBonus + psetBonus + psetHoloBonus};
+          playerBonus, players, psets, psetBonus, psetHoloBonus, goldens, goldBonus,
+          total: base + holoBonus + setBonus + creatorBonus + holoSetBonus + holoCreatorBonus + playerBonus + psetBonus + psetHoloBonus + goldBonus};
 }
 const myInfo = () => scoreInfo(ownership(S.myCards), S.me.claimed_sets || [], S.me.claimed_creators || []);
 async function loadBoard() { [S.board, S.clans] = await Promise.all([rpc('leaderboard'), rpc('clans_list')]); return S.board; }
@@ -677,15 +696,15 @@ function thumb(l) {
 }
 function cardHTML(l, o = {}) {
   if (!l) return '';
-  const cls = ['card', 't-' + l.tier, l.tier === 'player' ? 'pr-' + pInfo(l).rarity : '', o.holo || l.tier === 'unverified' ? 'holo' : '', o.missing ? 'missing' : '', o.mini ? 'mini' : '', o.sel ? 'sel' : ''].join(' ');
+  const cls = ['card', 't-' + l.tier, l.tier === 'player' ? 'pr-' + pInfo(l).rarity : '', o.holo || o.golden || l.tier === 'unverified' ? 'holo' : '', o.golden ? 'golden' : '', o.missing ? 'missing' : '', o.mini ? 'mini' : '', o.sel ? 'sel' : ''].join(' ');
   const glow = l.rank && l.rank <= 40 ? ((41 - l.rank) / 40).toFixed(2) : 0;
   return `<div class="${cls}" style="--gl:${glow}" data-key="${esc(l.key)}" data-name="${esc(l.name)}" ${o.id ? `data-id="${o.id}"` : ''}>
     <div class="ctop"><span class="rank">${l.tier === 'unverified' ? '1 of 1' : l.tier === 'player' ? '★' : l.rank ? '#' + l.rank : '—'}</span><span class="tag">${l.tier === 'unverified' ? 'unverified' : l.tier === 'player' ? 'player · ' + pInfo(l).rarity : l.rank ? l.tier : 'vaulted'}</span></div>
     <div class="thumb">${thumb(l)}</div>
     <div class="nm">${esc(l.name)}</div>
     <div class="meta">${l.tier === 'player' ? `Beat ${pInfo(l).beaten.length} · Verified ${pInfo(l).verified.length}` : `${l.tier === 'unverified' ? (ABILITIES[l.key] ? `<b class="abil">✦ ${esc(ABILITIES[l.key].name)}</b> · ${esc(ABILITIES[l.key].desc)}` : 'Not verified yet') : `Verified by ${esc(l.verifier || '?')}`}<br>By ${esc(creatorsOf(l).join(', ') || '?')}`}</div>
-    <div class="pts">${l.tier === 'player' ? (o.holo ? '★ boosts ×2' : '★ boosts levels') : l.tier === 'unverified' ? '= your best card' : fmt(l.points * (o.holo ? RULES.holoMult : 1)) + ' pts' + (o.holo ? ' ✦' : '')}</div>
-    ${o.holo && l.tier !== 'unverified' ? '<div class="holotag">✦ HOLO</div>' : ''}
+    <div class="pts">${l.tier === 'player' ? (o.golden ? `★ boosts ×${RULES.playerGoldMult}` : o.holo ? '★ boosts ×2' : '★ boosts levels') : l.tier === 'unverified' ? '= your best card' : fmt(l.points * lvMult(o)) + ' pts' + (o.golden ? ' ★' : o.holo ? ' ✦' : '')}</div>
+    ${o.golden ? '<div class="holotag goldtag">★ GOLDEN</div>' : o.holo && l.tier !== 'unverified' ? '<div class="holotag">✦ HOLO</div>' : ''}
   </div>`;
 }
 // A stack of copies: holos on top, up to 5 layers peeking out above, big count past 5
@@ -698,9 +717,9 @@ function stackHTML(l, copies, opts = {}) {
   // back-most first (highest on screen), front last
   for (let i = layers - 1; i >= 1; i--) {
     const c = shown[i];
-    h += `<div class="layer" data-li="${i}" style="top:${(layers - 1 - i) * step}px;z-index:${10 - i}">${cardHTML(l, {holo: c.holo, id: c.id})}</div>`;
+    h += `<div class="layer" data-li="${i}" style="top:${(layers - 1 - i) * step}px;z-index:${10 - i}">${cardHTML(l, {holo: c.holo, golden: c.golden, id: c.id})}</div>`;
   }
-  h += `<div class="front layer-front" data-li="0" style="z-index:10">${cardHTML(l, {holo: shown[0].holo, id: shown[0].id})}</div>`;
+  h += `<div class="front layer-front" data-li="0" style="z-index:10">${cardHTML(l, {holo: shown[0].holo, golden: shown[0].golden, id: shown[0].id})}</div>`;
   if (opts.trade) {   // invisible hit strips so hovering a back card is easy
     for (let i = layers - 1; i >= 1; i--) h += `<div class="hit" data-li="${i}" style="top:${(layers - 1 - i) * step}px;height:${step}px"></div>`;
     h += `<div class="hit" data-li="0" style="top:${(layers - 1) * step}px;bottom:0"></div>`;
@@ -714,7 +733,7 @@ function stackHTML(l, copies, opts = {}) {
 function copiesOf(cards) {   // {key: [{id, holo}] holos first}
   const m = {};
   for (const c of cards) (m[c.level_key] ||= []).push(c);
-  for (const k in m) m[k].sort((a, b) => b.holo - a.holo || a.id - b.id);
+  for (const k in m) m[k].sort((a, b) => !!b.golden - !!a.golden || b.holo - a.holo || a.id - b.id);
   return m;
 }
 function thumbUrl(key) { const l = S.byKey[key]; return !l ? '' : l.image ? l.image : l.video_id ? `https://i.ytimg.com/vi/${l.video_id}/mqdefault.jpg` : ''; }
@@ -751,11 +770,12 @@ function showLevel(key) {
     const p = pInfo(l), mine = ownership(S.myCards), all = playerLevels(l), have = all.filter(k => mine[k]).length;
     const chipL = ks => ks.length ? `<div class="plv">${ks.slice().sort((a, b) => S.byKey[a].rank - S.byKey[b].rank).map(k => `<span class="${mine[k] ? 'own' : ''}">#${S.byKey[k].rank} ${esc(S.byKey[k].name)}${mine[k]?.holo ? ' ✦' : ''}</span>`).join('')}</div>` : '<p class="muted">None</p>';
     const hv = !!(own && own.holo), nn = S.myCards.filter(c => c.level_key === key && !c.holo && !c.locked).length;
-    m.innerHTML = `<div class="box">${cardHTML(l, {holo: hv})}
+    m.innerHTML = `<div class="box">${cardHTML(l, {holo: hv, golden: own && own.golden})}
       <p><b>${esc(l.name)}</b>: ${esc(p.rarity.toUpperCase())} player card${l.info?.retired ? ' <span class="muted">(retired, no longer drops)</span>' : ''}<br>
       <span class="muted">+${fmt(RULES.playerBase)}, plus ${RULES.playerVerify * 100}% of each level they verified and ${RULES.playerBeat * 100}% of each level they beat (levels you own, at holo value). A holo player card doubles it.</span></p>
       <p>You own: <b>${own ? own.count : 0}</b>${own && own.holo ? ` (${own.holo} holo)` : ''}<br>
-      Boosts <b>${have} of ${all.length}</b> of their levels you own · <b>+${fmt(playerBoostOf(l, mine, hv))}</b> now · up to <b>+${fmt(playerBoostOf(l, mine, true, true))}</b></p>
+      Boosts <b>${have} of ${all.length}</b> of their levels you own · <b>+${fmt(playerBoostOf(l, mine, pMult(own)))}</b> now · up to <b>+${fmt(playerBoostOf(l, mine, Math.max(2, pMult(own)), true))}</b></p>
+      ${S.me.golden_cards ? `<p class="muted" style="font-size:13px">${goldOwner(key) ? `★ Golden owned by <b class="goldtxt">${esc(goldOwner(key))}</b>` : '★ Golden not found yet'} · a golden player boosts ×${RULES.playerGoldMult}</p>` : ''}
       <div class="label">Verified (${p.verified.length})</div>${chipL(p.verified)}
       <div class="label">Beaten (${p.beaten.length})</div>${chipL(p.beaten)}
       ${own ? `<div style="margin-top:8px"><button class="btn sm ${nn >= 3 ? 'primary' : ''}" id="pcraft" ${nn >= 3 ? '' : 'disabled'}>✦ Combine 3 copies into a holo</button> <span class="muted" style="font-size:12px">${nn}/3 unlocked normal copies</span></div>` : ''}
@@ -773,14 +793,15 @@ function showLevel(key) {
     m.addEventListener('click', e => { if (e.target === m) m.remove(); });
     document.body.appendChild(m); return;
   }
-  m.innerHTML = `<div class="box">${cardHTML(l, {holo: own && own.holo})}
+  m.innerHTML = `<div class="box">${cardHTML(l, {holo: own && own.holo, golden: own && own.golden})}
     <p><b>${esc(l.name)}</b>: ${l.tier === 'unverified' ? `UNVERIFIED · only 1 exists${l.info && l.info.placement ? ' · expected ' + esc(l.info.placement) : ''}${l.info && l.info.layout ? `<br><span class="muted">Layout ${esc(l.info.layout)} · Deco ${esc(l.info.deco || '?')} · Verifying ${esc(l.info.verify || '?')}</span>` : ''}${ABILITIES[l.key] ? `<br><b class="abil">✦ ${esc(ABILITIES[l.key].name)}</b> (${esc(ABILITIES[l.key].who)}): ${esc(ABILITIES[l.key].desc)}` : ''}${unvOwner(l.key) ? `<br>Owned by <b>${esc(unvOwner(l.key))}</b>` : '<br><span class="muted">Not found yet</span>'}` : l.rank ? `#${l.rank} on the list, ${l.tier.toUpperCase()}` : 'no longer on the list (vaulted)'}<br>
     <span class="muted">Created by ${esc(creatorsOf(l).join(', ') || '?')} · Verified by ${esc(l.verifier || '?')}</span></p>
     <p>You own: <b>${own ? own.count : 0}</b> ${own && own.holo ? `(${own.holo} holo)` : ''}<br>
-    <span class="muted">Worth ${fmt(l.points)} pts, or ${fmt(l.points * RULES.holoMult)} as holo</span></p>
+    <span class="muted">Worth ${fmt(l.points)} pts, or ${fmt(l.points * RULES.holoMult)} as holo${S.me.golden_cards && l.rank ? `, ${fmt(l.points * RULES.goldMult)} golden` : ''}</span>
+    ${S.me.golden_cards && l.rank ? `<br><span class="muted">${goldOwner(key) ? `★ Golden owned by <b class="goldtxt">${esc(goldOwner(key))}</b>` : '★ Golden not found yet'}</span>` : ''}</p>
     ${l.video_id ? `<p><a href="https://youtu.be/${esc(l.video_id)}" target="_blank" rel="noopener">Watch verification ↗</a></p>` : ''}
-    ${own ? `<div class="locks"><div class="label" style="margin-bottom:6px">Your copies · locked ones can't be traded</div>${S.myCards.filter(c => c.level_key === key).sort((a, b) => b.holo - a.holo).map((c, i) =>
-      `<button class="btn sm lockb ${c.locked ? 'on' : ''}" data-lock="${c.id}">${c.locked ? '🔒' : '🔓'} Copy ${i + 1}${c.holo ? ' ✦' : ''}</button>`).join('')}</div>` : ''}
+    ${own ? `<div class="locks"><div class="label" style="margin-bottom:6px">Your copies · locked ones can't be traded</div>${S.myCards.filter(c => c.level_key === key).sort((a, b) => !!b.golden - !!a.golden || b.holo - a.holo).map((c, i) =>
+      `<button class="btn sm lockb ${c.locked ? 'on' : ''}" data-lock="${c.id}">${c.locked ? '🔒' : '🔓'} Copy ${i + 1}${c.golden ? ' ★' : c.holo ? ' ✦' : ''}</button>`).join('')}</div>` : ''}
     ${own && S.me.holo_dupe_packs && !['unverified', 'player'].includes(l.tier) && S.myCards.filter(c => c.level_key === key && c.holo).length >= 3 ? (() => {
       const hn = S.myCards.filter(c => c.level_key === key && c.holo && !c.locked).length;
       const tot = S.myCards.filter(c => c.level_key === key && c.holo).length;
@@ -885,6 +906,10 @@ function oddsHTML() {
   return `<details class="panel odds"><summary><b>Pack odds</b></summary>
     <div style="overflow-x:auto"><table class="scoretbl" style="margin-top:10px"><thead><tr class="muted" style="font-size:12px"><td>Rarity</td><td style="text-align:right">Per option</td><td style="text-align:right">In a pack</td><td style="text-align:right">A specific level</td><td style="text-align:right">That level in holo</td></tr></thead>
     <tbody>${rows}</tbody></table></div>
+    ${S.me.golden_cards ? (() => { const w = S.me.tier_weights || [0.0667, 0.4, 1.5, 5, 13, 30, 50.0333];
+      let all = 0, left = 0; TIERS.forEach((t, i) => { const lv = S.levels.filter(l => l.rank && l.tier === t); lv.forEach(l => { all += w[i] / lv.length; if (!goldOwner(l.key)) left += w[i] / lv.length; }); });
+      const c = (S.me.golden_chance ?? 0.01) * (0.5 + 0.5 * (all ? left / all : 0));
+      return `<p style="font-size:13px;margin:10px 0 0"><b class="goldtxt">★ Golden:</b> about 1 in ${fmt(Math.round(1 / c))} packs right now. Gets a bit rarer as goldens are found. Rarer levels are less likely to be the golden one.</p>`; })() : ''}
     <p class="muted" style="font-size:13px;margin:10px 0 0">Each pack shows ${n} options and every option rolls on its own. ${Math.round(hc * 100)}% of options are holo. Unverified cards come as a free bonus on top of your pick, and only one of each exists. In a holo pack every option is holo, so "a specific level" is also your chance at its holo.</p>
   </details>`;
 }
@@ -935,7 +960,7 @@ function renderHome() {
         : `<div class="label">Next pack in</div><div style="font-size:34px;font-weight:900" id="timer">--:--</div>`}
       <div class="muted" style="font-size:12px;margin-top:4px">1 pack every ${fmtSecs(st.pack_secs || 600)}${st.holo_milestone ? ' ✦' : ''}</div></div>
       ${st.player_cards ? `<div>${st.next_player_at ? `<div class="label">Next player pack in</div><div style="font-size:34px;font-weight:900" id="ptimer">--:--</div>` : `<div class="full">PLAYER STORAGE FULL</div>`}
-      <div class="muted" style="font-size:12px;margin-top:4px">1 player pack every ${fmtSecs(st.player_secs || 1200)} · sets give more</div></div>` : ''}
+      <div class="muted" style="font-size:12px;margin-top:4px">1 player pack every ${fmtSecs(st.player_secs || 1200)}${st.player_milestone ? ' ★' : ''} · sets give more</div></div>` : ''}
       <div class="row" style="justify-content:center;margin-top:14px">
         <input class="field" id="code" placeholder="Have a code?" style="width:150px">
         <button class="btn sm" id="redeem">Redeem</button>
@@ -949,8 +974,15 @@ function renderHome() {
     const need = (m + 1) * 10, have = info.holos;
     return `<div class="row" style="gap:12px;flex-wrap:wrap"><div style="flex:1;min-width:220px"><b>✦ Holo milestone ${m + 1}/9</b>
       <div class="muted" style="font-size:13px">${have >= need ? `You have ${have} holos!` : `${have}/${need} holos.`} Timer ${fmtSecs(RULES.timerSecs[m])} → ${fmtSecs(RULES.timerSecs[m + 1])}${m + 1 === 9 ? ' and a ✦ COMPLETED badge' : ''}</div>
-      <div class="pbar"><i style="width:${Math.min(100, (have - m * 10) / 10 * 100)}%;background:linear-gradient(90deg,#ff6b6b,#ffd36b,#6bff9c,#6bd0ff,#b46bff)"></i></div></div>
+      <div class="pbar"><i style="width:${Math.min(100, (have - m * 10) / 10 * 100)}%;background:linear-gradient(90deg,#b7791f,#ffd36b,#fff1b8)"></i></div></div>
       ${have >= need ? `<button class="btn primary sm redeem" id="claimMs">✦ Claim: faster timer</button>` : ''}</div>`; })()}
+  ${st.player_cards ? (() => { const m = st.player_milestone || 0, hp = S.levels.filter(l => l.tier === 'player' && ownership(S.myCards)[l.key]?.holo).length;
+    if (m >= 5) return `<div style="margin-top:14px"><b>★ Player milestones done</b> <span class="muted" style="font-size:13px">Player timer 15:00 (fastest)</span></div>`;
+    const need = (m + 1) * 3, cur = fmtSecs(st.player_secs || 1200 - 60 * m), next = fmtSecs(Math.max(900, (st.player_secs || 1200 - 60 * m) - 60));
+    return `<div class="row" style="gap:12px;flex-wrap:wrap;margin-top:14px"><div style="flex:1;min-width:220px"><b>★ Player milestone ${m + 1}/5</b>
+      <div class="muted" style="font-size:13px">${hp >= need ? `You have ${hp} holo players!` : `${hp}/${need} holo players.`} Player timer ${cur} → ${next}</div>
+      <div class="pbar"><i style="width:${Math.min(100, (hp - m * 3) / 3 * 100)}%;background:linear-gradient(90deg,#2dd4bf,#38bdf8,#3b82f6)"></i></div></div>
+      ${hp >= need ? `<button class="btn primary sm redeem" id="claimPMs">★ Claim: faster player timer</button>` : ''}</div>`; })() : ''}
   </div>
   ${st.holo_packs ? `<div class="panel"><div class="row" style="gap:16px;flex-wrap:wrap">
     ${packHTML('holo', 'mini')}
@@ -985,6 +1017,7 @@ function renderHome() {
     ${creatorBlocks(nearCreators)}
   </div>
 
+  ${goldenPanel()}
   ${unverifiedPanel()}
   <div class="two">
     <div class="panel"><h2>Recent trades</h2><div class="feed" id="rtrades"><span class="muted">Loading…</span></div></div>
@@ -997,6 +1030,13 @@ function renderHome() {
   if ($('#opHolo')) $('#opHolo').onclick = () => openPacks('holo', 1);
   if ($('#opPlayer')) $('#opPlayer').onclick = () => openPacks('player', 1);
   if ($('#opPlayerAll')) $('#opPlayerAll').onclick = () => openPacks('player', S.me.player_packs);
+  if ($('#claimPMs')) $('#claimPMs').onclick = async e => {
+    const b = e.currentTarget; b.disabled = true;
+    try { const r = await rpc('claim_player_milestone', {p_token: S.token}); setState(r.state);
+      celebrate(b, '#38bdf8', 0, `★ Player milestone ${r.milestone}! Player timer ${fmtSecs(r.state.player_secs)}`);
+      setTimeout(renderHome, 1700); }
+    catch (er) { toast(er.message, true); b.disabled = false; }
+  };
   if ($('#claimMs')) $('#claimMs').onclick = async e => {
     const b = e.currentTarget; b.disabled = true;
     try { const r = await rpc('claim_milestone', {p_token: S.token}); setState(r.state);
@@ -1015,7 +1055,8 @@ function renderHome() {
 function dropBanner() {
   const d = (S.drops || [])[0]; if (!d || Date.now() + S.clock - new Date(d.dropped_at) > 86400000) return '';
   const l = S.byKey[d.level_key];
-  return `<div class="banner unvb">✦ <b>${esc(d.username || '?')}</b> found the only <b>${esc(l ? l.name : d.level_key)}</b> Unverified card!</div>`;
+  return d.user_id === S.me.user_id ? `<div class="banner unvb">✦ <b>You</b> found the only <b>${esc(l ? l.name : d.level_key)}</b> Unverified card!</div>`
+    : `<div class="banner unvb">✦ <b>${esc(d.username || '?')}</b> (not you) found the only <b>${esc(l ? l.name : d.level_key)}</b> Unverified card</div>`;
 }
 function unverifiedPanel() {
   const u = S.levels.filter(l => l.tier === 'unverified'); if (!u.length) return '';
@@ -1025,21 +1066,20 @@ function unverifiedPanel() {
     <div class="hscroll">${u.map(l => `<div style="flex:0 0 150px">${cardHTML(l, {missing: !unvOwner(l.key)})}<div class="owners">${unvOwner(l.key) ? 'Owned by ' + esc(unvOwner(l.key)) : 'Not found yet'}</div></div>`).join('')}</div></div>`;
 }
 // Big moment the first time you see a new drop
+// Someone ELSE found an Unverified: a slim notice at the top with their name, not the big card reveal
+// (the finder already saw their own reveal inside the pack, so they get nothing here)
 function dropPopup() {
   const d = (S.drops || [])[0]; if (!d) return;
   if (Date.now() + S.clock - new Date(d.dropped_at) > 86400000) return;
   if (+(localStorage.getItem('gacha_drop_seen') || 0) >= d.id) return;
   localStorage.setItem('gacha_drop_seen', d.id);
-  const l = S.byKey[d.level_key]; if (!l) return;
-  const mine = d.user_id === S.me.user_id;
-  const sc = document.createElement('div'); sc.className = 'showcase t-unverified';
-  sc.innerHTML = `<div class="rays"></div><div class="scin">
-    <div class="sctitle">${mine ? 'YOU FOUND AN UNVERIFIED CARD' : 'UNVERIFIED CARD FOUND'}</div>
-    <div class="sccard">${cardHTML(l)}</div>
-    <div class="scodds">${mine ? 'The only one in existence. It\'s yours.' : `<b>${esc(d.username || '?')}</b> got the only one in existence`}</div>
-    <button class="btn primary">Continue</button></div>`;
-  sc.querySelector('button').onclick = () => { sc.classList.add('out'); setTimeout(() => sc.remove(), 300); };
-  document.body.appendChild(sc);
+  const l = S.byKey[d.level_key]; if (!l || d.user_id === S.me.user_id) return;
+  const n = document.createElement('div'); n.className = 'annbar';
+  n.innerHTML = `<div class="annmini">${cardHTML(l, {mini: true})}</div><div><div class="annwho">${esc(d.username || '?')}</div>
+    <div class="muted" style="font-size:13px">found the only Unverified <b style="color:#fff">${esc(l.name)}</b></div></div><button class="btn sm" aria-label="Close">✕</button>`;
+  const close = () => { n.classList.add('out'); setTimeout(() => n.remove(), 300); };
+  n.querySelector('button').onclick = close; setTimeout(close, 15000);
+  document.body.appendChild(n);
 }
 function scoreTable(info) {
   const rows = TIERS.filter(t => info.byTier[t]).map(t => {
@@ -1049,6 +1089,7 @@ function scoreTable(info) {
   return `<table class="scoretbl"><tbody>${rows || '<tr><td class="muted" colspan="3">No cards yet. Open a pack!</td></tr>'}
     ${info.byTier.unverified ? `<tr><td><span class="unvtxt">UNVERIFIED</span></td><td>${info.byTier.unverified.n} card${info.byTier.unverified.n > 1 ? 's' : ''}</td><td style="text-align:right">${fmt(info.byTier.unverified.pts)}</td></tr>` : ''}
     <tr><td><b>✦ Holo bonus</b></td><td class="muted">${info.holos} × ${RULES.holoMult}</td><td style="text-align:right">+${fmt(info.holoBonus)}</td></tr>
+    ${info.goldBonus ? `<tr><td><b class="goldtxt">★ Golden bonus</b></td><td class="muted">${info.goldens} golden${info.goldens > 1 ? 's' : ''} × ${RULES.goldMult}</td><td style="text-align:right">+${fmt(info.goldBonus)}</td></tr>` : ''}
     <tr><td><b>Set bonuses</b></td><td class="muted">${info.setsDone}/${S.packs.length}</td><td style="text-align:right">+${fmt(info.setBonus)}</td></tr>
     ${info.holoSetBonus || info.holoCreatorBonus ? `<tr><td><b>✦ Holo set & creator bonuses</b></td><td class="muted">${info.holoSetsDone} sets, ${info.holoCreatorsDone} creators all in holo</td><td style="text-align:right">+${fmt(info.holoSetBonus + info.holoCreatorBonus)}</td></tr>` : ''}
     ${info.players ? `<tr><td><b>★ Player cards</b></td><td class="muted">${info.players} player${info.players > 1 ? 's' : ''}</td><td style="text-align:right">+${fmt(info.playerBonus)}</td></tr>` : ''}
@@ -1210,7 +1251,7 @@ async function loadFeeds() {
     const ago = t => { const s = (Date.now() + S.clock - new Date(t)) / 1000; return s < 60 ? 'just now' : s < 3600 ? Math.floor(s / 60) + 'm ago' : s < 86400 ? Math.floor(s / 3600) + 'h ago' : Math.floor(s / 86400) + 'd ago'; };
     if ($('#rtrades')) $('#rtrades').innerHTML = tr.length ? tr.map(t => `<div class="feeditem t-epic"><span><b>${esc(t.from_username)}</b> ⇄ <b>${esc(t.to_username)}</b> · ${t.offer_count} for ${t.request_count} card${t.request_count === 1 ? '' : 's'}</span><span class="spacer"></span><span class="muted">${ago(t.resolved_at)}</span></div>`).join('')
       : `<span class="muted">No trades yet. <a href="#/trades">Find a trading partner</a></span>`;
-    if ($('#rpulls')) $('#rpulls').innerHTML = pu.length ? pu.map(p => `<div class="feeditem t-${p.tier}"><span class="tt">${p.holo ? '✦ ' : ''}${p.tier.toUpperCase()}</span><span><b>${esc(p.username || '?')}</b> pulled #${p.rank ?? '—'} ${esc(p.name)}${p.holo ? ' (holo)' : ''}</span><span class="spacer"></span><span class="muted">${ago(p.pulled_at)}</span></div>`).join('')
+    if ($('#rpulls')) $('#rpulls').innerHTML = pu.length ? pu.map(p => `<div class="feeditem t-${p.tier} ${p.golden ? 'gfeed' : ''}"><span class="tt">${p.golden ? '★ GOLDEN' : (p.holo ? '✦ ' : '') + p.tier.toUpperCase()}</span><span><b>${esc(p.username || '?')}</b> pulled ${p.tier === 'player' ? '' : '#' + (p.rank ?? '—') + ' '}${esc(p.name)}${p.golden ? ' (golden!)' : p.holo ? ' (holo)' : ''}</span><span class="spacer"></span><span class="muted">${ago(p.pulled_at)}</span></div>`).join('')
       : `<span class="muted">Nobody has pulled a Legendary or better yet.</span>`;
   } catch (e) { console.warn(e); }
 }
@@ -1292,6 +1333,34 @@ function showcase(o) {
     celebrate(sc.querySelector('.sccard'), c, 0, '');
     document.querySelectorAll('.fxpts').forEach(x => x.remove());
   });
+}
+// You found a golden card inside a pack
+function goldenFound(b) {
+  return new Promise(res => {
+    const l = S.byKey[b.level_key]; if (!l) return res();
+    if (!S.myCards.some(c => c.id === b.id)) S.myCards.push({id: b.id, level_key: b.level_key, holo: true, golden: true});
+    const sc = document.createElement('div'); sc.className = 'showcase t-golden';
+    sc.innerHTML = `<div class="rays"></div><div class="scin">
+      <div class="sctitle goldtxt">★ GOLDEN CARD!</div>
+      <div class="sccard">${cardHTML(l, {golden: true, holo: true})}</div>
+      <div class="scodds">This pack had a bonus: the only golden <b>${esc(l.name)}</b> in existence.<br>${l.tier === 'player' ? `Boosts ×${RULES.playerGoldMult}` : `Worth ${fmt(l.points * RULES.goldMult)} pts (${RULES.goldMult}×)`}</div>
+      <button class="btn primary">Continue <span class="kbd">Space</span></button></div>`;
+    const done = () => { document.removeEventListener('keydown', k, true); sc.classList.add('out'); setTimeout(() => sc.remove(), 300); loadBoard().catch(() => {}); res(); };
+    const k = e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); done(); } };
+    document.addEventListener('keydown', k, true);
+    sc.querySelector('button').onclick = done;
+    document.body.appendChild(sc);
+    celebrate(sc.querySelector('.sccard'), '#ffd36b', 0, ''); document.querySelectorAll('.fxpts').forEach(x => x.remove());
+  });
+}
+// Golden cards found so far (Packs page)
+function goldenPanel() {
+  if (!S.me.golden_cards) return '';
+  const pool = S.levels.filter(l => l.rank && TIERS.includes(l.tier) || (l.tier === 'player' && S.me.player_cards && !l.info?.retired));
+  const found = pool.filter(l => goldOwner(l.key)).sort((a, b) => (a.rank ?? 999) - (b.rank ?? 999));
+  return `<div class="panel"><div class="row between"><h2 style="margin:0"><span class="goldtxt">★ Golden cards</span> · ${found.length}/${pool.length} found</h2></div>
+    <p class="muted" style="margin:6px 0 14px">Only one golden of each card exists. Any pack has a small chance to include one as a bonus. Golden levels count ${RULES.goldMult}×, golden players boost ×${RULES.playerGoldMult}. Golden also counts as holo.</p>
+    ${found.length ? `<div class="hscroll">${found.map(l => `<div style="flex:0 0 150px">${cardHTML(l, {golden: true, holo: true})}<div class="owners">Owned by ${esc(goldOwner(l.key))}</div></div>`).join('')}</div>` : '<p class="muted">None found yet.</p>'}</div>`;
 }
 // You found an Unverified card inside a pack
 function unverifiedFound(b) {
@@ -1379,6 +1448,7 @@ function runPicks(picks) {
         .sort((a, b) => TIERS.indexOf(lv(a.o).tier) - TIERS.indexOf(lv(b.o).tier))[0];
       if (big && !shown) { shown = true; keyHandler = null; await sleep(450); await showcase(big.o); }
       if (pk.bonus && !pk.bonusShown) { pk.bonusShown = true; keyHandler = null; await sleep(300); await unverifiedFound(pk.bonus); }
+      if (pk.golden && !pk.goldShown) { pk.goldShown = true; keyHandler = null; await sleep(300); await goldenFound(pk.golden); }
       ov.querySelector('#pTitle').textContent = 'Pick 1 to keep';
       const more = left || packsAfter() - 0;
       ov.querySelector('#pAct').innerHTML = `<button class="btn light" id="keep" disabled>Keep <span class="kbd">Enter</span></button>
@@ -1458,7 +1528,7 @@ function collectionGrid(cards) {
   if (f.show === 'owned') lv = lv.filter(l => cp[l.key]);
   if (f.show === 'missing') lv = lv.filter(l => !cp[l.key]);
   if (f.show === 'hdupes') {   // levels with 2+ holos; 3+ glow (can become a holo pack)
-    const hl = S.levels.filter(l => l.rank && (f.tier === 'all' || l.tier === f.tier) && matchQ(l, f.q)).map(l => [l, (cp[l.key] || []).filter(c => c.holo)]).filter(([, hc]) => hc.length >= 2);
+    const hl = S.levels.filter(l => l.rank && (f.tier === 'all' || l.tier === f.tier) && matchQ(l, f.q)).map(l => [l, (cp[l.key] || []).filter(c => c.holo && !c.golden)]).filter(([, hc]) => hc.length >= 2);
     return hl.length ? `<div class="grid" style="row-gap:24px">${hl.map(([l, hc]) => stackHTML(l, hc, {hd: hc.length >= 3})).join('')}</div>` : '<p class="muted">No holo dupes yet. You need 2+ holos of the same level.</p>';
   }
   if (f.show === 'holo') {   // every listed level: holo ones lit up, everything else grayed out
@@ -1780,7 +1850,7 @@ function scoreDelta(cards, removeIds, add, claimedSets = [], claimedCreators = [
   const after = scoreInfo(ownership([...cards.filter(c => !rm.has(c.id)), ...add]), claimedSets, claimedCreators).total;
   return after - before;
 }
-const sideValue = arr => arr.reduce((s, c) => s + (S.byKey[c.level_key]?.points || 0) * (c.holo ? RULES.holoMult : 1), 0);
+const sideValue = arr => arr.reduce((s, c) => s + (S.byKey[c.level_key]?.points || 0) * lvMult(c), 0);
 function deltaHTML(d, who) {
   const cls = d > 0 ? 'up' : d < 0 ? 'down' : '';
   return `<span class="delta ${cls}">${who}: ${d > 0 ? '+' : ''}${fmt(d)} pts</span>`;
@@ -2050,11 +2120,18 @@ async function boot() {
 setInterval(() => { if (S.token && S.me) { rpc('my_trades', {p_token: S.token}).then(updateTradeDot).catch(() => {}); rpc('my_clan', {p_token: S.token}).then(updateClanDot).catch(() => {}); } }, 30000);
 // ---- What's new: add a new entry at the TOP for each update ----
 const CHANGELOG = [
+  {v: 11, flag: 'golden_cards', title: 'Update', items: [
+    'NEW: ★ Golden cards. Only ONE golden of each card exists',
+    'Any pack can have one as a free bonus (about 1 in 100, rarer as they get found)',
+    'Golden levels count 10× (holo is 3×). Golden players boost ×4',
+    'Golden counts as holo. See who has them on the Packs page'
+  ]},
   {v: 10, flag: 'player_cards', title: 'Update', items: [
     'NEW: ★ Player cards for every player on the list (2+ completions). Rarer = higher on the list',
     'Each one boosts the levels they beat (+15%) or verified (+25%) that you own, plus +500. Holo = double',
     '★ Player pack every 20 min. 3 copies make a holo',
-    'NEW: ★ Player sets in the Sets tab. Finish one for points + a player pack. All in holo = redeem again'
+    'NEW: ★ Player sets in the Sets tab. Finish one for points + a player pack. All in holo = redeem again',
+    '★ Player milestones: every 3 holo players = 1 min off your player timer (down to 15:00)'
   ]},
   {v: 9, title: 'Update', items: [
     'NEW Unverified cards: ALT F4 (Quacc) and Start This Over (Beeguy)',
@@ -2119,7 +2196,7 @@ function newsDot() { const a = $('#navNews'); if (a) a.innerHTML = 'News' + (+(l
 // entries with a flag only show once that feature is switched on in the server settings
 let SHOWN_LOG = CHANGELOG.filter(c => !c.flag);
 async function whatsNew() {
-  try { const o = await sb.from('settings').select('player_cards'); const st = (o.data || [])[0] || {}; SHOWN_LOG = CHANGELOG.filter(c => !c.flag || st[c.flag]); } catch (e) {}
+  try { const o = await sb.from('settings').select('player_cards,golden_cards'); const st = (o.data || [])[0] || {}; SHOWN_LOG = CHANGELOG.filter(c => !c.flag || st[c.flag]); } catch (e) {}
   const latest = SHOWN_LOG[0].v, seen = +(localStorage.getItem('gacha_seen_v') || 0);
   newsDot();
   if (localStorage.getItem('gacha_disclaimer') !== '1' || seen >= latest) { localStorage.setItem('gacha_seen_v', latest); newsDot(); return; }
