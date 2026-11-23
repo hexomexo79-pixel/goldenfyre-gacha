@@ -144,7 +144,9 @@ h3{margin:0 0 10px;font-size:16px}
 .thumb{aspect-ratio:16/10;border-radius:7px;overflow:hidden;background:#0c0b0f;border:1px solid rgba(255,255,255,.12);display:grid;place-items:center;flex:none}
 .thumb img{width:100%;height:100%;object-fit:cover;display:block}
 .noimg{font-weight:900;font-size:12px;text-align:center;padding:6px;color:var(--c);background:radial-gradient(circle,color-mix(in srgb,var(--c) 30%,transparent),transparent 70%);width:100%;height:100%;display:grid;place-items:center}
-.card .nm{font-weight:800;font-size:clamp(11px,10cqw,16px);margin-top:9px;line-height:1.15;overflow-wrap:break-word}
+.card .codds{font-size:clamp(8px,6.5cqw,10px);font-weight:700;color:var(--muted);margin-top:4px;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-height:1.1em}
+.card.golden .codds{color:#ffd36b}.card.holo .codds{color:#e9dcff}
+.card .nm{font-weight:800;font-size:clamp(11px,10cqw,16px);margin-top:5px;line-height:1.15;overflow-wrap:break-word}
 .card .meta{font-size:clamp(9px,7.5cqw,11px);color:var(--muted);margin-top:auto;line-height:1.35}
 .card .meta{margin-bottom:calc(1.9em + 6px)}
 .card .pts{position:absolute;left:9px;right:9px;bottom:8px;text-align:center;font-size:clamp(9px,8.5cqw,13px);font-weight:900;color:var(--c);z-index:2;
@@ -684,6 +686,41 @@ function boardRows() {
   return S.board.map(r => ({...r, info: scoreInfo(ownFromRows(r.owned), r.claimed_sets, r.claimed_creators || [])})).sort((a, b) => b.info.total - a.info.total);
 }
 
+// ---------------- card odds (shown on every card) ----------------
+// chance per pack of getting THIS card: normal, holo (10x rarer) or golden (only one exists)
+let _oddsCache = null;
+function oddsCtx() {
+  const key = [S.board, S.levels, S.me && S.me.tier_weights, S.me && S.me.golden_chance].map(x => x === undefined ? '' : x);
+  if (_oddsCache && _oddsCache.k.every((x, i) => x === key[i])) return _oddsCache;
+  const w = (S.me && S.me.tier_weights) || [0.0667, 0.4, 1.5, 5, 13, 30, 50.0333], tot = w.reduce((a, b) => a + b, 0);
+  const cnt = {}; for (const l of S.levels) if (l.rank && TIERS.includes(l.tier)) cnt[l.tier] = (cnt[l.tier] || 0) + 1;
+  const gold = new Set(); for (const r of S.board || []) for (const o of r.owned) if (o[3]) gold.add(o[0]);
+  const PW = {apex: 1.25, mythic: 3, legendary: 8, epic: 20, rare: 40, uncommon: 60, common: 80};
+  const lw = l => w[TIERS.indexOf(l.tier)] / tot / cnt[l.tier];                       // share of options for a level
+  const players = S.levels.filter(l => l.tier === 'player' && !l.info?.retired), pTot = players.reduce((s, l) => s + PW[pInfo(l).rarity], 0);
+  const gl = (list, wf) => { let all = 0, left = 0; for (const l of list) { all += wf(l); if (!gold.has(l.key)) left += wf(l); } return {all, left}; };
+  const lvls = S.levels.filter(l => l.rank && TIERS.includes(l.tier));
+  _oddsCache = {k: key, w, tot, cnt, gold, PW, lw, pTot, gLv: gl(lvls, lw), gPl: gl(players, l => PW[pInfo(l).rarity])};
+  return _oddsCache;
+}
+function cardOdds(l, o = {}) {
+  if (!S.me) return '';
+  const X = oddsCtx(), n = S.me.cards_per_pack || 3, hc = (S.odds && S.odds.holo_chance) ?? 0.1, gc = S.me.golden_chance ?? 0.01;
+  const pk = l.tier === 'player' ? ' player packs' : ' packs', one = p => p >= 0.5 ? Math.round(p * 100) + '% per' + pk.slice(0, -1) : '1 in ' + shortN(1 / p) + pk;
+  if (l.tier === 'unverified') { const left = S.levels.filter(x => x.tier === 'unverified' && !unvOwner(x.key)).length; return unvOwner(l.key) ? 'Found' : left ? one(((S.odds && S.odds.unverified_chance) ?? 1 / 900) / left) : ''; }
+  let each, g, gw;
+  if (l.tier === 'player') { const pw = X.PW[pInfo(l).rarity] || 80; each = Math.min(1, 3 * pw / X.pTot); g = X.gPl; gw = pw; }
+  else if (l.rank && X.cnt[l.tier]) { each = X.lw(l); g = X.gLv; gw = each; }
+  else return '';
+  if (o.golden) {
+    if (X.gold.has(l.key)) return '★ 1 of 1 · already found';
+    return g.left ? '★ ' + one(gc * (0.5 + 0.5 * g.left / g.all) * gw / g.left) : '';
+  }
+  const per = l.tier === 'player' ? each : 1 - (1 - each) ** n;
+  return o.holo ? '✦ ' + one(l.tier === 'player' ? per * hc : 1 - (1 - each * hc) ** n) : one(per);
+}
+function shortN(x) { x = Math.round(x); return x >= 1e6 ? (x / 1e6).toFixed(x >= 1e7 ? 0 : 1) + 'M' : x >= 1e4 ? Math.round(x / 1e3) + 'K' : fmt(x); }
+
 // ---------------- card rendering ----------------
 function thumb(l) {
   if (l.tier === 'player') {
@@ -702,6 +739,7 @@ function cardHTML(l, o = {}) {
   return `<div class="${cls}" style="--gl:${glow}" data-key="${esc(l.key)}" data-name="${esc(l.name)}" ${o.id ? `data-id="${o.id}"` : ''}>
     <div class="ctop"><span class="rank">${l.tier === 'unverified' ? '1 of 1' : l.tier === 'player' ? '★' : l.rank ? '#' + l.rank : '—'}</span><span class="tag">${l.tier === 'unverified' ? 'unverified' : l.tier === 'player' ? 'player · ' + pInfo(l).rarity : l.rank ? l.tier : 'vaulted'}</span></div>
     <div class="thumb">${thumb(l)}</div>
+    ${o.mini ? '' : `<div class="codds">${cardOdds(l, o)}</div>`}
     <div class="nm">${esc(l.name)}</div>
     <div class="meta">${l.tier === 'player' ? `Beat ${pInfo(l).beaten.length} · Verified ${pInfo(l).verified.length}` : `${l.tier === 'unverified' ? (ABILITIES[l.key] ? `<b class="abil">✦ ${esc(ABILITIES[l.key].name)}</b> · ${esc(ABILITIES[l.key].desc)}` : 'Not verified yet') : `Verified by ${esc(l.verifier || '?')}`}<br>By ${esc(creatorsOf(l).join(', ') || '?')}`}</div>
     <div class="pts">${l.tier === 'player' ? (o.golden ? `★ boosts ×${RULES.playerGoldMult}` : o.holo ? '★ boosts ×2' : '★ boosts levels') : l.tier === 'unverified' ? '= your best card' : fmt(l.points * lvMult(o)) + ' pts' + (o.golden ? ' ★' : o.holo ? ' ✦' : '')}</div>
