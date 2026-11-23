@@ -719,7 +719,7 @@ function cardOdds(l, o = {}) {   // chance per card shown (each option in a pack
   else return '';
   if (o.golden) {
     if (X.gold.has(l.key)) return '★ 1 of 1 · already found';
-    return g.left ? '★ ' + one(gc * (0.5 + 0.5 * g.left / g.all) * gw / g.left / n) : '';
+    const fl = S.me.golden_floor ?? 0.5; return g.left ? '★ ' + one(gc * (fl + (1 - fl) * g.left / g.all) * gw / g.left / n) : '';
   }
   return o.holo ? '✦ ' + one(each * hc) : one(each);
 }
@@ -964,7 +964,7 @@ function oddsHTML() {
     <tbody>${rows}</tbody></table></div>
     ${S.me.golden_cards ? (() => { const w = S.me.tier_weights || [0.0667, 0.4, 1.5, 5, 13, 30, 50.0333];
       let all = 0, left = 0; TIERS.forEach((t, i) => { const lv = S.levels.filter(l => l.rank && l.tier === t); lv.forEach(l => { all += w[i] / lv.length; if (!goldOwner(l.key)) left += w[i] / lv.length; }); });
-      const c = (S.me.golden_chance ?? 0.01) * (0.5 + 0.5 * (all ? left / all : 0));
+      const fl = S.me.golden_floor ?? 0.5, c = (S.me.golden_chance ?? 0.01) * (fl + (1 - fl) * (all ? left / all : 0));
       return `<p style="font-size:13px;margin:10px 0 0"><b class="goldtxt">★ Golden:</b> about 1 in ${fmt(Math.round(1 / c))} packs right now. Gets a bit rarer as goldens are found. Rarer levels are less likely to be the golden one.</p>`; })() : ''}
     <p class="muted" style="font-size:13px;margin:10px 0 0">Each pack shows ${n} options and every option rolls on its own. ${Math.round(hc * 100)}% of options are holo. Unverified cards come as a free bonus on top of your pick, and only one of each exists. In a holo pack every option is holo, so "a specific level" is also your chance at its holo.</p>
   </details>`;
@@ -2237,7 +2237,7 @@ setInterval(() => { if (S.token && S.me) { rpc('my_trades', {p_token: S.token}).
 const CHANGELOG = [
   {v: 11, flag: 'golden_cards', title: 'Update', items: [
     'NEW: ★ Golden cards. Only ONE golden of each card exists',
-    'Any pack can have one as one of its cards (about 1 in 100, rarer as they get found). Pick it to keep it',
+    'Any pack can have one as one of its cards (about 1 in 150, rarer as they get found). Pick it to keep it',
     'Golden levels count 10× (holo is 3×). Golden players boost ×4',
     'Golden counts as holo. See who has them on the Packs page'
   ]},
