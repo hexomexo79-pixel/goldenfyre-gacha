@@ -2029,7 +2029,7 @@ function renderAdmin() {
     <div id="rgList" class="feed" style="margin-top:10px"></div>
     <hr style="border-color:var(--line);margin:24px 0">
     <h3>All pulls</h3>
-    <div class="row"><input class="field" id="apU" placeholder="Filter by player (optional)"><select class="field" id="apT"><option value="">Every tier</option>${TIERS.map(t => `<option>${t}</option>`).join('')}</select><label class="row" style="gap:4px"><input type="checkbox" id="apH"> holo only</label><button class="btn sm" id="apGo">Show</button></div>
+    <div class="row"><input class="field" id="apU" placeholder="Filter by player (optional)"><select class="field" id="apT"><option value="">Every tier</option>${TIERS.map(t => `<option>${t}</option>`).join('')}<option value="golden">★ golden</option><option value="player">★ player cards</option></select><label class="row" style="gap:4px"><input type="checkbox" id="apH"> holo only</label><button class="btn sm" id="apGo">Show</button></div>
     <div id="apList" class="feed" style="margin-top:10px;max-height:480px;overflow-y:auto"></div>
     <hr style="border-color:var(--line);margin:24px 0">
     <h3>Players</h3>
@@ -2087,15 +2087,17 @@ function renderAdmin() {
   const loadPulls = async (more) => {
     if (!more) { apOff = 0; $('#apList').innerHTML = ''; }
     let list;
-    try { list = await rpc('admin_pulls', {p_token: S.token, p_username: $('#apU').value.trim() || null, p_limit: 200, p_offset: apOff}); }
+    const only = ['golden', 'player'].includes($('#apT').value) ? $('#apT').value : null;
+    try { list = await rpc('admin_pulls', {p_token: S.token, p_username: $('#apU').value.trim() || null, p_limit: 200, p_offset: apOff, ...(only ? {p_only: only} : {})}); }
     catch (e) { toast(e.message, true); return; }
     apOff += list.length;
     const tf = $('#apT').value, ho = $('#apH').checked;
-    const rows = list.filter(p => (!tf || S.byKey[p.level_key]?.tier === tf) && (!ho || p.holo));
+    const rows = list.filter(p => (!tf || only || S.byKey[p.level_key]?.tier === tf) && (!ho || p.holo));
     $('#apList').querySelector('.apmore')?.remove();
     $('#apList').insertAdjacentHTML('beforeend', rows.map(p => { const l = S.byKey[p.level_key] || {name: p.level_key, tier: 'common'};
-      return `<div class="feeditem t-${l.tier}" style="--c:var(--${l.tier})"><span class="tt">${p.holo ? '✦ ' : ''}${l.tier.toUpperCase()}</span>
-        <span><b>${esc(p.pulled_by || (p.pack_kind === 'admin' ? 'admin gift' : '?'))}</b> → #${l.rank ?? '—'} ${esc(l.name)}${p.holo ? ' (holo)' : ''}${p.owner && p.owner !== p.pulled_by ? ` <span class="muted">· now owned by ${esc(p.owner)}</span>` : ''}</span>
+      const tag = l.tier === 'player' ? 'PLAYER · ' + (pInfo(l).rarity || '').toUpperCase() : l.tier.toUpperCase();
+      return `<div class="feeditem t-${l.tier} ${p.golden ? 'gfeed' : ''}" style="--c:var(--${l.tier === 'player' ? 'common' : l.tier})"><span class="tt">${p.golden ? '★ GOLDEN ' : p.holo ? '✦ ' : ''}${tag}</span>
+        <span><b>${esc(p.pulled_by || (p.pack_kind === 'admin' ? 'admin gift' : '?'))}</b> → ${l.tier === 'player' ? '★' : '#' + (l.rank ?? '—')} ${esc(l.name)}${p.golden ? ' (golden)' : p.holo ? ' (holo)' : ''}${p.owner && p.owner !== p.pulled_by ? ` <span class="muted">· now owned by ${esc(p.owner)}</span>` : ''}</span>
         <span class="spacer"></span><span class="muted" style="font-size:12px">${p.pack_kind || ''} · ${new Date(p.pulled_at).toLocaleString()}</span></div>`; }).join('')
       + (list.length === 200 ? '<button class="btn sm apmore" style="margin-top:6px">Load more</button>' : '') || '<span class="muted">Nothing found.</span>');
     const mb = $('#apList').querySelector('.apmore'); if (mb) mb.onclick = () => loadPulls(true);
