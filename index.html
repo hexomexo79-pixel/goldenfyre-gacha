@@ -858,9 +858,9 @@ function showLevel(key) {
     ${l.video_id ? `<p><a href="https://youtu.be/${esc(l.video_id)}" target="_blank" rel="noopener">Watch verification ↗</a></p>` : ''}
     ${own ? `<div class="locks"><div class="label" style="margin-bottom:6px">Your copies · locked ones can't be traded</div>${S.myCards.filter(c => c.level_key === key).sort((a, b) => !!b.golden - !!a.golden || b.holo - a.holo).map((c, i) =>
       `<button class="btn sm lockb ${c.locked ? 'on' : ''}" data-lock="${c.id}">${c.locked ? '🔒' : '🔓'} Copy ${i + 1}${c.golden ? ' ★' : c.holo ? ' ✦' : ''}</button>`).join('')}</div>` : ''}
-    ${own && S.me.holo_dupe_packs && !['unverified', 'player'].includes(l.tier) && S.myCards.filter(c => c.level_key === key && c.holo).length >= 3 ? (() => {
-      const hn = S.myCards.filter(c => c.level_key === key && c.holo && !c.locked).length;
-      const tot = S.myCards.filter(c => c.level_key === key && c.holo).length;
+    ${own && S.me.holo_dupe_packs && !['unverified', 'player'].includes(l.tier) && S.myCards.filter(c => c.level_key === key && c.holo && !c.golden).length >= 3 ? (() => {
+      const hn = S.myCards.filter(c => c.level_key === key && c.holo && !c.golden && !c.locked).length;
+      const tot = S.myCards.filter(c => c.level_key === key && c.holo && !c.golden).length;
       return `<div style="margin-top:12px"><button class="btn sm ${hn >= 3 ? 'primary' : ''}" id="hdTrade" ${hn >= 3 ? '' : 'disabled'}>✦ Trade 3 holos for 1 holo pack</button>
         <div class="muted" style="font-size:12px;margin-top:4px">${hn < 3 ? `Needs 3 unlocked holos (you have ${hn})` : tot - 3 > 0 ? `You'll have ${tot - 3} holo left after this` : `⚠ You only have 3, so you won't have this holo anymore`}</div></div>`; })() : ''}
     ${own && !['unverified', 'player'].includes(l.tier) ? (() => { const n = S.myCards.filter(c => c.level_key === key && !c.holo && !c.locked).length, need = craftCost(l.tier);
@@ -870,8 +870,8 @@ function showLevel(key) {
   m.querySelectorAll('[data-tw]').forEach(b => b.onclick = () => { m.remove(); go('#/trades/new/' + encodeURIComponent(b.dataset.tw)); });
   const hb = m.querySelector('#hdTrade');
   if (hb) hb.onclick = async () => {
-    const left = S.myCards.filter(c => c.level_key === key && c.holo).length - 3;
-    if (!confirm(`Trade 3 holo ${l.name} for 1 holo pack?` + (left > 0 ? `\nYou'll have ${left} holo ${l.name} left after this.` : `\n⚠ By the way: you only have 3, so you won't have a holo ${l.name} anymore!`))) return;
+    const left = S.myCards.filter(c => c.level_key === key && c.holo && !c.golden).length - 3;
+    if (!confirm(`Trade 3 holo ${l.name} for 1 holo pack? (Your golden is never used.)` + (left > 0 ? `\nYou'll have ${left} holo ${l.name} left after this.` : `\n⚠ By the way: you only have 3, so you won't have a holo ${l.name} anymore!`))) return;
     hb.disabled = true;
     try { const r = await rpc('holo_dupes_to_packs', {p_token: S.token, p_level_key: key}); setState(r.state);
       S.myCards = S.myCards.filter(c => !r.used.includes(c.id)); m.remove(); toast('+1 holo pack!'); route(); }
