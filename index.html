@@ -104,8 +104,8 @@ h3{margin:0 0 10px;font-size:16px}
 .special{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
 @media (max-width:600px){.special{grid-template-columns:1fr}}
 .spbox{border:1px solid var(--line);border-radius:12px;padding:14px;background:var(--panel2)}
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
-@media (max-width:700px){.stats{grid-template-columns:repeat(2,1fr)}}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.stats.six{grid-template-columns:repeat(3,1fr)}
+@media (max-width:700px){.stats,.stats.six{grid-template-columns:repeat(2,1fr)}}
 .stat{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:14px}
 .stat b{font-size:26px;display:block}
 .bar{height:6px;background:#26242c;border-radius:4px;overflow:hidden;margin:6px 0 14px;position:relative}
@@ -957,11 +957,15 @@ function renderHome() {
 
   <div class="panel">
     <div class="row between"><h2 style="margin:0">Collection progress</h2><a href="#/collection">Open collection →</a></div>
-    <div class="bar"><i style="width:${listed.length ? info.uniq / listed.length * 100 : 0}%"></i></div>
-    <div class="stats">
-      <div class="stat"><b>${listed.length ? (info.uniq / listed.length * 100).toFixed(1) : 0}%</b><span class="muted">Collected</span></div>
+    ${(() => { const pl = st.player_cards ? S.levels.filter(l => l.tier === 'player' && !l.info?.retired) : [], o = ownership(S.myCards);
+      const pHave = pl.filter(l => o[l.key]).length, pHolo = pl.filter(l => o[l.key]?.holo).length, tot = listed.length + pl.length, pct = tot ? (info.uniq + pHave) / tot * 100 : 0;
+      return `<div class="bar"><i style="width:${pct}%"></i></div>
+    <div class="stats ${pl.length ? 'six' : ''}">
+      <div class="stat"><b>${pct.toFixed(1)}%</b><span class="muted">Collected</span></div>
       <div class="stat"><b>${info.uniq}/${listed.length}</b><span class="muted">Unique levels</span></div>
       <div class="stat"><b>${info.holos}/${listed.length}</b><span class="muted">✦ Holos</span></div>
+      ${pl.length ? `<div class="stat"><b>${pHave}/${pl.length}</b><span class="muted">★ Players</span></div>
+      <div class="stat"><b>${pHolo}/${pl.length}</b><span class="muted">✦ Holo players</span></div>` : ''}`; })()}
       <div class="stat"><b>${fmt(info.total)}</b><span class="muted">Score</span></div>
     </div>
     <h3 style="margin-top:18px">Points</h3>
