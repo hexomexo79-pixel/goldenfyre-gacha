@@ -632,7 +632,7 @@ function scoreInfo(own, claimed = [], cclaimed = []) {
     const t = byTier[l.tier] ||= {n: 0, pts: 0};
     t.n++; t.pts += l.points; base += l.points;
     if (l.rank) uniq++;
-    if (o.holo) { holos++; holoBonus += l.points * (RULES.holoMult - 1); }
+    if (o.holo) { if (l.rank && TIERS.includes(l.tier)) holos++; holoBonus += l.points * (RULES.holoMult - 1); }   // count = listed levels only (same as the server)
     if (o.golden) { goldens++; goldBonus += l.points * (RULES.goldMult - RULES.holoMult); }
   }
   if (byTier.unverified) {   // Mirror: each Unverified card is worth your best card
