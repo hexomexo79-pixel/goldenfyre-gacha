@@ -1537,6 +1537,13 @@ function collectionGrid(cards) {
     const hl = S.levels.filter(l => l.rank && (f.tier === 'all' || l.tier === f.tier) && matchQ(l, f.q));
     return `<div class="grid" style="row-gap:24px">${hl.map(l => { const hc = (cp[l.key] || []).filter(c => c.holo); return hc.length ? stackHTML(l, hc) : cardHTML(l, {missing: true, holo: true}); }).join('')}</div>`;
   }
+  if (f.show === 'golden') {   // every golden: yours lit up, the rest grayed out with who has it
+    const gl = S.levels.filter(l => (l.rank && TIERS.includes(l.tier) || (l.tier === 'player' && S.me.player_cards && !l.info?.retired))
+      && (f.tier === 'all' || l.tier === f.tier || (f.tier === 'pholo' && l.tier === 'player')) && matchQ(l, f.q));
+    gl.sort((a, b) => !!(cp[b.key] || []).some(c => c.golden) - !!(cp[a.key] || []).some(c => c.golden) || !!goldOwner(b.key) - !!goldOwner(a.key));
+    return gl.length ? `<div class="grid" style="row-gap:24px">${gl.map(l => { const g = (cp[l.key] || []).filter(c => c.golden), who = goldOwner(l.key);
+      return g.length ? stackHTML(l, g) : `<div class="unvwrap">${cardHTML(l, {missing: true, golden: true})}<div class="unvfound ${who ? 'got' : ''}">${who ? 'Golden: <b>' + esc(who) + '</b>' : 'Not found yet'}</div></div>`; }).join('')}</div>` : '<p class="muted">Nothing here.</p>';
+  }
   if (f.show === 'dupes') lv = lv.filter(l => cp[l.key] && cp[l.key].length > 1);
   // Unverified you don't have: say who found it (or that nobody has yet)
   const miss = l => l.tier !== 'unverified' ? cardHTML(l, {missing: true})
@@ -1548,7 +1555,7 @@ function filterChips(rerender, cards) {
   setTimeout(() => { const q = $('#cq'); if (q) q.oninput = () => { S.filter.q = q.value; $('#cgrid').innerHTML = collectionGrid(cards); }; });
   const chip = (grp, v, label) => `<button class="chip ${f[grp] === v ? 'on' : ''}" data-g="${grp}" data-v="${v}">${label}</button>`;
   setTimeout(() => document.querySelectorAll('.chip[data-g]').forEach(b => b.onclick = () => { S.filter[b.dataset.g] = b.dataset.v; rerender(); }));
-  return `${searchBox('cq', f.q)}<div class="chips">${chip('show','all','All')}${chip('show','owned','Owned')}${chip('show','missing','Missing')}${chip('show','holo','✦ Holo')}${S.me.holo_dupe_packs ? chip('show','hdupes','✦ Holo dupes') : ''}${chip('show','dupes','Dupes')}</div>
+  return `${searchBox('cq', f.q)}<div class="chips">${chip('show','all','All')}${chip('show','owned','Owned')}${chip('show','missing','Missing')}${chip('show','holo','✦ Holo')}${S.me.holo_dupe_packs ? chip('show','hdupes','✦ Holo dupes') : ''}${chip('show','dupes','Dupes')}${S.me.golden_cards ? chip('show','golden','★ Golden') : ''}</div>
     <div class="chips">${chip('tier','all','Every tier')}${[...TIERS].reverse().map(t => chip('tier', t, t[0].toUpperCase() + t.slice(1))).join('')}${chip('tier','unverified','Unverified')}</div>${S.me.player_cards ? `<div class="chips">${chip('tier','player','★ Players')}${chip('tier','pholo','✦ Holo players')}</div>` : ''}`;
 }
 function renderCollection() {
