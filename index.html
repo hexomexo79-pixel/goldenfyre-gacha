@@ -88,6 +88,7 @@ h3{margin:0 0 10px;font-size:16px}
 @keyframes shine{0%,55%{background-position:120% 0}100%{background-position:-60% 0}}
 .pack.epic{background:linear-gradient(165deg,#140b2e,#3b1a8a 40%,#8b5cf6 75%,#e9d5ff)}
 .pack.player{background:linear-gradient(165deg,#04231f,#0b5e57 40%,#19c2b0 75%,#d9fff9)}
+.pack.holo_player{background:linear-gradient(135deg,#19c2b0,#6bd0ff,#b46bff,#ffd36b,#19c2b0);background-size:300% 300%;animation:frame2 6s linear infinite}
 .packs.two{grid-template-columns:.8fr 1fr 1fr 1fr}
 .packs.two .stack .pack{width:130px;height:196px}.packs.two .stack{height:226px}
 .timers>div+div{margin-top:12px}
@@ -422,6 +423,7 @@ footer{text-align:center;color:#6d6975;font-size:12px;padding:20px;line-height:1
 .pimg{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:clamp(20px,30cqw,48px);color:#fff}
 .feeditem.t-player{--c:#2dd4bf}
 .pbar{height:8px;border-radius:99px;background:var(--panel2);overflow:hidden;margin-top:6px}.pbar i{display:block;height:100%;background:linear-gradient(90deg,#99f6e4,#14b8a6)}
+.donebadge.plain{background:linear-gradient(135deg,#f4f4f7,#c9cbd3);color:#16161b}
 .donebadge{font-size:11px;font-weight:900;letter-spacing:.5px;padding:2px 7px;border-radius:99px;color:#111;background:linear-gradient(135deg,#ff6b6b,#ffd36b,#6bff9c,#6bd0ff,#b46bff);vertical-align:middle}
 .card.t-unverified{--c:#e8e8e8;--frame:linear-gradient(120deg,#fff,#555,#000,#bbb,#fff,#333);animation:frame 3s steps(6) infinite;
   background-image:repeating-linear-gradient(0deg,rgba(255,255,255,.04) 0 1px,transparent 1px 3px),linear-gradient(180deg,#121212,#050505),var(--frame)}
@@ -820,9 +822,22 @@ function showLevel(key) {
       <div class="label">Verified (${p.verified.length})</div>${chipL(p.verified)}
       <div class="label">Beaten (${p.beaten.length})</div>${chipL(p.beaten)}
       ${own ? `<div style="margin-top:8px"><button class="btn sm ${nn >= 3 ? 'primary' : ''}" id="pcraft" ${nn >= 3 ? '' : 'disabled'}>✦ Combine 3 copies into a holo</button> <span class="muted" style="font-size:12px">${nn}/3 unlocked normal copies</span></div>` : ''}
+      ${own && S.me.holo_dupe_packs && S.myCards.filter(c => c.level_key === key && c.holo && !c.golden).length >= 3 ? (() => {
+        const hn = S.myCards.filter(c => c.level_key === key && c.holo && !c.golden && !c.locked).length, tot = S.myCards.filter(c => c.level_key === key && c.holo && !c.golden).length;
+        return `<div style="margin-top:8px"><button class="btn sm ${hn >= 3 ? 'primary' : ''}" id="phd" ${hn >= 3 ? '' : 'disabled'}>✦ Trade 3 holos for 1 holo player pack</button>
+          <div class="muted" style="font-size:12px;margin-top:4px">${hn < 3 ? `Needs 3 unlocked holos (you have ${hn})` : tot - 3 > 0 ? `You'll have ${tot - 3} holo left after this` : `⚠ You only have 3, so you won't have this holo anymore`}</div></div>`; })() : ''}
       ${ownersHTML(key)}
       <button class="btn" style="margin-top:12px" onclick="this.closest('.modal').remove()">Close</button></div>`;
     m.querySelectorAll('[data-tw]').forEach(b => b.onclick = () => { m.remove(); go('#/trades/new/' + encodeURIComponent(b.dataset.tw)); });
+    const phd = m.querySelector('#phd');
+    if (phd) phd.onclick = async () => {
+      const left = S.myCards.filter(c => c.level_key === key && c.holo && !c.golden).length - 3;
+      if (!confirm(`Trade 3 holo ${l.name} for 1 holo player pack?` + (left > 0 ? `\nYou'll have ${left} holo ${l.name} left after this.` : `\n⚠ You only have 3, so you won't have a holo ${l.name} anymore!`))) return;
+      phd.disabled = true;
+      try { const r = await rpc('holo_dupes_to_packs', {p_token: S.token, p_level_key: key}); setState(r.state);
+        S.myCards = S.myCards.filter(c => !r.used.includes(c.id)); m.remove(); toast('+1 holo player pack!'); route(); }
+      catch (e) { toast(e.message, true); phd.disabled = false; }
+    };
     const pc = m.querySelector('#pcraft');
     if (pc) pc.onclick = async () => {
       if (!confirm(`Combine 3 normal ${l.name} cards into 1 holo?`)) return;
@@ -926,8 +941,8 @@ async function doLogout() {
 
 // ---------------- home ----------------
 function packHTML(kind = 'normal', cls = '', style = '') {
-  const label = {normal: 'DEMON PACK', epic: 'EPIC PACK', legendary: 'LEGENDARY', holo: 'HOLO PACK', player: 'PLAYER PACK'}[kind];
-  return `<div class="pack ${kind === 'normal' ? '' : kind} ${cls}" style="${style}"><img class="pk-face" src="${LOGO}" alt=""><div class="pk-title">GOLDENFYRE</div><div class="pk-kind">${label}</div><div class="pk-sub">PICK 1 OF ${kind === 'player' ? 3 : S.me.cards_per_pack}</div></div>`;
+  const label = {normal: 'DEMON PACK', epic: 'EPIC PACK', legendary: 'LEGENDARY', holo: 'HOLO PACK', player: 'PLAYER PACK', holo_player: 'HOLO PLAYER'}[kind];
+  return `<div class="pack ${kind === 'normal' ? '' : kind} ${cls}" style="${style}"><img class="pk-face" src="${LOGO}" alt=""><div class="pk-title">GOLDENFYRE</div><div class="pk-kind">${label}</div><div class="pk-sub">PICK 1 OF ${kind === 'player' || kind === 'holo_player' ? 3 : S.me.cards_per_pack}</div></div>`;
 }
 // Small "Pack odds" box at the bottom of the Packs page (worked out from the live settings)
 function oddsHTML() {
@@ -1030,6 +1045,11 @@ function renderHome() {
     <div style="flex:1;min-width:200px"><b>Holo packs: ${st.holo_packs}</b><div class="muted" style="font-size:13px">Every option is holo.</div></div>
     <button class="btn primary sm" id="opHolo">Open holo pack</button>
   </div></div>` : ''}
+  ${st.player_cards && st.holo_player_packs ? `<div class="panel"><div class="row" style="gap:16px;flex-wrap:wrap">
+    ${packHTML('holo_player', 'mini')}
+    <div style="flex:1;min-width:200px"><b>Holo player packs: ${st.holo_player_packs}</b><div class="muted" style="font-size:13px">Every player is holo.</div></div>
+    <button class="btn primary sm" id="opHoloP">Open holo player pack</button>
+  </div></div>` : ''}
 
   <div class="panel">
     <div class="row between"><h2 style="margin:0">Collection progress</h2><a href="#/collection">Open collection →</a></div>
@@ -1069,6 +1089,7 @@ function renderHome() {
   $('#open1').onclick = () => openPacks('normal', 1);
   $('#openAll').onclick = () => openPacks('normal', total);
   if ($('#opHolo')) $('#opHolo').onclick = () => openPacks('holo', 1);
+  if ($('#opHoloP')) $('#opHoloP').onclick = () => openPacks('holo_player', 1);
   if ($('#opPlayer')) $('#opPlayer').onclick = () => openPacks('player', 1);
   if ($('#opPlayerAll')) $('#opPlayerAll').onclick = () => openPacks('player', S.me.player_packs);
   if ($('#claimPMs')) $('#claimPMs').onclick = async e => {
@@ -1437,7 +1458,7 @@ function runPicks(picks) {
     const left = picks.length - idx - 1;
     const instant = localStorage.getItem('gacha_instant') === '1';
     ov.innerHTML = `<div class="inner">
-      <div class="muted">${pk.kind === 'holo' ? '✦ Holo pack' : pk.kind === 'player' ? '★ Player pack' : ''}${picks.length > 1 ? ` · Pack ${idx + 1} of ${picks.length}` : '&nbsp;'}</div>
+      <div class="muted">${pk.kind === 'holo' ? '✦ Holo pack' : pk.kind === 'player' ? '★ Player pack' : pk.kind === 'holo_player' ? '✦ ★ Holo player pack' : ''}${picks.length > 1 ? ` · Pack ${idx + 1} of ${picks.length}` : '&nbsp;'}</div>
       <h1 id="pTitle">${instant ? 'Pick 1 to keep' : 'Revealing…'}</h1>
       <div class="pickrow" style="--n:${pk.options.length}">${pk.options.map((o, i) => `<div class="opt ${instant ? '' : 'deal'}" data-i="${i}" style="animation-delay:${i * 130}ms">
         <div class="flip t-${lv(o).tier}"><div class="flip-in"><div class="fr">${cardHTML(lv(o), {holo: o.holo, golden: o.golden})}</div><div class="cback"><img src="${LOGO}" alt=""></div></div></div>
@@ -1449,7 +1470,7 @@ function runPicks(picks) {
     const opts = [...ov.querySelectorAll('.opt')];
     let skip = false, ready = false, chosen = null;
     const flip = o => { const f = o.querySelector('.flip'); f.classList.remove('charge'); f.classList.add('open'); o.classList.add('revealed'); };
-    const packsAfter = () => pk.kind === 'normal' ? S.me.packs + S.me.bonus_packs : pk.kind === 'holo' ? S.me.holo_packs : pk.kind === 'player' ? S.me.player_packs : pk.kind === 'epic' ? S.me.epic_packs : S.me.legendary_packs;
+    const packsAfter = () => pk.kind === 'normal' ? S.me.packs + S.me.bonus_packs : pk.kind === 'holo' ? S.me.holo_packs : pk.kind === 'player' ? S.me.player_packs : pk.kind === 'holo_player' ? S.me.holo_player_packs : pk.kind === 'epic' ? S.me.epic_packs : S.me.legendary_packs;
     const confirmPick = async (thenNext) => {
       if (chosen == null || ov.dataset.busy) return;
       ov.dataset.busy = 1; keyHandler = null;
@@ -1468,7 +1489,7 @@ function runPicks(picks) {
       }
       opts.forEach(x => { x.classList.remove('choosable', 'chosen'); x.classList.add(x === o ? 'kept' : 'gone'); });
       ov.querySelector('#pTitle').textContent = `Kept ${S.byKey[r.card.level_key].name}!`;
-      const packsLeft = pk.kind === 'normal' ? S.me.packs + S.me.bonus_packs : pk.kind === 'holo' ? S.me.holo_packs : pk.kind === 'player' ? S.me.player_packs : pk.kind === 'epic' ? S.me.epic_packs : S.me.legendary_packs;
+      const packsLeft = pk.kind === 'normal' ? S.me.packs + S.me.bonus_packs : pk.kind === 'holo' ? S.me.holo_packs : pk.kind === 'player' ? S.me.player_packs : pk.kind === 'holo_player' ? S.me.holo_player_packs : pk.kind === 'epic' ? S.me.epic_packs : S.me.legendary_packs;
       ov.querySelector('#pAct').innerHTML = left
         ? `<button class="btn primary" id="next">Next pack (${left}) <span class="kbd">Space</span></button><button class="btn light" id="cont">Done</button>`
         : `${packsLeft ? `<button class="btn primary" id="again">Open another (${packsLeft}) <span class="kbd">Space</span></button>` : ''}<button class="btn light" id="toCol">Collection</button><button class="btn light" id="cont">Done</button>`;
@@ -1577,7 +1598,7 @@ function collectionGrid(cards) {
   if (f.show === 'owned') lv = lv.filter(l => cp[l.key]);
   if (f.show === 'missing') lv = lv.filter(l => !cp[l.key]);
   if (f.show === 'hdupes') {   // levels with 2+ holos; 3+ glow (can become a holo pack)
-    const hl = S.levels.filter(l => l.rank && (f.tier === 'all' || l.tier === f.tier) && matchQ(l, f.q)).map(l => [l, (cp[l.key] || []).filter(c => c.holo && !c.golden)]).filter(([, hc]) => hc.length >= 2);
+    const hl = S.levels.filter(l => (l.rank || (l.tier === 'player' && S.me.player_cards)) && l.tier !== 'unverified' && (f.tier === 'all' || l.tier === f.tier || (f.tier === 'pholo' && l.tier === 'player')) && matchQ(l, f.q)).map(l => [l, (cp[l.key] || []).filter(c => c.holo && !c.golden)]).filter(([, hc]) => hc.length >= 2);
     return hl.length ? `<div class="grid" style="row-gap:24px">${hl.map(([l, hc]) => stackHTML(l, hc, {hd: hc.length >= 3})).join('')}</div>` : '<p class="muted">No holo dupes yet. You need 2+ holos of the same level.</p>';
   }
   if (f.show === 'holo') {   // every listed level: holo ones lit up, everything else grayed out
@@ -1673,7 +1694,7 @@ async function renderBoard(tab = 'players') {
     const b = thumbUrl(r.banner_key);
     return `<div class="lbrow ${r.user_id === S.me.user_id ? 'me' : ''} ${i < 3 ? 'p' + (i + 1) : ''}" data-u="${esc(r.username)}" ${b ? `style="--bn:url('${b}')"` : ''}>
       <div class="lbpos">${i + 1}</div>${avatarHTML(r, 46)}
-      <div class="lbname"><b>${tagHTML(r)}${esc(r.username)}</b>${r.holo_milestone >= 9 ? ' <span class="donebadge">✦ COMPLETED</span>' : ''}<div class="muted" style="font-size:12px">${r.info.uniq}/${n} levels · ${r.info.holos} holo · ${r.info.setsDone} sets · ${r.info.creatorsDone} creators</div></div>
+      <div class="lbname"><b>${tagHTML(r)}${esc(r.username)}</b>${doneBadge(r)}<div class="muted" style="font-size:12px">${r.info.uniq}/${n} levels · ${r.info.holos} holo · ${r.info.setsDone} sets · ${r.info.creatorsDone} creators</div></div>
       <div class="lbscore">${fmt(r.info.total)}<small>pts</small></div></div>`;
   }).join('')}</div>`;
   document.querySelectorAll('.lbrow[data-u]').forEach(tr => tr.onclick = () => go('#/player/' + encodeURIComponent(tr.dataset.u)));
@@ -1797,10 +1818,15 @@ async function renderClanCollection(id) {
   draw();
 }
 function updateClanDot(mine) { const n = mine ? (mine.requests || []).length + (mine.clan_id ? 0 : (mine.invites || []).length) : 0; $('#navBoard').innerHTML = 'Leaderboard' + (n ? `<span class="dot">${n}</span>` : ''); }
+// COMPLETED badges: rainbow = all 9 holo milestones, plain = every level on the list
+function doneBadge(r) {
+  const n = S.levels.filter(l => l.rank && TIERS.includes(l.tier)).length;
+  return r.holo_milestone >= 9 ? ' <span class="donebadge">✦ COMPLETED</span>' : n && r.info && r.info.uniq >= n ? ' <span class="donebadge plain">COMPLETED</span>' : '';
+}
 function profileHead(r) {
   const b = thumbUrl(r.banner_key);
   return `<div class="phead" ${b ? `style="--bn:url('${b}')"` : ''}>${avatarHTML(r, 76)}
-    <div><div class="pname">${tagHTML(r)}${esc(r.username)}</div><div class="pscore">${fmt(r.info.total)} pts</div></div></div>`;
+    <div><div class="pname">${tagHTML(r)}${esc(r.username)}${doneBadge(r)}</div><div class="pscore">${fmt(r.info.total)} pts</div></div></div>`;
 }
 async function renderPlayer(name) {
   if (!S.board.length) await loadBoard();
@@ -2096,7 +2122,7 @@ function renderAdmin() {
     $('#apList').querySelector('.apmore')?.remove();
     $('#apList').insertAdjacentHTML('beforeend', rows.map(p => { const l = S.byKey[p.level_key] || {name: p.level_key, tier: 'common'};
       const tag = l.tier === 'player' ? 'PLAYER · ' + (pInfo(l).rarity || '').toUpperCase() : l.tier.toUpperCase();
-      return `<div class="feeditem t-${l.tier} ${p.golden ? 'gfeed' : ''}" style="--c:var(--${l.tier === 'player' ? 'common' : l.tier})"><span class="tt">${p.golden ? '★ GOLDEN ' : p.holo ? '✦ ' : ''}${tag}</span>
+      return `<div class="feeditem t-${l.tier === 'player' ? pInfo(l).rarity : l.tier} ${p.golden ? 'gfeed' : ''}" style="--c:var(--${l.tier === 'player' ? pInfo(l).rarity : l.tier})"><span class="tt">${p.golden ? '★ GOLDEN ' : p.holo ? '✦ ' : ''}${tag}</span>
         <span><b>${esc(p.pulled_by || (p.pack_kind === 'admin' ? 'admin gift' : '?'))}</b> → ${l.tier === 'player' ? '★' : '#' + (l.rank ?? '—')} ${esc(l.name)}${p.golden ? ' (golden)' : p.holo ? ' (holo)' : ''}${p.owner && p.owner !== p.pulled_by ? ` <span class="muted">· now owned by ${esc(p.owner)}</span>` : ''}</span>
         <span class="spacer"></span><span class="muted" style="font-size:12px">${p.pack_kind || ''} · ${new Date(p.pulled_at).toLocaleString()}</span></div>`; }).join('')
       + (list.length === 200 ? '<button class="btn sm apmore" style="margin-top:6px">Load more</button>' : '') || '<span class="muted">Nothing found.</span>');
@@ -2135,7 +2161,7 @@ function adminGive(un) {
   m.innerHTML = `<div class="box"><h2 style="margin-top:0">Give to ${esc(un)}</h2>
     <h3>A card</h3><div class="row"><select class="field" id="gL" style="flex:1"><option value="">— none —</option>${S.levels.map(l => `<option value="${esc(l.key)}">${l.rank ? '#' + l.rank : 'vaulted'} ${esc(l.name)}</option>`).join('')}</select>
       <label class="row" style="gap:4px"><input type="checkbox" id="gH"> holo</label></div>
-    <h3 style="margin-top:14px">Packs</h3><div class="row"><input class="field" id="gP" type="number" value="0" style="width:100px"><select class="field" id="gK"><option value="normal">normal packs</option><option value="bonus">bonus packs</option><option value="holo">holo packs</option></select></div>
+    <h3 style="margin-top:14px">Packs</h3><div class="row"><input class="field" id="gP" type="number" value="0" style="width:100px"><select class="field" id="gK"><option value="normal">normal packs</option><option value="bonus">bonus packs</option><option value="holo">holo packs</option><option value="player">player packs</option><option value="holo_player">holo player packs</option></select></div>
     <span class="muted" style="font-size:13px">Normal adds to their regular count (no "+bonus" label). Use a negative number to take packs away.</span>
     <div class="row" style="margin-top:16px"><button class="btn primary" id="gGo">Give</button><button class="btn" id="gX">Cancel</button></div></div>`;
   document.body.appendChild(m);
@@ -2220,7 +2246,8 @@ const CHANGELOG = [
     'Each one boosts the levels they beat (+15%) or verified (+25%) that you own, plus +500. Holo = double',
     '★ Player pack every 20 min. 3 copies make a holo',
     'NEW: ★ Player sets in the Sets tab. Finish one for points + a player pack. All in holo = redeem again',
-    '★ Player milestones: every 3 holo players = 1 min off your player timer (down to 15:00)'
+    '★ Player milestones: every 3 holo players = 1 min off your player timer (down to 15:00)',
+    '3 holo copies of a player = 1 holo player pack (open the player card)'
   ]},
   {v: 9, title: 'Update', items: [
     'NEW Unverified cards: ALT F4 (Quacc) and Start This Over (Beeguy)',
