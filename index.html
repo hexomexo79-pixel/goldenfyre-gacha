@@ -223,7 +223,7 @@ a.chip{text-decoration:none}a.chip:not(.on){color:inherit}a.chip.on .muted{color
 .cback::before{content:"";position:absolute;inset:8px;border:1px solid rgba(255,140,120,.25);border-radius:7px;background:repeating-linear-gradient(45deg,rgba(255,255,255,.025) 0 6px,transparent 6px 12px)}
 .cback img{position:relative;width:46%;filter:drop-shadow(0 4px 10px rgba(0,0,0,.6))}
 .flip.charge .cback{animation:charge 1s ease-in-out infinite;--g:var(--epic)}
-.flip.charge.t-legendary .cback{--g:var(--legendary)}.flip.charge.t-mythic .cback{--g:var(--mythic)}.flip.charge.t-apex .cback{--g:#fff3b0}
+.flip.charge.t-golden .cback{--g:#ffd36b}.flip.charge.t-legendary .cback{--g:var(--legendary)}.flip.charge.t-mythic .cback{--g:var(--mythic)}.flip.charge.t-apex .cback{--g:#fff3b0}
 @keyframes charge{0%,100%{box-shadow:0 0 10px var(--g)}50%{box-shadow:0 0 38px var(--g),0 0 6px var(--g) inset}}
 .opt{transition:transform .35s ease,opacity .35s ease,filter .35s}
 .opt.choosable .flip{cursor:pointer}
@@ -1461,7 +1461,7 @@ function runPicks(picks) {
       <div class="muted">${pk.kind === 'holo' ? '✦ Holo pack' : pk.kind === 'player' ? '★ Player pack' : pk.kind === 'holo_player' ? '✦ ★ Holo player pack' : ''}${picks.length > 1 ? ` · Pack ${idx + 1} of ${picks.length}` : '&nbsp;'}</div>
       <h1 id="pTitle">${instant ? 'Pick 1 to keep' : 'Revealing…'}</h1>
       <div class="pickrow" style="--n:${pk.options.length}">${pk.options.map((o, i) => `<div class="opt ${instant ? '' : 'deal'}" data-i="${i}" style="animation-delay:${i * 130}ms">
-        <div class="flip t-${lv(o).tier}"><div class="flip-in"><div class="fr">${cardHTML(lv(o), {holo: o.holo, golden: o.golden})}</div><div class="cback"><img src="${LOGO}" alt=""></div></div></div>
+        <div class="flip t-${o.golden ? 'golden' : lv(o).tier === 'player' ? pInfo(lv(o)).rarity : lv(o).tier}"><div class="flip-in"><div class="fr">${cardHTML(lv(o), {holo: o.holo, golden: o.golden})}</div><div class="cback"><img src="${LOGO}" alt=""></div></div></div>
         <div class="hints">${o.golden ? `<div class="hint goldhint">★ GOLDEN · only 1 exists · pick it to keep it</div>` : ''}${pickHints(o.level_key, o.holo)}</div></div>`).join('')}</div>
       <label class="itoggle"><input type="checkbox" id="inst" ${instant ? 'checked' : ''}> Instant reveal</label>
     </div>
@@ -1534,12 +1534,14 @@ function runPicks(picks) {
     if (instant) { allOpen(); return; }
     // reveal sequence: worst first, best last; Epic or better glows before flipping
     await sleep(pk.options.length * 130 + 450);
-    const order = [...opts].sort((a, b) => TIERS.indexOf(lv(pk.options[b.dataset.i]).tier) - TIERS.indexOf(lv(pk.options[a.dataset.i]).tier));
+    // rank: golden best (-1), then the tier (player cards use their own rarity)
+    const rk = o => o.golden ? -1 : TIERS.indexOf(lv(o).tier === 'player' ? pInfo(lv(o)).rarity : lv(o).tier);
+    const order = [...opts].sort((a, b) => rk(pk.options[b.dataset.i]) - rk(pk.options[a.dataset.i]));
     for (const o of order) {
       if (skip || ready) return;
       if (o.classList.contains('revealed')) continue;
-      const t = TIERS.indexOf(lv(pk.options[o.dataset.i]).tier);
-      if (t <= 3) { o.querySelector('.flip').classList.add('charge'); await sleep(1000); }
+      const t = rk(pk.options[o.dataset.i]);
+      if (t >= -1 && t <= 3) { o.querySelector('.flip').classList.add('charge'); await sleep(1000); }
       if (skip || ready) return;
       flip(o); await sleep(550);
     }
