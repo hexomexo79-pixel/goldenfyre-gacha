@@ -2060,7 +2060,8 @@ function renderAdmin() {
     <p class="muted" style="font-size:13px">The last box is the max number of people who can use it.</p>
     <hr style="border-color:var(--line);margin:24px 0">
     <h3>Unverified cards</h3>
-    <p class="muted">They drop from packs on their own (about 1 in 900). This button puts one in the next pack anyone opens.</p><button class="btn sm" id="dropNow">Put one in the next pack</button>
+    <p class="muted">They drop from packs on their own (about 1 in 900). This button puts one in the next pack someone opens. Type a player to make it theirs, or leave it blank for anyone. Queuing again replaces the last one.</p>
+    <div class="row"><input class="field" id="dnU" placeholder="Player (optional)" style="width:170px"><button class="btn sm" id="dropNow">Put one in the next pack</button></div>
     <hr style="border-color:var(--line);margin:24px 0">
     <h3>Put a card in someone's next pack</h3>
     <p class="muted">It shows up as one of the 3 options. They still have to pick it. Player cards go in their next player pack. Leave the player blank for whoever opens a pack next.</p>
@@ -2120,8 +2121,10 @@ function renderAdmin() {
     catch (e) { toast(e.message, true); }
   };
   $('#dropNow').onclick = async () => {
-    if (!confirm('Put an Unverified card in the next pack anyone opens?')) return;
-    try { await rpc('admin_drop_now', {p_token: S.token}); toast('Done. The next pack anyone opens will have one'); }
+    const un = $('#dnU').value.trim();
+    if (!confirm(un ? `Put an Unverified card in ${un}'s next pack?` : 'Put an Unverified card in the next pack anyone opens?')) return;
+    try { const who = await rpc('admin_drop_now', {p_token: S.token, p_username: un || null});
+      toast(who === 'anyone' ? 'Done. The next pack anyone opens will have one' : `Done. ${who}'s next pack will have one`); $('#dnU').value = ''; }
     catch (e) { toast(e.message, true); }
   };
   let apOff = 0;
