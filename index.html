@@ -1915,7 +1915,7 @@ async function renderTrades() {
   $('#newT').onclick = () => { const v = $('#pickP').value; if (v) go('#/trades/new/' + encodeURIComponent(v)); else toast('Pick a player first', true); };
   const list = await rpc('my_trades', {p_token: S.token});
   updateTradeDot(list);
-  const mini = arr => arr.length ? `<div class="minis nomodal">${arr.map(c => cardHTML(S.byKey[c.level_key], {holo: c.holo, mini: true})).join('')}</div>` : '<span class="muted">nothing</span>';
+  const mini = arr => arr.length ? `<div class="minis nomodal">${arr.map(c => cardHTML(S.byKey[c.level_key], {holo: c.holo, golden: c.golden, mini: true})).join('')}</div>` : '<span class="muted">nothing</span>';
   $('#tl').innerHTML = list.length ? list.map(t => {
     const youGive = t.incoming ? t.request : t.offer, youGet = t.incoming ? t.offer : t.request;
     const other = t.incoming ? t.from_username : t.to_username;
@@ -2265,7 +2265,7 @@ const CHANGELOG = [
     '3 holo copies of a player = 1 holo player pack (open the player card)'
   ]},
   {v: 9, title: 'Update', items: [
-    'NEW Unverified cards: ALT F4 (Quacc) and Start This Over (Beeguy)',
+    'NEW Unverified cards: Windows Level (Quacc) and Start This Over (Beeguy)',
     'Unverified cards left the creator rows',
     'See who found each Unverified (Collection → Unverified)',
     'Pack odds at the bottom of the Packs page',
