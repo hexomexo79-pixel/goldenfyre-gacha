@@ -1426,6 +1426,8 @@ async function merge(target) {
 
 // ---------------- opening & picking ----------------
 let busy = false;
+// the rarity a card shows as (event cards and player cards have their own)
+const rarOf = l => !l ? 'common' : l.tier === 'player' ? pInfo(l).rarity : l.tier === 'event' ? (l.info?.rarity || 'common') : l.tier;
 async function openPacks(kind, count) {
   if (busy) return; busy = true;
   const top = document.querySelector(kind === 'player' || kind === 'creator_event' ? '.pstack .pack:last-child' : '.stack:not(.pstack) .pack:last-child');
@@ -1591,7 +1593,7 @@ function runPicks(picks) {
       <div class="muted">${pk.kind === 'holo' ? '✦ Holo pack' : pk.kind === 'player' ? '★ Player pack' : pk.kind === 'holo_player' ? '✦ ★ Holo player pack' : pk.kind === 'event' ? '◆ ' + esc(S.event?.name || 'Event') + ' pack' : pk.kind === 'holo_event' ? '✦ ◆ Holo ' + esc(S.event?.name || 'event') + ' pack' : pk.kind === 'creator_event' ? '★ ◆ Creator pack' : pk.kind === 'holo_creator_event' ? '✦ ★ ◆ Holo creator pack' : ''}${picks.length > 1 ? ` · Pack ${idx + 1} of ${picks.length}` : '&nbsp;'}</div>
       <h1 id="pTitle">${instant ? 'Pick 1 to keep' : 'Revealing…'}</h1>
       <div class="pickrow" style="--n:${pk.options.length}">${pk.options.map((o, i) => `<div class="opt ${instant ? '' : 'deal'}" data-i="${i}" style="animation-delay:${i * 130}ms">
-        <div class="flip t-${o.uplayer || o.unverified ? 'apex' : o.golden ? 'golden' : lv(o).tier === 'player' ? pInfo(lv(o)).rarity : lv(o).tier}"><div class="flip-in"><div class="fr">${cardHTML(lv(o), {holo: o.holo, golden: o.golden})}</div><div class="cback"><img src="${LOGO}" alt=""></div></div></div>
+        <div class="flip t-${o.uplayer || o.unverified ? 'apex' : o.golden ? 'golden' : rarOf(lv(o))}"><div class="flip-in"><div class="fr">${cardHTML(lv(o), {holo: o.holo, golden: o.golden})}</div><div class="cback"><img src="${LOGO}" alt=""></div></div></div>
         <div class="hints">${o.uplayer || o.unverified ? `<div class="hint goldhint" style="background:#fff;color:#000">${o.uplayer ? '???' : 'UNVERIFIED'} · only 1 exists · pick it to keep it</div>` : ''}${o.golden ? `<div class="hint goldhint">★ GOLDEN · only 1 exists · pick it to keep it</div>` : ''}${pickHints(o.level_key, o.holo)}</div></div>`).join('')}</div>
       <label class="itoggle"><input type="checkbox" id="inst" ${instant ? 'checked' : ''}> Instant reveal</label>
     </div>
@@ -1673,7 +1675,7 @@ function runPicks(picks) {
     // reveal sequence: worst first, best last; Epic or better glows before flipping
     await sleep(pk.options.length * 130 + 450);
     // rank: golden best (-1), then the tier (player cards use their own rarity)
-    const rk = o => o.golden || o.uplayer || o.unverified ? -1 : TIERS.indexOf(lv(o).tier === 'player' ? pInfo(lv(o)).rarity : lv(o).tier);
+    const rk = o => o.golden || o.uplayer || o.unverified ? -1 : (i => i < 0 ? 6 : i)(TIERS.indexOf(rarOf(lv(o))));
     const order = [...opts].sort((a, b) => rk(pk.options[b.dataset.i]) - rk(pk.options[a.dataset.i]));
     for (const o of order) {
       if (skip || ready) return;
