@@ -1480,7 +1480,7 @@ async function openPacks(kind, count) {
   runPicks(r.picks);
 }
 async function resumePicks() {
-  try { const p = await rpc('my_picks', {p_token: S.token}); if (p.length) runPicks(p); else { await refreshState(); renderHome(); } }
+  try { const p = await rpc('my_picks', {p_token: S.token}); if (p.length) runPicks(p); else { await refreshState(); route(); } }
   catch (e) { toast(e.message, true); }
 }
 // What picking this card would do for you
@@ -2854,6 +2854,7 @@ async function renderEvent(page = 'packs') {
   for (let i = 0; i < stackN; i++) { const off = i - (stackN - 1); stack += packHTML('event', e.packs ? '' : 'empty', `transform:translate(${off * 7}px,${off * -3}px) rotate(${off * 2.5}deg);opacity:${1 + off * 0.12}`); }
   const mi = evInfo(myOwnedRows());
   app.innerHTML = `${dropBanner()}
+  ${S.me.pending_picks ? `<div class="banner"><b>You have ${S.me.pending_picks} opened pack${S.me.pending_picks > 1 ? 's' : ''} waiting for you to pick a card.</b><span class="spacer"></span><button class="btn primary sm" id="evResume">Pick now</button></div>` : ''}
   <div class="panel"><div class="row between"><div><h2 style="margin:0">◆ ${esc(e.name)}</h2><div class="muted" style="font-size:13px">${esc(e.description || '')}</div></div>
       <div style="text-align:right"><div class="label">Ends in</div><b id="evEnd">--</b></div></div>
     <div class="packs ${cOn ? 'two' : ''}" style="margin-top:10px">
@@ -2916,6 +2917,7 @@ async function renderEvent(page = 'packs') {
   rpc('recent_event_pulls', {p_event: e.id}).then(pu => { const ago = t => { const s = (Date.now() + S.clock - new Date(t)) / 1000; return s < 60 ? 'just now' : s < 3600 ? Math.floor(s / 60) + 'm ago' : s < 86400 ? Math.floor(s / 3600) + 'h ago' : Math.floor(s / 86400) + 'd ago'; };
     if ($('#erpulls')) $('#erpulls').innerHTML = pu.length ? pu.map(p => `<div class="feeditem t-${p.golden ? 'apex' : p.rarity}"><span class="tt">${p.golden ? '★ GOLDEN' : (p.holo ? '✦ ' : '') + p.rarity.toUpperCase()}</span><span><b>${esc(p.username || '?')}</b> pulled ${esc(p.name)}${p.kind === 'player' ? ' (creator)' : ''}${p.golden ? '' : p.holo ? ' (holo)' : ''}</span><span class="spacer"></span><span class="muted">${ago(p.pulled_at)}</span></div>`).join('')
       : '<span class="muted">Nobody has pulled a Legendary or better yet.</span>'; }).catch(() => {});
+  if ($('#evResume')) $('#evResume').onclick = resumePicks;
   $('#evOpen').onclick = () => openPacks('event', 1);
   $('#evAll').onclick = () => openPacks('event', e.packs);
   if ($('#evHolo')) $('#evHolo').onclick = () => openPacks('holo_event', 1);
