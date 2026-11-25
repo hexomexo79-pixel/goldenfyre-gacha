@@ -2214,18 +2214,32 @@ async function renderNewTrade(name) {
   app.innerHTML = '<div class="panel">Loading…</div>';
   const theirs = await cardsOf(row.user_id);
   const give = [], get = [];   // selected card objects
-  let note = '', qG = '', qT = '', mG = 'all', mT = 'all';   // m = which cards a side shows: all / levels / players
+  let note = '', qG = '', qT = '';
+  const fG = {k: 'levels', r: 'all', s: 'all'}, fT = {k: 'levels', r: 'all', s: 'all'};   // per side: kind (levels / players or creators), rarity, show (all / holo / golden / dupes)
   const myOwn = ownership(S.myCards), theirOwn = ownership(theirs);
   const sortKeys = m => Object.keys(m).sort((a, b) => cardOrder(a) - cardOrder(b));
   const isP = c => S.byKey[c.level_key]?.tier === 'player';
-  const side = (cards, sel, q, m) => {
-    const ev = inEv(), isE = c => S.byKey[c.level_key]?.tier === 'event', cur = c => isE(c) && S.byKey[c.level_key]?.info?.event === S.event?.id;
-    const cp = copiesOf(cards.filter(c => !c.locked && !sel.some(s => s.id === c.id) && matchQ(S.byKey[c.level_key], q) && (ev ? cur(c) : !isE(c) && (m === 'all' || (m === 'players') === isP(c)))));
+  const side = (cards, sel, q, f) => {
+    const ev = inEv(), lvOf = c => S.byKey[c.level_key], isE = c => lvOf(c)?.tier === 'event', cur = c => isE(c) && lvOf(c)?.info?.event === S.event?.id;
+    const isPC = c => ev ? lvOf(c)?.info?.kind === 'player' : isP(c);   // player card (main) / creator card (event)
+    let pool = cards.filter(c => !c.locked && !sel.some(s => s.id === c.id) && lvOf(c) && matchQ(lvOf(c), q) && (ev ? cur(c) : !isE(c))
+      && (f.k === 'players') === isPC(c) && (f.r === 'all' || rarOf(lvOf(c)) === f.r));
+    if (f.s === 'holo') pool = pool.filter(c => c.holo && !c.golden);
+    if (f.s === 'golden') pool = pool.filter(c => c.golden);
+    let cp = copiesOf(pool);
+    if (f.s === 'dupes') { const all = copiesOf(cards.filter(c => lvOf(c))); cp = Object.fromEntries(Object.entries(cp).filter(([k]) => (all[k] || []).length > 1)); }
     const ks = sortKeys(cp);
     return ks.length ? `<div class="grid">${ks.map(k => stackHTML(S.byKey[k], cp[k], {trade: true, step: 30})).join('')}</div>` : '<p class="muted">No cards match.</p>';
   };
   const tray = (sel, otherOwn) => sel.map(c => cardHTML(S.byKey[c.level_key], {holo: c.holo, golden: c.golden, id: c.id, mini: true})).join('');
-  const modeChips = (id, m) => S.me.player_cards && !inEv() ? `<div class="chips" style="margin:0 0 8px">${[['all', 'All'], ['levels', 'Levels'], ['players', '★ Players']].map(([v, t]) => `<button class="chip ${m === v ? 'on' : ''}" data-${id}="${v}">${t}</button>`).join('')}</div>` : '';
+  const modeChips = (id, f) => {
+    const chip = (g, v, t) => `<button class="chip ${f[g] === v ? 'on' : ''}" data-${id}="${g}:${v}">${t}</button>`, ev = inEv();
+    const kinds = ev ? (S.levels.some(l => l.tier === 'event' && l.info?.event === S.event?.id && l.info?.kind === 'player') ? [['levels', 'Levels'], ['players', '★ Creators']] : [])
+      : S.me.player_cards ? [['levels', 'Levels'], ['players', '★ Players']] : [];
+    return `${kinds.length ? `<div class="chips" style="margin:0 0 6px">${kinds.map(([v, t]) => chip('k', v, t)).join('')}</div>` : ''}
+      <div class="chips" style="margin:0 0 6px">${chip('s', 'all', 'All')}${chip('s', 'holo', '✦ Holo')}${S.me.golden_cards ? chip('s', 'golden', '★ Golden') : ''}${chip('s', 'dupes', 'Dupes')}</div>
+      <div class="chips" style="margin:0 0 8px">${chip('r', 'all', 'Every rarity')}${[...TIERS].reverse().map(t => chip('r', t, t[0].toUpperCase() + t.slice(1))).join('')}</div>`;
+  };
   const draw = () => {
     const ys = [$('#pg')?.scrollTop, $('#pt')?.scrollTop];
     if ($('#tnote')) note = $('#tnote').value;
@@ -2241,8 +2255,8 @@ async function renderNewTrade(name) {
         <span class="muted" style="font-size:12px">includes new levels, holos, set and creator bonuses. Dupes add nothing.</span></div>` : ''}
       <div class="row" style="margin:14px 0"><input class="field" id="tnote" maxlength="140" placeholder="Add a message (optional)" style="flex:1;min-width:200px" value="${esc(note)}"><button class="btn primary" id="send" ${give.length + get.length ? '' : 'disabled'}>Send trade offer</button></div>
       <div class="tradecols">
-        <div><h3>Your cards</h3>${searchBox('qg', qG)}${modeChips('mg', mG)}<div class="tpick" id="pg">${side(S.myCards, give, qG, mG)}</div></div>
-        <div><h3>${esc(row.username)}'s cards</h3>${searchBox('qt', qT)}${modeChips('mt', mT)}<div class="tpick" id="pt">${side(theirs, get, qT, mT)}</div></div>
+        <div><h3>Your cards</h3>${searchBox('qg', qG)}${modeChips('mg', fG)}<div class="tpick" id="pg">${side(S.myCards, give, qG, fG)}</div></div>
+        <div><h3>${esc(row.username)}'s cards</h3>${searchBox('qt', qT)}${modeChips('mt', fT)}<div class="tpick" id="pt">${side(theirs, get, qT, fT)}</div></div>
       </div></div>`;
     if (ys[0] != null) { $('#pg').scrollTop = ys[0]; $('#pt').scrollTop = ys[1]; }
     const bind = (el, cards, sel) => el.querySelectorAll('.tstack').forEach(st => {
@@ -2257,10 +2271,10 @@ async function renderNewTrade(name) {
       });
     });
     bind($('#pg'), S.myCards, give); bind($('#pt'), theirs, get);
-    $('#qg').oninput = e => { qG = e.target.value; $('#pg').innerHTML = side(S.myCards, give, qG, mG); bind($('#pg'), S.myCards, give); };
-    $('#qt').oninput = e => { qT = e.target.value; $('#pt').innerHTML = side(theirs, get, qT, mT); bind($('#pt'), theirs, get); };
-    document.querySelectorAll('[data-mg]').forEach(b => b.onclick = () => { mG = b.dataset.mg; $('#pg').scrollTop = 0; draw(); });
-    document.querySelectorAll('[data-mt]').forEach(b => b.onclick = () => { mT = b.dataset.mt; $('#pt').scrollTop = 0; draw(); });
+    $('#qg').oninput = e => { qG = e.target.value; $('#pg').innerHTML = side(S.myCards, give, qG, fG); bind($('#pg'), S.myCards, give); };
+    $('#qt').oninput = e => { qT = e.target.value; $('#pt').innerHTML = side(theirs, get, qT, fT); bind($('#pt'), theirs, get); };
+    document.querySelectorAll('[data-mg]').forEach(b => b.onclick = () => { const [g, v] = b.dataset.mg.split(':'); fG[g] = v; $('#pg').scrollTop = 0; draw(); });
+    document.querySelectorAll('[data-mt]').forEach(b => b.onclick = () => { const [g, v] = b.dataset.mt.split(':'); fT[g] = v; $('#pt').scrollTop = 0; draw(); });
     $('#tg').querySelectorAll('.card').forEach(c => c.onclick = () => { give.splice(give.findIndex(x => x.id === +c.dataset.id), 1); draw(); });
     $('#tt').querySelectorAll('.card').forEach(c => c.onclick = () => { get.splice(get.findIndex(x => x.id === +c.dataset.id), 1); draw(); });
     $('#send').onclick = async () => {
