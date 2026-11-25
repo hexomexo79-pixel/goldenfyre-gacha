@@ -2502,6 +2502,19 @@ async function boot() {
 setInterval(() => { if (S.token && S.me) { rpc('my_trades', {p_token: S.token}).then(updateTradeDot).catch(() => {}); rpc('my_clan', {p_token: S.token}).then(updateClanDot).catch(() => {}); } }, 30000);
 // ---- What's new: add a new entry at the TOP for each update ----
 const CHANGELOG = [
+  {v: 12, title: 'Update', items: [
+    "NEW EVENT: ◆ Non-Demon Week! Every rated non-demon on the server, for 7 days. Tap ◆ Event (top right)",
+    "◆ Event packs every 15 min and ★ Creator packs every 20 min (max 6 each). Pick 1 of 3, like normal packs",
+    "Event cards earn ★ Stars, which only count in the event. Harder levels are rarer and worth more. Holo = 2×, Golden = 5× (only 1 golden of each exists)",
+    "Finish event sets, creator sets and ★ creator-card sets for bonus Stars + a free pack. Finish one in holo for the bonus again + a holo pack",
+    "Reach Star goals for 5 reward cards (Easy → Insane). You keep them forever, they count in your main score, and each one makes your event timers 1 min faster",
+    "How to: open a card to lock it, combine 3 copies into a holo, or trade 3 holos for a holo event/creator pack",
+    "How to: trade event cards in the event's Trades tab. The event Leaderboard has players and clans, and you can tap a player to see their event collection",
+    "Your reward and event cards also show in your main Collection under ◆ Event",
+    "Sets tab: level sets and creators are on one page now, player sets have their own tab, and big sets show as wide rows",
+    "Trades list cards in list order (#1 first, then players)",
+    "Levels with no picture show their name instead. Wrong verifier or creator, or missing thumbnail? Open the card → ✎ Suggest an edit"
+  ]},
   {v: 11, flag: 'golden_cards', title: 'Update', items: [
     'NEW: ★ Golden cards. Only ONE golden of each card exists',
     'Any pack can have one as one of its cards (about 1 in 120, rarer as they get found). Pick it to keep it',
