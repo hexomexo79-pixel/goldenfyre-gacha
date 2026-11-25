@@ -677,7 +677,7 @@ function creatorStatus(c, own, claimed = []) {
 // Stars are shown as 1/50 of the stored number with 2 decimals (640 -> 12.80) so they never look like main-game points
 const evMult = (l, o) => o?.golden ? (l.info?.kind === 'player' ? 4 : 10) : o?.holo ? (l.info?.kind === 'player' ? 2 : 3) : 1;   // levels: holo 3x, golden 10x; creators: holo 2x, golden 4x
 const fmtS = n => (n / 50).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-const REWARD_SHARE = {easy: 0.05, normal: 0.10, hard: 0.15, harder: 0.20, insane: 0.25};
+const REWARD_SHARE = {easy: 0.10, normal: 0.15, hard: 0.20, harder: 0.25, insane: 0.30};
 const rewardShare = l => REWARD_SHARE[l.info?.face] ?? 0.10;
 function scoreInfo(own, claimed = [], cclaimed = []) {
   const byTier = {}; let base = 0, holoBonus = 0, uniq = 0, holos = 0, goldens = 0, goldBonus = 0;
@@ -694,10 +694,10 @@ function scoreInfo(own, claimed = [], cclaimed = []) {
     for (const [k, o] of Object.entries(own)) { const l = S.byKey[k]; if (l && l.tier !== 'unverified') best = Math.max(best, l.points * lvMult(o)); }   // copies your best card's full value (golden 10x included)
     const now = byTier.unverified.n * best; base += now - byTier.unverified.pts; byTier.unverified.pts = now;
   }
-  if (byTier.eventreward) {   // event reward cards: flat points + a share of your best level card (Easy 5% ... Insane 25%)
+  if (byTier.eventreward) {   // event reward cards: flat points + a share of your best level card (Easy 10% ... Insane 30%)
     let best = 0;
     for (const [k, o] of Object.entries(own)) { const l = S.byKey[k]; if (l && TIERS.includes(l.tier)) best = Math.max(best, l.points * lvMult(o)); }
-    let now = 0;   // they stack: all 5 together = flat 3,000 + 75% of your best card (one Unverified is 100%)
+    let now = 0;   // they stack: all 5 together = flat 3,000 + 100% of your best card (one Unverified is 100%)
     for (const k of Object.keys(own)) { const l = S.byKey[k]; if (l && l.tier === 'eventreward') now += l.points + best * rewardShare(l); }
     now = Math.round(now); base += now - byTier.eventreward.pts; byTier.eventreward.pts = now;
   }
