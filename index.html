@@ -1808,9 +1808,9 @@ async function renderClanCollection(id) {
   if (!c) { app.innerHTML = '<div class="panel">Clan not found.</div>'; return; }
   const rows = boardRows(), mem = rows.filter(r => r.clan_id === id);
   const agg = {};   // key -> {count, holo, owners: [{name, n, holo}]}
-  for (const r of mem) for (const [k, hh, n] of r.owned) {
-    const a = agg[k] ||= {count: 0, holo: 0, owners: []};
-    a.count += n; if (hh) a.holo++; a.owners.push({name: r.username, n, holo: hh});
+  for (const r of mem) for (const [k, hh, n, g] of r.owned) {
+    const a = agg[k] ||= {count: 0, holo: 0, owners: [], golden: null};
+    a.count += n; if (hh) a.holo++; if (g) a.golden = r.username; a.owners.push({name: r.username, n, holo: hh, golden: g});
   }
   const listed = S.levels.filter(l => l.rank), have = listed.filter(l => agg[l.key]).length;
   let show = 'all';
@@ -1819,11 +1819,12 @@ async function renderClanCollection(id) {
     if (show === 'owned') lv = lv.filter(l => agg[l.key]);
     if (show === 'missing') lv = lv.filter(l => !agg[l.key]);
     if (show === 'holo') lv = lv.filter(l => agg[l.key] && agg[l.key].holo);
+    if (show === 'golden') lv = lv.filter(l => agg[l.key] && agg[l.key].golden).sort((a, b) => (a.tier === 'player') - (b.tier === 'player') || (a.rank ?? 999) - (b.rank ?? 999));
     app.innerHTML = clanRow({c, mem, total: clanTotal(mem)}, null) + `
     <div class="panel" style="margin-top:18px"><div class="row between"><h2 style="margin:0">Clan collection · ${have}/${listed.length}</h2><a href="#/clans">Back</a></div>
-      <div class="chips" style="margin-top:12px">${[['all', 'All'], ['owned', 'Owned'], ['missing', 'Missing'], ['holo', '✦ Holo']].map(([v, t]) => `<button class="chip ${show === v ? 'on' : ''}" data-cs="${v}">${t}</button>`).join('')}</div>
+      <div class="chips" style="margin-top:12px">${[['all', 'All'], ['owned', 'Owned'], ['missing', 'Missing'], ['holo', '✦ Holo'], ...(S.me.golden_cards ? [['golden', '★ Golden']] : [])].map(([v, t]) => `<button class="chip ${show === v ? 'on' : ''}" data-cs="${v}">${t}</button>`).join('')}</div>
       <div class="grid" style="row-gap:18px">${lv.map(l => { const a = agg[l.key];
-        return `<div>${cardHTML(l, {missing: !a, holo: a && a.holo})}${a ? `<div class="owners">${a.owners.sort((x, y) => y.n - x.n).map(o => `${esc(o.name)}${o.n > 1 ? ' ×' + o.n : ''}${o.holo ? ' ✦' : ''}`).join(', ')}</div>` : ''}</div>`; }).join('')}</div></div>`;
+        return `<div>${cardHTML(l, {missing: !a, holo: a && a.holo, golden: show === 'golden' || !!(a && a.golden)})}${a ? `<div class="owners">${show === 'golden' ? `★ Golden: ${esc(a.golden)}` : a.owners.sort((x, y) => y.n - x.n).map(o => `${esc(o.name)}${o.n > 1 ? ' ×' + o.n : ''}${o.golden ? ' ★' : o.holo ? ' ✦' : ''}`).join(', ')}</div>` : ''}</div>`; }).join('') || '<p class="muted">Nothing here.</p>'}</div></div>`;
     document.querySelectorAll('[data-cs]').forEach(b => b.onclick = () => { show = b.dataset.cs; draw(); });
   };
   draw();
