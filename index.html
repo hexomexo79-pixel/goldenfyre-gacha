@@ -1073,8 +1073,6 @@ function renderHome() {
       <div class="stat"><b>${pHolo}/${pl.length}</b><span class="muted">✦ Holo players</span></div>` : ''}`; })()}
       <div class="stat"><b>${fmt(info.total)}</b><span class="muted">Score</span></div>
     </div>
-    <h3 style="margin-top:18px">Points</h3>
-    ${scoreTable(info)}
   </div>
 
   <div class="panel">
@@ -1087,7 +1085,6 @@ function renderHome() {
     ${creatorBlocks(nearCreators)}
   </div>
 
-  ${goldenPanel()}
   ${unverifiedPanel()}
   <div class="two">
     <div class="panel"><h2>Recent trades</h2><div class="feed" id="rtrades"><span class="muted">Loading…</span></div></div>
@@ -1115,7 +1112,7 @@ function renderHome() {
       setTimeout(renderHome, 1700); }
     catch (er) { toast(er.message, true); b.disabled = false; }
   };
-  app.insertAdjacentHTML('beforeend', oddsHTML());
+  app.insertAdjacentHTML('beforeend', `<details class="panel odds"><summary><b>Where your points come from</b></summary><div style="margin-top:10px">${scoreTable(info)}</div></details>` + oddsHTML());
   $('#redeem').onclick = async () => {
     const code = $('#code').value.trim(); if (!code) return;
     try { const r = await rpc('redeem_code', {p_token: S.token, p_code: code}); setState(r.state); toast(`+${r.packs} ${r.kind === 'normal' ? '' : r.kind + ' '}pack${r.packs > 1 ? 's' : ''}!`); renderHome(); }
