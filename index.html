@@ -964,7 +964,7 @@ function showLevel(key) {
     ${l.tier === 'event' || l.tier === 'eventreward' ? '' : `<span class="muted">Created by ${esc(creatorsOf(l).join(', ') || '?')} · Verified by ${esc(l.verifier || '?')}</span>`}</p>
     <p>You own: <b>${own ? own.count : 0}</b> ${own && own.holo ? `(${own.holo} holo)` : ''}<br>
     <span class="muted">${l.tier === 'event' && l.info?.kind === 'player' ? (() => { const om = {}; for (const [k, x] of Object.entries(ownership(S.myCards))) om[k] = {holo: !!x.holo, golden: !!x.golden};
-      const m = own?.golden ? 4 : own?.holo ? 2 : 1; return `Boosts the Stars of ${esc(l.name)}'s levels you own by +50% (holo +100%, golden +200%) · ${own ? 'now' : 'would give'} +${fmtS(evCreatorBoost(l, om, m))} ★ · ${cardOdds(l)}`; })() : l.tier === 'event' ? `Worth ${fmtS(l.points)} ★ Stars, ${fmtS(l.points * evMult(l, {holo: 1}))} ★ as holo${S.me.golden_cards ? `, ${fmtS(l.points * evMult(l, {golden: 1}))} ★ golden` : ''} · ${cardOdds(l)}` : l.tier === 'eventreward' ? `Worth ${fmt(l.points)} pts + ${Math.round(rewardShare(l) * 100)}% of your best level card in the main game, and +10% ★ Stars in its event` : `Worth ${fmt(l.points)} pts, or ${fmt(l.points * RULES.holoMult)} as holo`}${S.me.golden_cards && l.rank ? `, ${fmt(l.points * RULES.goldMult)} golden` : ''}</span>
+      const m = own?.golden ? 4 : own?.holo ? 2 : 1; return `+${fmtS(CREATOR_BASE)} ★, plus +50% Stars on ${esc(l.name)}'s levels you own (holo doubles both, golden ×4) · ${own ? 'now' : 'would give'} +${fmtS(evCreatorBoost(l, om, m))} ★ · ${cardOdds(l)}`; })() : l.tier === 'event' ? `Worth ${fmtS(l.points)} ★ Stars, ${fmtS(l.points * evMult(l, {holo: 1}))} ★ as holo${S.me.golden_cards ? `, ${fmtS(l.points * evMult(l, {golden: 1}))} ★ golden` : ''} · ${cardOdds(l)}` : l.tier === 'eventreward' ? `Worth ${fmt(l.points)} pts + ${Math.round(rewardShare(l) * 100)}% of your best level card in the main game, and +10% ★ Stars in its event` : `Worth ${fmt(l.points)} pts, or ${fmt(l.points * RULES.holoMult)} as holo`}${S.me.golden_cards && l.rank ? `, ${fmt(l.points * RULES.goldMult)} golden` : ''}</span>
     ${S.me.golden_cards && l.rank ? `<br><span class="muted">${goldOwner(key) ? `★ Golden owned by <b class="goldtxt">${esc(goldOwner(key))}</b>` : '★ Golden not found yet'}</span>` : ''}</p>
     ${l.video_id ? `<p><a href="https://youtu.be/${esc(l.video_id)}" target="_blank" rel="noopener">Watch verification ↗</a></p>` : ''}
     ${own ? `<div class="locks"><div class="label" style="margin-bottom:6px">Your copies · locked ones can't be traded</div>${S.myCards.filter(c => c.level_key === key).sort((a, b) => !!b.golden - !!a.golden || b.holo - a.holo).map((c, i) =>
@@ -2653,10 +2653,10 @@ async function loadEvent() {
   return S.event;
 }
 // creator cards boost the Stars of that creator's levels you own: +50%, holo +100%, golden +200%
-const CREATOR_BOOST = 0.5;
+const CREATOR_BOOST = 0.5, CREATOR_BASE = 25;   // +0.50 Stars base per creator card (x2 holo, x4 golden), plus 50% of their levels
 const evCreatorOf2 = l => ((l.info?.desc || '').match(/^By (.+?) ·/) || [])[1] || '';
 function evCreatorBoost(cl, ownedMap, m) {   // ownedMap: key -> {holo, golden}; m = the creator card's multiplier (1/2/4)
-  const name = cl.name.toLowerCase(); let v = 0;
+  const name = cl.name.toLowerCase(); let v = CREATOR_BASE * m;
   for (const l of S.levels) if (l.tier === 'event' && l.info?.event === cl.info?.event && l.info?.kind !== 'player' && evCreatorOf2(l).toLowerCase() === name && ownedMap[l.key])
     v += l.points * evMult(l, ownedMap[l.key]) * CREATOR_BOOST * m;
   return v;
@@ -2895,7 +2895,7 @@ async function renderEvent(page = 'packs') {
     <tr><td><b>Event levels</b></td><td class="muted">${mi.n - mi.creators}/${lvC.length} levels · each counts once</td><td style="text-align:right">${fmtS(mi.cards)}</td></tr>
     <tr><td><b>✦ Holo bonus</b></td><td class="muted">holo levels count 3×</td><td style="text-align:right">+${fmtS(mi.holo)}</td></tr>
     ${mi.gold ? `<tr><td><b>★ Golden bonus</b></td><td class="muted">golden levels count 10×</td><td style="text-align:right">+${fmtS(mi.gold)}</td></tr>` : ''}
-    <tr><td><b>★ Creator boosts</b></td><td class="muted">${mi.creators} creator${mi.creators === 1 ? '' : 's'} · +50% of their levels you own (holo +100%, golden +200%)</td><td style="text-align:right">+${fmtS(mi.crBoost)}</td></tr>
+    <tr><td><b>★ Creator boosts</b></td><td class="muted">${mi.creators} creator${mi.creators === 1 ? '' : 's'} · +${fmtS(CREATOR_BASE)} each, plus +50% of their levels you own (holo ×2, golden ×4)</td><td style="text-align:right">+${fmtS(mi.crBoost)}</td></tr>
     <tr><td><b>Reward card boost</b></td><td class="muted">${mi.rewards} × +10%</td><td style="text-align:right">+${fmtS(mi.boost)}</td></tr>
     <tr><td><b>Set bonuses</b></td><td class="muted">${mi.sets} set${mi.sets === 1 ? '' : 's'} done</td><td style="text-align:right">+${fmtS(mi.setBonus)}</td></tr>
     <tr><td><b>✦ Holo set bonuses</b></td><td class="muted">${mi.holoSets} set${mi.holoSets === 1 ? '' : 's'} done in holo</td><td style="text-align:right">+${fmtS(mi.holoSetBonus)}</td></tr>
