@@ -663,6 +663,7 @@ function creatorStatus(c, own, claimed = []) {
           holoHave, holoDone: holoHave === n, holoClaimed: claimed.includes('✦' + c.key)};
 }
 // Stars are shown as 1/50 of the stored number with 2 decimals (640 -> 12.80) so they never look like main-game points
+const evMult = (l, o) => o?.golden ? (l.info?.kind === 'player' ? 4 : 10) : o?.holo ? (l.info?.kind === 'player' ? 2 : 3) : 1;   // levels: holo 3x, golden 10x; creators: holo 2x, golden 4x
 const fmtS = n => (n / 50).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 const REWARD_SHARE = {easy: 0.05, normal: 0.10, hard: 0.15, harder: 0.20, insane: 0.25};
 const rewardShare = l => REWARD_SHARE[l.info?.face] ?? 0.10;
@@ -828,7 +829,7 @@ function cardHTML(l, o = {}) {
     ${o.mini ? '' : `<div class="codds">${cardOdds(l, o)}</div>`}
     <div class="nm">${esc(l.name)}</div>
     <div class="meta">${l.tier === 'event' || l.tier === 'eventreward' ? esc(l.info?.desc || '') : l.tier === 'uplayer' ? '<b class="abil">✦ ???</b> · Who is this?' : l.tier === 'player' ? `Beat ${pInfo(l).beaten.length} · Verified ${pInfo(l).verified.length}` : `${l.tier === 'unverified' ? (ABILITIES[l.key] ? `<b class="abil">✦ ${esc(ABILITIES[l.key].name)}</b> · ${esc(ABILITIES[l.key].desc)}` : 'Not verified yet') : `Verified by ${esc(l.verifier || '?')}`}<br>By ${esc(creatorsOf(l).join(', ') || '?')}`}</div>
-    <div class="pts">${l.tier === 'event' ? fmtS(l.points * (o.golden ? 5 : o.holo ? 2 : 1)) + ' ★' + (o.golden ? ' ★' : o.holo ? ' ✦' : '') : l.tier === 'eventreward' ? fmt(l.points) + ' + ' + Math.round(rewardShare(l) * 100) + '% of best' : l.tier === 'uplayer' ? '= your best player' : l.tier === 'player' ? (o.golden ? `★ boosts ×${RULES.playerGoldMult}` : o.holo ? '★ boosts ×2' : '★ boosts levels') : l.tier === 'unverified' ? '= your best card' : fmt(l.points * lvMult(o)) + ' pts' + (o.golden ? ' ★' : o.holo ? ' ✦' : '')}</div>
+    <div class="pts">${l.tier === 'event' ? fmtS(l.points * evMult(l, o)) + ' ★' + (o.golden ? ' ★' : o.holo ? ' ✦' : '') : l.tier === 'eventreward' ? fmt(l.points) + ' + ' + Math.round(rewardShare(l) * 100) + '% of best' : l.tier === 'uplayer' ? '= your best player' : l.tier === 'player' ? (o.golden ? `★ boosts ×${RULES.playerGoldMult}` : o.holo ? '★ boosts ×2' : '★ boosts levels') : l.tier === 'unverified' ? '= your best card' : fmt(l.points * lvMult(o)) + ' pts' + (o.golden ? ' ★' : o.holo ? ' ✦' : '')}</div>
     ${o.golden ? '<div class="holotag goldtag">★ GOLDEN</div>' : o.holo && l.tier !== 'unverified' ? '<div class="holotag">✦ HOLO</div>' : ''}
   </div>`;
 }
@@ -935,7 +936,7 @@ function showLevel(key) {
     <p><b>${esc(l.name)}</b>: ${l.tier === 'event' ? `◆ EVENT CARD · ${esc((l.info?.rarity || '').toUpperCase())}<br><span class="muted">${esc(l.info?.desc || '')}</span>` : l.tier === 'eventreward' ? `◆ EVENT REWARD CARD<br><span class="muted">${esc(l.info?.desc || '')}</span>` : l.tier === 'unverified' ? `UNVERIFIED · only 1 exists${l.info && l.info.placement ? ' · expected ' + esc(l.info.placement) : ''}${l.info && l.info.layout ? `<br><span class="muted">Layout ${esc(l.info.layout)} · Deco ${esc(l.info.deco || '?')} · Verifying ${esc(l.info.verify || '?')}</span>` : ''}${ABILITIES[l.key] ? `<br><b class="abil">✦ ${esc(ABILITIES[l.key].name)}</b> (${esc(ABILITIES[l.key].who)}): ${esc(ABILITIES[l.key].desc)}` : ''}${unvOwner(l.key) ? `<br>Owned by <b>${esc(unvOwner(l.key))}</b>` : '<br><span class="muted">Not found yet</span>'}` : l.rank ? `#${l.rank} on the list, ${l.tier.toUpperCase()}` : 'no longer on the list (vaulted)'}<br>
     ${l.tier === 'event' || l.tier === 'eventreward' ? '' : `<span class="muted">Created by ${esc(creatorsOf(l).join(', ') || '?')} · Verified by ${esc(l.verifier || '?')}</span>`}</p>
     <p>You own: <b>${own ? own.count : 0}</b> ${own && own.holo ? `(${own.holo} holo)` : ''}<br>
-    <span class="muted">${l.tier === 'event' ? `Worth ${fmtS(l.points)} ★ Stars, ${fmtS(l.points * 2)} ★ as holo${S.me.golden_cards ? `, ${fmtS(l.points * 5)} ★ golden` : ''} · ${cardOdds(l)}` : l.tier === 'eventreward' ? `Worth ${fmt(l.points)} pts + ${Math.round(rewardShare(l) * 100)}% of your best level card in the main game, and +10% ★ Stars in its event` : `Worth ${fmt(l.points)} pts, or ${fmt(l.points * RULES.holoMult)} as holo`}${S.me.golden_cards && l.rank ? `, ${fmt(l.points * RULES.goldMult)} golden` : ''}</span>
+    <span class="muted">${l.tier === 'event' ? `Worth ${fmtS(l.points)} ★ Stars, ${fmtS(l.points * evMult(l, {holo: 1}))} ★ as holo${S.me.golden_cards ? `, ${fmtS(l.points * evMult(l, {golden: 1}))} ★ golden` : ''} · ${cardOdds(l)}` : l.tier === 'eventreward' ? `Worth ${fmt(l.points)} pts + ${Math.round(rewardShare(l) * 100)}% of your best level card in the main game, and +10% ★ Stars in its event` : `Worth ${fmt(l.points)} pts, or ${fmt(l.points * RULES.holoMult)} as holo`}${S.me.golden_cards && l.rank ? `, ${fmt(l.points * RULES.goldMult)} golden` : ''}</span>
     ${S.me.golden_cards && l.rank ? `<br><span class="muted">${goldOwner(key) ? `★ Golden owned by <b class="goldtxt">${esc(goldOwner(key))}</b>` : '★ Golden not found yet'}</span>` : ''}</p>
     ${l.video_id ? `<p><a href="https://youtu.be/${esc(l.video_id)}" target="_blank" rel="noopener">Watch verification ↗</a></p>` : ''}
     ${own ? `<div class="locks"><div class="label" style="margin-bottom:6px">Your copies · locked ones can't be traded</div>${S.myCards.filter(c => c.level_key === key).sort((a, b) => !!b.golden - !!a.golden || b.holo - a.holo).map((c, i) =>
@@ -1529,7 +1530,7 @@ function goldenFound(b) {
     sc.innerHTML = `<div class="rays"></div><div class="scin">
       <div class="sctitle goldtxt">★ GOLDEN CARD!</div>
       <div class="sccard">${cardHTML(l, {golden: true, holo: true})}</div>
-      <div class="scodds">One of your options is the only golden <b>${esc(l.name)}</b> in existence.<br>${l.tier === 'event' ? `Worth ${fmtS(l.points * 5)} ★ Stars (5×)` : l.tier === 'player' ? `Boosts ×${RULES.playerGoldMult}` : `Worth ${fmt(l.points * RULES.goldMult)} pts (${RULES.goldMult}×)`}. Pick it to keep it!</div>
+      <div class="scodds">One of your options is the only golden <b>${esc(l.name)}</b> in existence.<br>${l.tier === 'event' ? `Worth ${fmtS(l.points * evMult(l, {golden: 1}))} ★ Stars (${evMult(l, {golden: 1})}×)` : l.tier === 'player' ? `Boosts ×${RULES.playerGoldMult}` : `Worth ${fmt(l.points * RULES.goldMult)} pts (${RULES.goldMult}×)`}. Pick it to keep it!</div>
       <button class="btn primary">Continue <span class="kbd">Space</span></button></div>`;
     const done = () => { document.removeEventListener('keydown', k, true); sc.classList.add('out'); setTimeout(() => sc.remove(), 300); res(); };
     const k = e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); done(); } };
@@ -2503,17 +2504,10 @@ setInterval(() => { if (S.token && S.me) { rpc('my_trades', {p_token: S.token}).
 // ---- What's new: add a new entry at the TOP for each update ----
 const CHANGELOG = [
   {v: 12, title: 'Update', items: [
-    "NEW EVENT: ◆ Non-Demon Week! Every rated non-demon on the server, for 7 days. Tap ◆ Event (top right)",
-    "◆ Event packs every 15 min and ★ Creator packs every 20 min (max 6 each). Pick 1 of 3, like normal packs",
-    "Event cards earn ★ Stars, which only count in the event. Harder levels are rarer and worth more. Holo = 2×, Golden = 5× (only 1 golden of each exists)",
-    "Finish event sets, creator sets and ★ creator-card sets for bonus Stars + a free pack. Finish one in holo for the bonus again + a holo pack",
-    "Reach Star goals for 5 reward cards (Easy → Insane). You keep them forever, they count in your main score, and each one makes your event timers 1 min faster",
-    "How to: open a card to lock it, combine 3 copies into a holo, or trade 3 holos for a holo event/creator pack",
-    "How to: trade event cards in the event's Trades tab. The event Leaderboard has players and clans, and you can tap a player to see their event collection",
-    "Your reward and event cards also show in your main Collection under ◆ Event",
-    "Sets tab: level sets and creators are on one page now, player sets have their own tab, and big sets show as wide rows",
-    "Trades list cards in list order (#1 first, then players)",
-    "Levels with no picture show their name instead. Wrong verifier or creator, or missing thumbnail? Open the card → ✎ Suggest an edit"
+    "NEW: ◆ Events! Limited-time cards with their own packs, collection, sets, trades and leaderboard. Tap ◆ Event (top right)",
+    "First event: Non-Demon Week (7 days). Every rated non-demon on the server, plus ★ creator cards for the people who made them",
+    "Event cards earn ★ Stars. Reach Star goals for 5 reward cards (Easy → Insane). You keep them forever, they count in your main score, and they make your event timers faster",
+    "NEW: something wrong or a missing thumbnail? Open any card → ✎ Suggest an edit. An admin checks it before it goes in"
   ]},
   {v: 11, flag: 'golden_cards', title: 'Update', items: [
     'NEW: ★ Golden cards. Only ONE golden of each card exists',
@@ -2593,7 +2587,7 @@ async function loadEvent() {
 function evInfo(owned) {   // owned: [[key, holo, n, golden]] rows. Returns the Stars breakdown for the current event
   const ev = S.event?.id, has = new Set(); let cards = 0, holo = 0, gold = 0, n = 0, holos = 0, goldens = 0, creators = 0, rewards = 0;
   for (const [k, h, , g] of owned) { const l = S.byKey[k]; if (!l || l.info?.event !== ev) continue;
-    if (l.tier === 'event') { cards += l.points; if (g) { gold += l.points * 4; goldens++; } else if (h) holo += l.points; if (h || g) holos++; n++; if (l.info?.kind === 'player') creators++; has.add(k); }
+    if (l.tier === 'event') { cards += l.points; if (g) { gold += l.points * (evMult(l, {golden: 1}) - 1); goldens++; } else if (h) holo += l.points * (evMult(l, {holo: 1}) - 1); if (h || g) holos++; n++; if (l.info?.kind === 'player') creators++; has.add(k); }
     if (l.tier === 'eventreward') rewards++; }
   const boost = Math.round((cards + holo + gold) * 0.1 * rewards);
   const hset = new Set(owned.filter(r => r[1]).map(r => r[0]));
@@ -2640,7 +2634,7 @@ function evOddsHTML(cards, crs = []) {
     <tbody>${rows}</tbody></table></div>`; };
   const gc = S.me.golden_chance ?? 0.01;
   return `<details class="panel odds"><summary><b>Event pack odds</b></summary>${tbl(cards, crs.length ? 'Event packs' : '')}${tbl(crs, '★ Creator packs')}
-    <p class="muted" style="font-size:12px;margin:8px 0 0">Packs show 3 cards and you keep 1. Holo packs: every option is holo.${S.me.golden_cards ? ` Up to 1 in ${fmt(Math.round(1 / gc))} packs has a ★ golden card (only 1 of each exists, worth 5× Stars); it gets rarer as goldens are found.` : ''}</p></details>`;
+    <p class="muted" style="font-size:12px;margin:8px 0 0">Packs show 3 cards and you keep 1. Holo packs: every option is holo.${S.me.golden_cards ? ` Up to 1 in ${fmt(Math.round(1 / gc))} packs has a ★ golden card (only 1 of each exists, worth 10× Stars, creators 4×); it gets rarer as goldens are found.` : ''}</p></details>`;
 }
 // someone else's event collection (#/event/player/NAME)
 async function renderEventPlayer(name) {
@@ -2807,8 +2801,8 @@ async function renderEvent(page = 'packs') {
   </div>
   <details class="panel odds"><summary><b>Where your Stars come from</b></summary><table class="scoretbl" style="margin-top:10px"><tbody>
     <tr><td><b>Event cards</b></td><td class="muted">${mi.n}/${cards.length} cards${mi.creators ? ` (${mi.creators} creators)` : ''} · each counts once</td><td style="text-align:right">${fmtS(mi.cards)}</td></tr>
-    <tr><td><b>✦ Holo bonus</b></td><td class="muted">${mi.holos - mi.goldens} holo × 2</td><td style="text-align:right">+${fmtS(mi.holo)}</td></tr>
-    ${mi.goldens ? `<tr><td><b>★ Golden bonus</b></td><td class="muted">${mi.goldens} golden × 5</td><td style="text-align:right">+${fmtS(mi.gold)}</td></tr>` : ''}
+    <tr><td><b>✦ Holo bonus</b></td><td class="muted">${mi.holos - mi.goldens} holo (levels 3×, creators 2×)</td><td style="text-align:right">+${fmtS(mi.holo)}</td></tr>
+    ${mi.goldens ? `<tr><td><b>★ Golden bonus</b></td><td class="muted">${mi.goldens} golden (levels 10×, creators 4×)</td><td style="text-align:right">+${fmtS(mi.gold)}</td></tr>` : ''}
     <tr><td><b>Reward card boost</b></td><td class="muted">${mi.rewards} × +10%</td><td style="text-align:right">+${fmtS(mi.boost)}</td></tr>
     <tr><td><b>Set bonuses</b></td><td class="muted">${mi.sets} set${mi.sets === 1 ? '' : 's'} done</td><td style="text-align:right">+${fmtS(mi.setBonus)}</td></tr>
     <tr><td><b>✦ Holo set bonuses</b></td><td class="muted">${mi.holoSets} set${mi.holoSets === 1 ? '' : 's'} done in holo</td><td style="text-align:right">+${fmtS(mi.holoSetBonus)}</td></tr>
