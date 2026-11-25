@@ -187,6 +187,18 @@ a.chip{text-decoration:none}a.chip:not(.on){color:inherit}a.chip.on .muted{color
 .evstep{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:10px;padding:8px 12px}
 .evstep.done{opacity:.55}.evstep.next{border-color:#ff3cac;box-shadow:0 0 14px #ff3cac44}
 .evbar{height:10px;border-radius:99px;background:#ffffff14;overflow:hidden;margin-top:8px}.evbar i{display:block;height:100%;background:linear-gradient(90deg,#ff3cac,#784ba0,#2b86c5)}
+/* event cards: a teal band on the picture so they can't be mixed up with main cards */
+.card.ev .thumb,.card.evr .thumb{position:relative;box-shadow:inset 0 0 0 2px #2dd4bf}
+.evband{position:absolute;left:0;right:0;bottom:0;z-index:3;text-align:center;font-weight:900;letter-spacing:.12em;font-size:clamp(6px,6.5cqw,11px);line-height:1.6;
+  color:#03201c;background:linear-gradient(90deg,#14b8a6,#4ade80);text-transform:uppercase;white-space:nowrap;overflow:hidden}
+.card.mini .evband{font-size:0;height:3px;line-height:0}
+/* the whole event area: teal frame, watermark and a strip saying where you are */
+body.evmode::before{content:"";position:fixed;inset:0;border:4px solid #2dd4bf;pointer-events:none;z-index:400;box-shadow:inset 0 0 40px #2dd4bf22}
+body.evmode #app{background-image:url("data:image/svg+xml,%3Csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20width=%27260%27%20height=%27160%27%3E%3Ctext%20x=%2710%27%20y=%2790%27%20transform=%27rotate(-20%20130%2080)%27%20font-family=%27Inter,Arial%27%20font-weight=%27900%27%20font-size=%2734%27%20fill=%27%232dd4bf%27%20fill-opacity=%27.05%27%3E%E2%97%86%20EVENT%3C/text%3E%3C/svg%3E");background-attachment:fixed}
+body.evmode #app::before{content:"◆ EVENT AREA · these are event cards. They only count in the event, not in your main collection";display:block;text-align:center;font-weight:800;font-size:13px;
+  letter-spacing:.04em;color:#03201c;background:linear-gradient(90deg,#14b8a6,#4ade80);border-radius:10px;padding:7px 12px;margin:0 0 14px}
+body.evmode .overlay::after{content:"◆ EVENT PACK · event cards only count in the event";position:fixed;left:16px;top:16px;font-weight:900;font-size:13px;letter-spacing:.05em;
+  color:#03201c;background:linear-gradient(90deg,#14b8a6,#4ade80);border-radius:999px;padding:5px 14px;z-index:5;white-space:nowrap}
 body.evmode{--accent:#2dd4bf;--accent2:#34d399;background:radial-gradient(1200px 600px at 50% -200px,#063d34 0%,transparent 70%),var(--bg)}
 body.evmode .btn.primary{background:linear-gradient(90deg,#14b8a6,#4ade80);color:#04221d}
 body.evmode .panel{border-color:#1f4a42}
@@ -825,7 +837,7 @@ function cardHTML(l, o = {}) {
   const glow = l.rank && l.rank <= 40 ? ((41 - l.rank) / 40).toFixed(2) : 0;
   return `<div class="${cls}" style="--gl:${glow}" data-key="${esc(l.key)}" data-name="${esc(l.name)}" ${o.id ? `data-id="${o.id}"` : ''}>
     <div class="ctop"><span class="rank">${l.tier === 'event' ? '◆' : l.tier === 'eventreward' ? '◆' : l.tier === 'unverified' || l.tier === 'uplayer' ? '1 of 1' : l.tier === 'player' ? '★' : l.rank ? '#' + l.rank : '—'}</span><span class="tag">${l.tier === 'event' ? (l.info?.kind === 'player' ? '★ ' : '') + (l.info?.rarity || '') : l.tier === 'eventreward' ? 'event reward' : l.tier === 'uplayer' ? 'player???' : l.tier === 'unverified' ? 'unverified' : l.tier === 'player' ? 'player · ' + pInfo(l).rarity : l.rank ? l.tier : 'vaulted'}</span></div>
-    <div class="thumb">${thumb(l)}</div>
+    <div class="thumb">${thumb(l)}${l.tier === 'event' ? `<div class="evband">◆ ${l.info?.kind === 'player' ? 'event creator' : 'event card'}</div>` : l.tier === 'eventreward' ? '<div class="evband">◆ event reward</div>' : ''}</div>
     ${o.mini ? '' : `<div class="codds">${cardOdds(l, o)}</div>`}
     <div class="nm">${esc(l.name)}</div>
     <div class="meta">${l.tier === 'event' || l.tier === 'eventreward' ? esc(l.info?.desc || '') : l.tier === 'uplayer' ? '<b class="abil">✦ ???</b> · Who is this?' : l.tier === 'player' ? `Beat ${pInfo(l).beaten.length} · Verified ${pInfo(l).verified.length}` : `${l.tier === 'unverified' ? (ABILITIES[l.key] ? `<b class="abil">✦ ${esc(ABILITIES[l.key].name)}</b> · ${esc(ABILITIES[l.key].desc)}` : 'Not verified yet') : `Verified by ${esc(l.verifier || '?')}`}<br>By ${esc(creatorsOf(l).join(', ') || '?')}`}</div>
