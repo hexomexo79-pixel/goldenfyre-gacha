@@ -161,13 +161,27 @@ h3{margin:0 0 10px;font-size:16px}
 .card .holotag{position:absolute;left:14px;top:calc(9px + 1.6em + 7px);background:#f2eefc;color:#2b1a5a;font-weight:900;font-size:clamp(8px,7cqw,11px);border-radius:6px;padding:1px 6px;z-index:4}
 .card.holo::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:1;mix-blend-mode:color;opacity:.55;
   background:linear-gradient(125deg,#ff6b6b,#ffd36b,#6bff9c,#6bd0ff,#b46bff,#ff6bd0);animation:hue 7s linear infinite}
-.card.holo::before{content:"";position:absolute;inset:0;pointer-events:none;z-index:3;
-  background:linear-gradient(110deg,transparent 30%,rgba(255,255,255,.22) 45%,rgba(255,255,255,.05) 55%,transparent 70%);background-size:300% 100%;animation:shine 5s ease-in-out infinite}
+.card.holo::before{content:"";position:absolute;top:0;bottom:0;left:0;width:300%;pointer-events:none;z-index:3;will-change:transform;
+  background:linear-gradient(110deg,transparent 30%,rgba(255,255,255,.22) 45%,rgba(255,255,255,.05) 55%,transparent 70%);animation:shinex 5s ease-in-out infinite}
+@keyframes shinex{0%,55%{transform:translateX(-10%)}100%{transform:translateX(-90%)}}
 .card.holo{box-shadow:0 0 16px color-mix(in srgb,var(--c) 35%,transparent)}
 @keyframes hue{to{filter:hue-rotate(360deg)}}
 .card.golden{border-color:#ffd36b!important;box-shadow:0 0 22px #ffc94d99,inset 0 0 0 1px #fff1b8}
 .card.golden::after{background:linear-gradient(120deg,#6b3f00,#ffcf4d 30%,#fff6cf 45%,#e2a000 62%,#6b3f00)!important;background-size:250% 250%!important;opacity:.62!important;animation:goldmove 5s linear infinite!important}
 @keyframes goldmove{to{background-position:250% 0}}
+/* performance: cards off screen don't animate, mini cards never animate, and phones get still holo/golden colours */
+.card.idle,.card.idle::before,.card.idle::after,.card.idle *,.card.idle .ctop::after{animation-play-state:paused!important}
+.card.mini::before,.card.mini::after,.card.mini .nm,.card.mini .ctop::after{animation:none!important}
+@media (hover:none),(max-width:760px){
+  .card.holo::after,.card.golden::after{animation:none!important;filter:none;mix-blend-mode:normal;opacity:.22}
+  .card.golden::after{opacity:.4!important}
+  .grid>*{content-visibility:auto;contain-intrinsic-size:auto 280px}
+  .card.t-apex .ctop::after,.card.t-unverified .nm{animation:none!important}
+  .top{backdrop-filter:none;background:rgba(8,8,10,.97)}
+  body.evmode #app{background-attachment:scroll}
+  .stile,.crow,.cicon,.redeem,.stile.ready{animation:none!important}
+}
+@media (prefers-reduced-motion:reduce){.card::before,.card::after,.card *,.stile,.crow,.cicon,.pack,.pack::before{animation:none!important}}
 .hint.goldhint{background:linear-gradient(90deg,#ffd36b,#fff1b8);color:#4a2a00;font-weight:900}
 .card .goldtag{background:linear-gradient(90deg,#ffd36b,#fff1b8);color:#4a2a00}
 .goldtxt{background:linear-gradient(90deg,#ffcf4d,#fff1b8,#e2a000);-webkit-background-clip:text;background-clip:text;color:transparent}
@@ -2918,6 +2932,14 @@ function disclaimer() {
 }
 whatsNew();
 disclaimer();
+// pause animations on cards that are off screen (big collections were lagging on phones)
+(() => {
+  if (!('IntersectionObserver' in window)) return;
+  const io = new IntersectionObserver(es => { for (const e of es) e.target.classList.toggle('idle', !e.isIntersecting); }, {rootMargin: '200px'});
+  const seen = new WeakSet(), scan = root => root.querySelectorAll && root.querySelectorAll('.card.holo,.card.golden,.card.t-apex,.card.t-unverified').forEach(c => { if (!seen.has(c)) { seen.add(c); c.classList.add('idle'); io.observe(c); } });
+  new MutationObserver(ms => { for (const m of ms) for (const n of m.addedNodes) if (n.nodeType === 1) { if (n.matches?.('.card')) scan(n.parentNode); else scan(n); } }).observe(document.body, {childList: true, subtree: true});
+  scan(document.body);
+})();
 boot();
 </script>
 </body>
