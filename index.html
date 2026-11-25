@@ -1796,12 +1796,35 @@ function filterChips(rerender, cards) {
   return `${searchBox('cq', f.q)}<div class="chips">${chip('show','all','All')}${chip('show','owned','Owned')}${chip('show','missing','Missing')}${chip('show','holo','✦ Holo')}${S.me.holo_dupe_packs ? chip('show','hdupes','✦ Holo dupes') : ''}${chip('show','dupes','Dupes')}</div>
     <div class="chips">${chip('tier','all','Every tier')}${[...TIERS].reverse().map(t => chip('tier', t, t[0].toUpperCase() + t.slice(1))).join('')}${chip('tier','unverified','Unverified')}${S.me.golden_cards ? chip('tier','golden','★ Golden') : ''}${chip('tier','event','◆ Event')}</div>${S.me.player_cards ? `<div class="chips">${chip('tier','player','★ Players')}${chip('tier','pholo','✦ Holo players')}${S.me.golden_cards ? chip('tier','pgold','★ Golden players') : ''}</div>` : ''}`;
 }
+// 4+ holos of the same card -> keep 1, trade the rest 3 at a time for holo packs (pick the highest rarity to include)
+async function holoExtras(scope, after) {
+  const m = document.createElement('div'); m.className = 'modal';
+  const opts = [...TIERS].reverse();
+  m.innerHTML = `<div class="box"><h2 style="margin:0 0 6px">✦ Turn extra holos into packs</h2>
+    <p class="muted" style="font-size:13px;margin:0 0 12px">For every card you have <b>4 or more</b> unlocked holos of, you keep 1 and every 3 extra become a holo ${scope === 'event' ? 'event / creator' : ''} pack. Goldens, locked cards and cards in trades are left alone.</p>
+    <div class="label">Include rarities up to</div><select class="field" id="hxMax" style="width:100%;margin-bottom:12px">${opts.map(t => `<option value="${t}" ${t === 'rare' ? 'selected' : ''}>${t[0].toUpperCase() + t.slice(1)}${t === 'common' ? ' only' : t === 'apex' ? ' (everything)' : ' and below'}</option>`).join('')}</select>
+    <div id="hxPrev" class="muted" style="min-height:40px;margin-bottom:12px">Checking…</div>
+    <div class="row" style="gap:8px"><button class="btn" onclick="this.closest('.modal').remove()">Cancel</button><button class="btn primary" id="hxGo" style="margin-left:auto" disabled>Do it</button></div></div>`;
+  document.body.appendChild(m);
+  const txt = r => [r.holo && `${r.holo} holo pack${r.holo > 1 ? 's' : ''}`, r.holo_player && `${r.holo_player} holo player pack${r.holo_player > 1 ? 's' : ''}`,
+    r.holo_event && `${r.holo_event} holo event pack${r.holo_event > 1 ? 's' : ''}`, r.holo_creator && `${r.holo_creator} holo creator pack${r.holo_creator > 1 ? 's' : ''}`].filter(Boolean).join(', ');
+  const prev = async () => { const b = m.querySelector('#hxGo'); b.disabled = true;
+    try { const r = await rpc('holo_extra_to_packs', {p_token: S.token, p_scope: scope, p_dry: true, p_max: m.querySelector('#hxMax').value});
+      m.querySelector('#hxPrev').innerHTML = r.used ? `Uses <b>${r.used}</b> holos → <b>${txt(r)}</b>` : 'Nothing to turn in at this rarity. You need 4+ holos of the same card.'; b.disabled = !r.used; }
+    catch (e) { m.querySelector('#hxPrev').textContent = e.message; } };
+  m.querySelector('#hxMax').onchange = prev; prev();
+  m.querySelector('#hxGo').onclick = async e => { e.currentTarget.disabled = true;
+    try { const r = await rpc('holo_extra_to_packs', {p_token: S.token, p_scope: scope, p_dry: false, p_max: m.querySelector('#hxMax').value});
+      setState(r.state); await loadMyCards(); if (scope === 'event') await loadEvent(); m.remove(); toast('✦ Got ' + txt(r) + '!'); after(); }
+    catch (er) { toast(er.message, true); e.currentTarget.disabled = false; } };
+}
 function renderCollection() {
   const info = myInfo(), listed = S.levels.filter(l => l.rank);
   app.innerHTML = `<div class="panel"><div class="row between"><h2 style="margin:0">Your collection · ${info.uniq}/${listed.length} · <span class="hcount">✦ ${info.holos}/${listed.length} holo</span> · ${S.myCards.length} cards</h2>
-    <button class="holotog" id="craftAll">✦ Turn all dupes into holos</button></div><br>
+    <div class="row" style="gap:8px"><button class="holotog" id="craftAll">✦ Turn all dupes into holos</button>${S.me.holo_dupe_packs ? '<button class="holotog" id="hxAll">✦ Extra holos → packs</button>' : ''}</div></div><br>
     ${filterChips(renderCollection, S.myCards)}<div id="cgrid">${collectionGrid(S.myCards)}</div></div>
     <div class="panel"><h2>Your score</h2>${scoreTable(info)}</div>`;
+  if ($('#hxAll')) $('#hxAll').onclick = () => holoExtras('main', renderCollection);
   $('#craftAll').onclick = async () => {
     try {
       const d = await rpc('craft_all', {p_token: S.token, p_dry: true, p_scope: 'main'});
@@ -2237,8 +2260,8 @@ async function renderNewTrade(name) {
   const side = (cards, sel, q, f) => {
     const ev = inEv(), lvOf = c => S.byKey[c.level_key], isE = c => lvOf(c)?.tier === 'event', cur = c => isE(c) && lvOf(c)?.info?.event === S.event?.id;
     const isPC = c => ev ? lvOf(c)?.info?.kind === 'player' : isP(c);   // player card (main) / creator card (event)
-    let pool = cards.filter(c => !c.locked && !sel.some(s => s.id === c.id) && lvOf(c) && matchQ(lvOf(c), q) && (ev ? cur(c) : !isE(c))
-      && (f.k === 'players') === isPC(c) && (f.r === 'all' || rarOf(lvOf(c)) === f.r));
+    const kindOk = c => f.k === 'event' ? cur(c) : f.k === 'main' ? !isE(c) : (ev ? cur(c) : !isE(c)) && (f.k === 'players') === isPC(c);   // 'event' on the main page / 'main' on the event page = the other side's cards
+    let pool = cards.filter(c => !c.locked && !sel.some(s => s.id === c.id) && lvOf(c) && matchQ(lvOf(c), q) && kindOk(c) && (f.r === 'all' || rarOf(lvOf(c)) === f.r));
     if (f.s === 'holo') pool = pool.filter(c => c.holo && !c.golden);
     if (f.s === 'golden') pool = pool.filter(c => c.golden);
     let cp = copiesOf(pool);
@@ -2249,8 +2272,8 @@ async function renderNewTrade(name) {
   const tray = (sel, otherOwn) => sel.map(c => cardHTML(S.byKey[c.level_key], {holo: c.holo, golden: c.golden, id: c.id, mini: true})).join('');
   const modeChips = (id, f) => {
     const chip = (g, v, t) => `<button class="chip ${f[g] === v ? 'on' : ''}" data-${id}="${g}:${v}">${t}</button>`, ev = inEv();
-    const kinds = ev ? (S.levels.some(l => l.tier === 'event' && l.info?.event === S.event?.id && l.info?.kind === 'player') ? [['levels', 'Levels'], ['players', '★ Creators']] : [])
-      : S.me.player_cards ? [['levels', 'Levels'], ['players', '★ Players']] : [];
+    const kinds = ev ? [['levels', 'Levels'], ...(S.levels.some(l => l.tier === 'event' && l.info?.event === S.event?.id && l.info?.kind === 'player') ? [['players', '★ Creators']] : [])]
+      : [['levels', 'Levels'], ...(S.me.player_cards ? [['players', '★ Players']] : [])];   // event cards only trade for event cards
     return `${kinds.length ? `<div class="chips" style="margin:0 0 6px">${kinds.map(([v, t]) => chip('k', v, t)).join('')}</div>` : ''}
       <div class="chips" style="margin:0 0 6px">${chip('s', 'all', 'All')}${chip('s', 'holo', '✦ Holo')}${S.me.golden_cards ? chip('s', 'golden', '★ Golden') : ''}${chip('s', 'dupes', 'Dupes')}</div>
       <div class="chips" style="margin:0 0 8px">${chip('r', 'all', 'Every rarity')}${[...TIERS].reverse().map(t => chip('r', t, t[0].toUpperCase() + t.slice(1))).join('')}</div>`;
@@ -2762,10 +2785,11 @@ async function renderEvent(page = 'packs') {
   if (page === 'collection') {
     const rw = S.levels.filter(l => l.tier === 'eventreward' && l.info?.event === e.id).sort((a, b) => a.points - b.points), hol = cards.filter(l => own[l.key] && own[l.key].holo).length;
     app.innerHTML = `<div class="panel"><div class="row between"><h2 style="margin:0">Event collection · ${owned}/${cards.length} · <span class="hcount">✦ ${hol}/${cards.length} holo</span> · ${st(e.score)}</h2>
-      <button class="holotog" id="evCraftAll">✦ Turn all dupes into holos</button></div><br>
+      <div class="row" style="gap:8px"><button class="holotog" id="evCraftAll">✦ Turn all dupes into holos</button>${S.me.holo_dupe_packs ? '<button class="holotog" id="evHx">✦ Extra holos → packs</button>' : ''}</div></div><br>
       ${evChips(() => renderEvent('collection'), cards, cp)}<div id="evgrid">${evGrid(cards, cp)}</div></div>
       ${rw.length ? `<div class="panel"><h2>Reward cards · ${rw.filter(l => own[l.key]).length}/${rw.length}</h2><p class="muted" style="margin:-4px 0 12px;font-size:13px">From the reward track. They count in your main score, and each one gives +10% Stars here.</p>
         <div class="grid">${rw.map(l => cardHTML(l, {missing: !own[l.key]})).join('')}</div></div>` : ''}`;
+    if ($('#evHx')) $('#evHx').onclick = () => holoExtras('event', () => renderEvent('collection'));
     $('#evCraftAll').onclick = async () => {
       try {
         const d = await rpc('craft_all', {p_token: S.token, p_dry: true, p_scope: 'event'});
