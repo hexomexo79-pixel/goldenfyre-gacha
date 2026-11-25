@@ -169,6 +169,17 @@ h3{margin:0 0 10px;font-size:16px}
 .card.golden{border-color:#ffd36b!important;box-shadow:0 0 22px #ffc94d99,inset 0 0 0 1px #fff1b8}
 .card.golden::after{background:linear-gradient(120deg,#6b3f00,#ffcf4d 30%,#fff6cf 45%,#e2a000 62%,#6b3f00)!important;background-size:250% 250%!important;opacity:.62!important;animation:goldmove 5s linear infinite!important}
 @keyframes goldmove{to{background-position:250% 0}}
+/* performance 2: holo/golden shine only moves when you hover a card or see it big (popups, pack opening).
+   Cards in grids, stacks and trades stay still, and cards hidden behind a stack have no effects at all */
+.card.holo::before,.card.holo::after,.card.golden::after{animation-play-state:paused}
+.card:hover::before,.card:hover::after,.modal .card::before,.modal .card::after,.overlay .card::before,.overlay .card::after{animation-play-state:running}
+.cstack .layer .card::before,.cstack .layer .card::after,.cstack .layer .card .ctop::after{display:none}
+.cstack .layer .card{box-shadow:none}
+.tpick .card::before,.tray .card::before{display:none}
+.tpick .card::after,.tray .card::after,.tpick .card .ctop::after{animation:none!important}
+.tpick .card.holo::after,.tray .card.holo::after{mix-blend-mode:normal;opacity:.2}
+.tpick .card.golden::after,.tray .card.golden::after{opacity:.4!important}
+.tpick .card,.tray .card{box-shadow:none}
 /* performance: cards off screen don't animate, mini cards never animate, and phones get still holo/golden colours */
 .card.idle,.card.idle::before,.card.idle::after,.card.idle *,.card.idle .ctop::after{animation-play-state:paused!important}
 .card.mini::before,.card.mini::after,.card.mini .nm,.card.mini .ctop::after{animation:none!important}
