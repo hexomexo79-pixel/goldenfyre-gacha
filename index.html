@@ -478,7 +478,7 @@ footer{text-align:center;color:#6d6975;font-size:12px;padding:20px;line-height:1
 .plv{display:flex;flex-wrap:wrap;gap:4px;margin:6px 0 10px}.plv span{font-size:12px;padding:2px 7px;border-radius:99px;border:1px solid var(--line);color:var(--muted)}.plv span.own{color:var(--text);border-color:#2dd4bf}
 .pgrid{display:flex;flex-wrap:wrap;gap:3px;margin-top:6px;max-width:100%}.pgrid span{min-width:22px;padding:2px 3px;text-align:center;font-size:10px;font-weight:800;border-radius:5px;background:#ffffff10;color:#ffffff40}.pgrid span.own{background:#2dd4bf33;color:#d9fffa;outline:1px solid #2dd4bf88}.pgrid span.own.holo{background:linear-gradient(135deg,#ff6b6b55,#ffd36b55,#6bff9c55,#6bd0ff55,#b46bff55)}.pgrid span.ver{text-decoration:underline}
 .pgrid span.own.golden{background:linear-gradient(135deg,#b7791f,#ffd36b,#fff1b8);color:#3a2500;outline-color:#ffd36b}
-.pgrid.evgrid span{padding:2px 5px;font-size:9.5px}
+
 .card.t-player .thumb img{object-fit:cover}
 .pimg{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:clamp(20px,30cqw,48px);color:#fff}
 .feeditem.t-player{--c:#2dd4bf}
@@ -624,6 +624,17 @@ function playerBoostOf(l, own, holo, maxed) {
   return Math.round(b * (typeof holo === 'number' ? holo : holo ? RULES.playerHoloMult : 1));
 }
 // little grid of a player's levels by rank: bright = you own it
+// event levels get a number by their place in the event (hardest = #1), like the main list
+let _evRank = null;
+function evRank(l) {
+  if (!_evRank || _evRank.n !== S.levels.length) {
+    const m = {}, by = {};
+    for (const x of S.levels) if (x.tier === 'event' && x.info?.kind !== 'player') (by[x.info?.event] ||= []).push(x);
+    for (const list of Object.values(by)) list.sort((a, b) => TIERS.indexOf(a.info?.rarity) - TIERS.indexOf(b.info?.rarity) || (a.info?.order ?? 0) - (b.info?.order ?? 0)).forEach((x, i) => m[x.key] = i + 1);
+    _evRank = {n: S.levels.length, m};
+  }
+  return _evRank.m[l.key];
+}
 // event creator card: their levels in this event (yours lit up, holo/golden shown), hardest first
 function creatorGrid(cl, own) {
   const name = cl.name.toLowerCase();
@@ -631,7 +642,7 @@ function creatorGrid(cl, own) {
     .sort((a, b) => TIERS.indexOf(a.info?.rarity) - TIERS.indexOf(b.info?.rarity) || (a.info?.order ?? 0) - (b.info?.order ?? 0));
   if (!ks.length) return '';
   return `<div class="pgrid evgrid">${ks.map(l => { const o = own[l.key];
-    return `<span class="${o ? (o.golden ? 'own golden' : o.holo ? 'own holo' : 'own') : ''}" title="${esc(l.name)} · ${esc(l.info?.rarity || '')}${o ? (o.golden ? ' · golden' : o.holo ? ' · holo' : ' · owned') : ' · not owned'}">${esc(l.name.length > 12 ? l.name.slice(0, 11) + '…' : l.name)}</span>`; }).join('')}</div>`;
+    return `<span class="${o ? (o.golden ? 'own golden' : o.holo ? 'own holo' : 'own') : ''}" title="#${evRank(l)} ${esc(l.name)} · ${esc(l.info?.rarity || '')}${o ? (o.golden ? ' · golden' : o.holo ? ' · holo' : ' · owned') : ' · not owned'}">#${evRank(l)}</span>`; }).join('')}</div>`;
 }
 function playerGrid(l, own) {
   const p = pInfo(l), ks = [...new Set([...p.verified, ...p.beaten])].sort((a, b) => S.byKey[a].rank - S.byKey[b].rank);
@@ -873,7 +884,7 @@ function cardHTML(l, o = {}) {
   const cls = ['card', l.tier === 'uplayer' ? 't-unverified t-uplayer' : l.tier === 'event' ? 't-' + (l.info?.rarity || 'common') + ' ev' : l.tier === 'eventreward' ? 't-legendary evr' : 't-' + l.tier, l.tier === 'player' ? 'pr-' + pInfo(l).rarity : '', o.holo || o.golden || l.tier === 'unverified' || l.tier === 'uplayer' ? 'holo' : '', o.golden ? 'golden' : '', o.missing ? 'missing' : '', o.mini ? 'mini' : '', o.sel ? 'sel' : ''].join(' ');
   const glow = l.rank && l.rank <= 40 ? ((41 - l.rank) / 40).toFixed(2) : 0;
   return `<div class="${cls}" style="--gl:${glow}" data-key="${esc(l.key)}" data-name="${esc(l.name)}" ${o.id ? `data-id="${o.id}"` : ''}>
-    <div class="ctop"><span class="rank">${l.tier === 'event' ? '◆' : l.tier === 'eventreward' ? '◆' : l.tier === 'unverified' || l.tier === 'uplayer' ? '1 of 1' : l.tier === 'player' ? '★' : l.rank ? '#' + l.rank : '—'}</span><span class="tag">${l.tier === 'event' ? (l.info?.kind === 'player' ? '★ ' : '') + (l.info?.rarity || '') : l.tier === 'eventreward' ? 'event reward' : l.tier === 'uplayer' ? 'player???' : l.tier === 'unverified' ? 'unverified' : l.tier === 'player' ? 'player · ' + pInfo(l).rarity : l.rank ? l.tier : 'vaulted'}</span></div>
+    <div class="ctop"><span class="rank">${l.tier === 'event' ? (l.info?.kind === 'player' ? '◆' : '◆ #' + evRank(l)) : l.tier === 'eventreward' ? '◆' : l.tier === 'unverified' || l.tier === 'uplayer' ? '1 of 1' : l.tier === 'player' ? '★' : l.rank ? '#' + l.rank : '—'}</span><span class="tag">${l.tier === 'event' ? (l.info?.kind === 'player' ? '★ ' : '') + (l.info?.rarity || '') : l.tier === 'eventreward' ? 'event reward' : l.tier === 'uplayer' ? 'player???' : l.tier === 'unverified' ? 'unverified' : l.tier === 'player' ? 'player · ' + pInfo(l).rarity : l.rank ? l.tier : 'vaulted'}</span></div>
     <div class="thumb">${thumb(l)}${l.tier === 'event' ? `<div class="evband">◆ ${l.info?.kind === 'player' ? 'event creator' : 'event card'}</div>` : l.tier === 'eventreward' ? '<div class="evband">◆ event reward</div>' : ''}</div>
     ${o.mini ? '' : `<div class="codds">${cardOdds(l, o)}</div>`}
     <div class="nm">${esc(l.name)}</div>
