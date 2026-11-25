@@ -2537,7 +2537,8 @@ const CHANGELOG = [
     "NEW: ◆ Events! Limited-time cards with their own packs, collection, sets, trades and leaderboard. Tap ◆ Event (top right)",
     "First event: Non-Demon Week (7 days). Every rated non-demon on the server, plus ★ creator cards for the people who made them",
     "Event cards earn ★ Stars. Reach Star goals for 5 reward cards (Easy → Insane). You keep them forever, they count in your main score, and they make your event timers faster",
-    "NEW: something wrong or a missing thumbnail? Open any card → ✎ Suggest an edit. An admin checks it before it goes in"
+    "NEW: something wrong or a missing thumbnail? Open any card → ✎ Suggest an edit. An admin checks it before it goes in",
+    "NEW Unverified card: Lotus by Luna, to be verified by Miokii"
   ]},
   {v: 11, flag: 'golden_cards', title: 'Update', items: [
     'NEW: ★ Golden cards. Only ONE golden of each card exists',
@@ -2675,9 +2676,19 @@ function evOddsHTML(cards, crs = []) {
       <td style="text-align:right">${(q * 100).toFixed(q < .01 ? 2 : 1)}%</td><td style="text-align:right">${pack >= .5 ? Math.round(pack * 100) + '% of packs' : one(pack)}</td><td style="text-align:right">${one(lp)}</td><td style="text-align:right">${one(lp * hc)}</td></tr>`; }).join('');
     return `${head ? `<b style="display:block;margin-top:14px">${head}</b>` : ''}<div style="overflow-x:auto"><table class="scoretbl" style="margin-top:10px"><thead><tr class="muted" style="font-size:12px"><td>Rarity</td><td style="text-align:right">Per option</td><td style="text-align:right">In a pack</td><td style="text-align:right">A specific card</td><td style="text-align:right">That card in holo</td></tr></thead>
     <tbody>${rows}</tbody></table></div>`; };
-  const gc = S.me.golden_chance ?? 0.01;
-  return `<details class="panel odds"><summary><b>Event pack odds</b></summary>${tbl(cards, crs.length ? 'Event packs' : '')}${tbl(crs, '★ Creator packs')}
-    <p class="muted" style="font-size:12px;margin:8px 0 0">Packs show 3 cards and you keep 1. Holo packs: every option is holo.${S.me.golden_cards ? ` Up to 1 in ${fmt(Math.round(1 / gc))} packs has a ★ golden card (only 1 of each exists, worth 10× Stars; a golden creator boosts +200%); it gets rarer as goldens are found.` : ''}</p></details>`;
+  const gc = S.me.golden_chance ?? 0.01, fl = S.me.golden_floor ?? 0.5;
+  const gtbl = list => {   // goldens: chance a pack has one, and per rarity how many are left and the chance for a specific one
+    const tot = list.reduce((s, l) => s + (EW[l.info?.rarity] || 80), 0); if (!tot) return '';
+    const left = list.filter(l => !goldOwner(l.key)), wl = left.reduce((s, l) => s + (EW[l.info?.rarity] || 80), 0);
+    const pg = wl ? gc * (fl + (1 - fl) * wl / tot) : 0, one = x => x > 0 ? '1 in ' + fmt(Math.round(1 / x)) : '—';
+    const rows = TIERS.map(t => { const lv = list.filter(l => l.info?.rarity === t); if (!lv.length) return ''; const lf = lv.filter(l => !goldOwner(l.key)).length;
+      return `<tr><td><span style="color:var(--${t});font-weight:800">${t.toUpperCase()}</span></td><td style="text-align:right">${lf}/${lv.length}</td><td style="text-align:right">${lf && wl ? one(pg * EW[t] / wl) : '—'}</td></tr>`; }).join('');
+    return `<div class="muted" style="font-size:13px;margin-top:6px">A pack has a golden: <b>${one(pg)}</b> right now · ${left.length}/${list.length} still unfound</div>
+      <div style="overflow-x:auto"><table class="scoretbl" style="margin-top:6px"><thead><tr class="muted" style="font-size:12px"><td>Rarity</td><td style="text-align:right">Goldens left</td><td style="text-align:right">A specific golden, per pack</td></tr></thead><tbody>${rows}</tbody></table></div>`; };
+  const gold = S.me.golden_cards ? `<b style="display:block;margin-top:18px" class="goldtxt">★ Goldens</b><p class="muted" style="font-size:12px;margin:4px 0 0">Only 1 golden of each card exists. Golden levels count 10× Stars, a golden creator boosts +200%. They get rarer as they're found.</p>
+    ${crs.length ? '<b style="display:block;margin-top:10px;font-size:13px">In event packs</b>' : ''}${gtbl(cards)}${crs.length ? `<b style="display:block;margin-top:10px;font-size:13px">In creator packs</b>${gtbl(crs)}` : ''}` : '';
+  return `<details class="panel odds"><summary><b>Event pack odds</b></summary>${tbl(cards, crs.length ? 'Event packs' : '')}${tbl(crs, '★ Creator packs')}${gold}
+    <p class="muted" style="font-size:12px;margin:8px 0 0">Packs show 3 cards and you keep 1. Holo packs: every option is holo.</p></details>`;
 }
 // someone else's event collection (#/event/player/NAME)
 async function renderEventPlayer(name) {
