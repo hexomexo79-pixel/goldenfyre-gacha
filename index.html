@@ -1005,7 +1005,7 @@ function showLevel(key) {
     ${l.tier === 'event' || l.tier === 'eventreward' ? '' : `<span class="muted">Created by ${esc(creatorsOf(l).join(', ') || '?')} · Verified by ${esc(l.verifier || '?')}</span>`}</p>
     <p>You own: <b>${own ? own.count : 0}</b> ${own && own.holo ? `(${own.holo} holo)` : ''}<br>
     <span class="muted">${l.tier === 'event' && l.info?.kind === 'player' ? (() => { const om = {}; for (const [k, x] of Object.entries(ownership(S.myCards))) om[k] = {holo: !!x.holo, golden: !!x.golden};
-      const m = own?.golden ? 4 : own?.holo ? 2 : 1; return `+${fmtS(CREATOR_BASE)} ★, plus +50% Stars on ${esc(l.name)}'s levels you own (holo doubles both, golden ×4) · ${own ? 'now' : 'would give'} +${fmtS(evCreatorBoost(l, om, m))} ★ · ${cardOdds(l)}`; })() : l.tier === 'event' ? `Worth ${fmtS(l.points)} ★ Stars, ${fmtS(l.points * evMult(l, {holo: 1}))} ★ as holo${S.me.golden_cards ? `, ${fmtS(l.points * evMult(l, {golden: 1}))} ★ golden` : ''} · ${cardOdds(l)}` : l.tier === 'eventreward' ? `Worth ${fmt(l.points)} pts + ${Math.round(rewardShare(l) * 100)}% of your best level card in the main game, and +10% ★ Stars in its event` : `Worth ${fmt(l.points)} pts, or ${fmt(l.points * RULES.holoMult)} as holo`}${S.me.golden_cards && l.rank ? `, ${fmt(l.points * RULES.goldMult)} golden` : ''}</span>
+      const m = own?.golden ? 4 : own?.holo ? 2 : 1; return `+${fmtS(CREATOR_BASE)} ★, plus +50% Stars on ${esc(l.name)}'s levels you own (holo doubles both, golden ×4) · ${own ? 'now' : 'would give'} +${fmtS(evCreatorBoost(l, om, m))} ★ · ${cardOdds(l)}`; })() : l.tier === 'event' ? `Worth ${fmtS(l.points)} ★ Stars, ${fmtS(l.points * evMult(l, {holo: 1}))} ★ as holo${S.me.golden_cards ? `, ${fmtS(l.points * evMult(l, {golden: 1}))} ★ golden` : ''} · ${cardOdds(l)}` : l.tier === 'eventreward' ? `Worth ${fmt(l.points)} pts + ${Math.round(rewardShare(l) * 100)}% of your best level card in the main game, and makes event timers 1 min faster` : `Worth ${fmt(l.points)} pts, or ${fmt(l.points * RULES.holoMult)} as holo`}${S.me.golden_cards && l.rank ? `, ${fmt(l.points * RULES.goldMult)} golden` : ''}</span>
     ${S.me.golden_cards && l.rank ? `<br><span class="muted">${goldOwner(key) ? `★ Golden owned by <b class="goldtxt">${esc(goldOwner(key))}</b>` : '★ Golden not found yet'}</span>` : ''}</p>
     ${l.video_id ? `<p><a href="https://youtu.be/${esc(l.video_id)}" target="_blank" rel="noopener">Watch verification ↗</a></p>` : ''}
     ${own ? `<div class="locks"><div class="label" style="margin-bottom:6px">Your copies · locked ones can't be traded</div>${S.myCards.filter(c => c.level_key === key).sort((a, b) => !!b.golden - !!a.golden || b.holo - a.holo).map((c, i) =>
@@ -2710,7 +2710,7 @@ function evInfo(owned) {   // owned: [[key, holo, n, golden]] rows. Returns the 
       if (l.info?.kind === 'player') { creators++; crBoost += evCreatorBoost(l, om, g ? 4 : h ? 2 : 1); }
       else { cards += l.points; if (g) gold += l.points * 9; else if (h) holo += l.points * 2; } }
     if (l.tier === 'eventreward') rewards++; }
-  const boost = Math.round((cards + holo + gold + crBoost) * 0.1 * rewards);
+  const boost = 0;   // reward cards no longer add Stars
   const hset = new Set(owned.filter(r => r[1]).map(r => r[0]));
   const sets = (S.evSets || []).filter(st => st.keys.every(k => has.has(k))), hsets = (S.evSets || []).filter(st => st.keys.every(k => hset.has(k)));
   const setBonus = sets.reduce((s, st) => s + st.bonus, 0), holoSetBonus = hsets.reduce((s, st) => s + st.bonus, 0);
@@ -2828,7 +2828,7 @@ async function renderEvent(page = 'packs') {
     app.innerHTML = `<div class="panel"><div class="row between"><h2 style="margin:0">Event collection · ${owned}/${cards.length} · <span class="hcount">✦ ${hol}/${cards.length} holo</span> · ${st(e.score)}</h2>
       <div class="row" style="gap:8px"><button class="holotog" id="evCraftAll">✦ Turn all dupes into holos</button>${S.me.holo_dupe_packs ? '<button class="holotog" id="evHx">✦ Extra holos → packs</button>' : ''}</div></div><br>
       ${evChips(() => renderEvent('collection'), cards, cp)}<div id="evgrid">${evGrid(cards, cp)}</div></div>
-      ${rw.length ? `<div class="panel"><h2>Reward cards · ${rw.filter(l => own[l.key]).length}/${rw.length}</h2><p class="muted" style="margin:-4px 0 12px;font-size:13px">From the reward track. They count in your main score, and each one gives +10% Stars here.</p>
+      ${rw.length ? `<div class="panel"><h2>Reward cards · ${rw.filter(l => own[l.key]).length}/${rw.length}</h2><p class="muted" style="margin:-4px 0 12px;font-size:13px">From the reward track. They count in your main score and make your event timers faster.</p>
         <div class="grid">${rw.map(l => cardHTML(l, {missing: !own[l.key]})).join('')}</div></div>` : ''}`;
     if ($('#evHx')) $('#evHx').onclick = () => holoExtras('event', () => renderEvent('collection'));
     $('#evCraftAll').onclick = async () => {
@@ -2918,7 +2918,7 @@ async function renderEvent(page = 'packs') {
       return `<div class="evstep" data-rcard="${esc(e.top_card)}" style="cursor:pointer;border-color:#ef444488;box-shadow:0 0 14px #ef444433"><div style="width:58px;flex:none">${cardHTML(tc, {mini: true, missing: !ownership(S.myCards)[e.top_card]})}</div>
         <b style="min-width:84px;color:#fca5a5">#1 at the end</b><span style="flex:1"><b>${esc(tc.name)} card</b> · only the player with the most Stars when the event ends gets it${lead && lead.s > 0 ? ` · leading now: <b>${esc(lead.r.username)}</b>` : ''}
         <br><span class="muted" style="font-size:12px">Main game: +${fmt(tc.points)} pts + ${Math.round(rewardShare(tc) * 100)}% of your best level card</span></span></div>`; })() : ''}
-    <p class="muted" style="font-size:12px;margin:8px 0 0">Reward cards are yours forever. In the main game each one adds points plus a share of your best level card (all 5 together = a whole extra copy of your best card), so they grow as your collection does. In this event each one also gives +10% Stars.</p></div>
+    <p class="muted" style="font-size:12px;margin:8px 0 0">Reward cards are yours forever. In the main game each one adds points plus a share of your best level card (all 5 together = a whole extra copy of your best card), so they grow as your collection does. In this event each one also makes your event pack timers 1 min faster.</p></div>
   <div class="panel"><div class="row between"><h2 style="margin:0">Collection progress</h2><a href="#/event/collection">Open collection →</a></div>
     <div class="bar"><i style="width:${(owned / Math.max(cards.length, 1) * 100).toFixed(1)}%;background:linear-gradient(90deg,#14b8a6,#4ade80)"></i></div>
     <div class="stats six" style="grid-template-columns:repeat(auto-fit,minmax(120px,1fr))"><div class="stat"><b>${(owned / Math.max(cards.length, 1) * 100).toFixed(1)}%</b><span class="muted">Collected</span></div>
@@ -2942,7 +2942,6 @@ async function renderEvent(page = 'packs') {
     <tr><td><b>✦ Holo bonus</b></td><td class="muted">holo levels count 3×</td><td style="text-align:right">+${fmtS(mi.holo)}</td></tr>
     ${mi.gold ? `<tr><td><b>★ Golden bonus</b></td><td class="muted">golden levels count 10×</td><td style="text-align:right">+${fmtS(mi.gold)}</td></tr>` : ''}
     <tr><td><b>★ Creator boosts</b></td><td class="muted">${mi.creators} creator${mi.creators === 1 ? '' : 's'} · +${fmtS(CREATOR_BASE)} each, plus +50% of their levels you own (holo ×2, golden ×4)</td><td style="text-align:right">+${fmtS(mi.crBoost)}</td></tr>
-    <tr><td><b>Reward card boost</b></td><td class="muted">${mi.rewards} × +10%</td><td style="text-align:right">+${fmtS(mi.boost)}</td></tr>
     <tr><td><b>Set bonuses</b></td><td class="muted">${mi.sets} set${mi.sets === 1 ? '' : 's'} done</td><td style="text-align:right">+${fmtS(mi.setBonus)}</td></tr>
     <tr><td><b>✦ Holo set bonuses</b></td><td class="muted">${mi.holoSets} set${mi.holoSets === 1 ? '' : 's'} done in holo</td><td style="text-align:right">+${fmtS(mi.holoSetBonus)}</td></tr>
     <tr class="tot"><td><b>Total</b></td><td></td><td style="text-align:right"><b>${fmtS(mi.total)} ★</b></td></tr></tbody></table></details>
