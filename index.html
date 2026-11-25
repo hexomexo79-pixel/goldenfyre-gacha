@@ -802,7 +802,7 @@ function cardOdds(l, o = {}) {   // chance per card shown (each option in a pack
   const one = p => '1 in ' + shortN(1 / p) + ' cards';
   if (l.tier === 'uplayer') return unvOwner(l.key) ? 'Found' : '';
   if (l.tier === 'eventreward') return 'Event reward';
-  if (l.tier === 'event') { const ev = S.levels.filter(x => x.tier === 'event' && x.info?.event === l.info?.event && (x.info?.kind === 'player') === (l.info?.kind === 'player')), EW = {apex: 1, mythic: 3, legendary: 8, epic: 20, rare: 40, uncommon: 60, common: 80};
+  if (l.tier === 'event') { const ev = S.levels.filter(x => x.tier === 'event' && x.info?.event === l.info?.event && (x.info?.kind === 'player') === (l.info?.kind === 'player')), EW = {apex: 0.7, mythic: 2.5, legendary: 7, epic: 20, rare: 40, uncommon: 60, common: 80};
     const tot = ev.reduce((s, x) => s + (EW[x.info?.rarity] || 80), 0), each = (EW[l.info?.rarity] || 80) / tot, hc2 = (S.odds && S.odds.holo_chance) ?? 0.1;
     if (o.golden) { if (goldOwner(l.key)) return '★ 1 of 1 · already found'; const left = ev.filter(x => !goldOwner(x.key)), wl = left.reduce((s, x) => s + (EW[x.info?.rarity] || 80), 0), fl = S.me.golden_floor ?? 0.5;
       return wl ? '★ 1 in ' + shortN(1 / ((S.me.golden_chance ?? 0.01) * (fl + (1 - fl) * wl / tot) * (EW[l.info?.rarity] || 80) / wl / 3)) + ' cards' : ''; }
@@ -2715,7 +2715,7 @@ function evChips(redraw, list, cp) {
     <div class="chips">${chip('r','all','Every rarity')}${rar.map(t => chip('r', t, t[0].toUpperCase() + t.slice(1))).join('')}</div>`;
 }
 function evOddsHTML(cards, crs = []) {
-  const EW = {apex: 1, mythic: 3, legendary: 8, epic: 20, rare: 40, uncommon: 60, common: 80}, hc = S.odds?.holo_chance ?? 0.1;
+  const EW = {apex: 0.7, mythic: 2.5, legendary: 7, epic: 20, rare: 40, uncommon: 60, common: 80}, hc = S.odds?.holo_chance ?? 0.1;
   const tbl = (cards, head) => { const tot = cards.reduce((s, l) => s + (EW[l.info?.rarity] || 80), 0); if (!tot) return '';
   const one = x => x >= 1 ? '1 in 1' : '1 in ' + fmt(Math.round(1 / x));
   const rows = TIERS.map(t => { const lv = cards.filter(l => l.info?.rarity === t); if (!lv.length) return '';
