@@ -529,6 +529,7 @@ footer{text-align:center;color:#6d6975;font-size:12px;padding:20px;line-height:1
     <a href="#/event/sets">Sets</a>
     <a href="#/event/board">Leaderboard</a>
     <a href="#/event/trades">Trades</a>
+    <a href="#/admin" class="evAdmin hidden">Admin</a>
     <a href="#/" class="evback">← Back to main</a>
   </nav>
   <div class="spacer"></div>
@@ -689,6 +690,7 @@ function setState(st) {
   $('#pillCap').textContent = st.pack_cap;
   updateTopAvatar();
   $('#navAdmin').classList.toggle('hidden', !st.is_admin);
+  document.querySelectorAll('.evAdmin').forEach(a => a.classList.toggle('hidden', !st.is_admin));
   if (st.is_admin && !S._sgChecked) { S._sgChecked = true; setTimeout(checkSuggestions, 1500); setInterval(checkSuggestions, 120000); }
 }
 async function refreshState() { setState(await rpc('get_state', {p_token: S.token})); }
@@ -725,6 +727,12 @@ function creatorStatus(c, own, claimed = []) {
 const evMult = (l, o) => o?.golden ? (l.info?.kind === 'player' ? 4 : 10) : o?.holo ? (l.info?.kind === 'player' ? 2 : 3) : 1;   // levels: holo 3x, golden 10x; creators: holo 2x, golden 4x
 const fmtS = n => (n / 50).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 const bestCardVal = () => { let b = 0; for (const [k, o] of Object.entries(ownership(S.myCards))) { const l = S.byKey[k]; if (l && TIERS.includes(l.tier)) b = Math.max(b, l.points * lvMult(o)); } return b; };
+// admin dropdowns: event cards grouped (current event first)
+const evOptGroups = (rewards) => { const evs = [...new Set(S.levels.filter(l => l.tier === 'event').map(l => l.info?.event))].sort((a, b) => (b === S.event?.id) - (a === S.event?.id));
+  return evs.map(id => { const lv = S.levels.filter(l => l.tier === 'event' && l.info?.event === id), o = l => `<option value="${esc(l.key)}">${l.info?.kind === 'player' ? '★ ' + esc(l.name) : '#' + (evRank(l) || '?') + ' ' + esc(l.name)} (${esc(l.info?.rarity || '')})</option>`;
+    const lvl = lv.filter(l => l.info?.kind !== 'player').sort((a, b) => evRank(a) - evRank(b)), cr = lv.filter(l => l.info?.kind === 'player').sort((a, b) => TIERS.indexOf(a.info?.rarity) - TIERS.indexOf(b.info?.rarity));
+    const rw = rewards ? S.levels.filter(l => l.tier === 'eventreward' && l.info?.event === id) : [];
+    return `<optgroup label="◆ Event levels (${esc(id)})">${lvl.map(o).join('')}</optgroup>${cr.length ? `<optgroup label="◆ Event creators (${esc(id)})">${cr.map(o).join('')}</optgroup>` : ''}${rw.length ? `<optgroup label="◆ Event rewards (${esc(id)})">${rw.map(l => `<option value="${esc(l.key)}">${esc(l.name)}</option>`).join('')}</optgroup>` : ''}`; }).join(''); };
 const REWARD_SHARE = {easy: 0.10, normal: 0.15, hard: 0.20, harder: 0.25, insane: 0.30, demon: 0.40};   // demon = the #1 card
 const rewardShare = l => REWARD_SHARE[l.info?.face] ?? 0.10;
 function scoreInfo(own, claimed = [], cclaimed = []) {
@@ -2403,8 +2411,8 @@ function renderAdmin() {
     ${S.me.player_cards ? `<button class="btn sm" id="upNow" style="margin-left:6px">Secret: put an Unverified player in the next player pack</button>` : ''}
     <hr style="border-color:var(--line);margin:24px 0">
     <h3>Put a card in someone's next pack</h3>
-    <p class="muted">It shows up as one of the 3 options. They still have to pick it. Player cards go in their next player pack. Leave the player blank for whoever opens a pack next.</p>
-    <div class="row"><select class="field" id="rgL" style="flex:1;min-width:200px"><option value="">— pick a level or player —</option><optgroup label="Levels">${S.levels.filter(l => l.rank).map(l => `<option value="${esc(l.key)}">#${l.rank} ${esc(l.name)}</option>`).join('')}</optgroup>${S.me.player_cards ? `<optgroup label="Player cards">${S.levels.filter(l => l.tier === 'player' && !l.info?.retired).map(l => `<option value="${esc(l.key)}">★ ${esc(l.name)} (${pInfo(l).rarity})</option>`).join('')}</optgroup>` : ''}</select>
+    <p class="muted">It shows up as one of the 3 options. They still have to pick it. Player cards go in their next player pack, event levels in their next event pack, event creators in their next creator pack. Leave the player blank for whoever opens a pack next.</p>
+    <div class="row"><select class="field" id="rgL" style="flex:1;min-width:200px"><option value="">— pick a level or player —</option><optgroup label="Levels">${S.levels.filter(l => l.rank).map(l => `<option value="${esc(l.key)}">#${l.rank} ${esc(l.name)}</option>`).join('')}</optgroup>${S.me.player_cards ? `<optgroup label="Player cards">${S.levels.filter(l => l.tier === 'player' && !l.info?.retired).map(l => `<option value="${esc(l.key)}">★ ${esc(l.name)} (${pInfo(l).rarity})</option>`).join('')}</optgroup>` : ''}${S.event ? evOptGroups(false).replace(/<optgroup label="◆ Event (levels|creators) \(([^)]*)\)">/g, (m, a, b) => b === S.event.id ? m : '<optgroup hidden>') : ''}</select>
       <label class="row" style="gap:4px"><input type="checkbox" id="rgH"> holo</label>${S.me.golden_cards ? `<label class="row" style="gap:4px"><input type="checkbox" id="rgG"> <span class="goldtxt">golden</span></label>` : ''}
       <input class="field" id="rgU" placeholder="Player (optional)" style="width:170px"><button class="btn sm" id="rgGo">Queue</button></div>
     <div id="rgList" class="feed" style="margin-top:10px"></div>
@@ -2452,7 +2460,7 @@ function renderAdmin() {
     $('#sync').disabled = false;
   };
   const drawRigs = list => { $('#rgList').innerHTML = list.length ? list.map(r => `<div class="row" style="border:1px solid var(--line);border-radius:10px;padding:6px 10px">
-      <span style="flex:1">${S.byKey[r.level_key]?.tier === 'player' ? '★' : '#' + (S.byKey[r.level_key]?.rank ?? '?')} ${esc(S.byKey[r.level_key]?.name || r.level_key)}${r.golden ? ' <b class="goldtxt">★ golden</b>' : r.holo ? ' ✦ holo' : ''} → <b>${r.username ? esc(r.username) : 'anyone'}</b>${S.byKey[r.level_key]?.tier === 'player' ? ' <span class="muted">(next player pack)</span>' : ''}</span>
+      <span style="flex:1">${S.byKey[r.level_key]?.tier === 'event' ? '◆ ' + (S.byKey[r.level_key]?.info?.kind === 'player' ? '★' : '#' + evRank(S.byKey[r.level_key])) : S.byKey[r.level_key]?.tier === 'player' ? '★' : '#' + (S.byKey[r.level_key]?.rank ?? '?')} ${esc(S.byKey[r.level_key]?.name || r.level_key)}${r.golden ? ' <b class="goldtxt">★ golden</b>' : r.holo ? ' ✦ holo' : ''} → <b>${r.username ? esc(r.username) : 'anyone'}</b>${S.byKey[r.level_key]?.tier === 'player' ? ' <span class="muted">(next player pack)</span>' : ''}</span>
       <button class="btn sm" data-rgx="${r.id}">Cancel</button></div>`).join('') : '<span class="muted">Nothing queued.</span>';
     document.querySelectorAll('[data-rgx]').forEach(b => b.onclick = async () => { try { drawRigs(await rpc('admin_rig', {p_token: S.token, p_action: 'remove', p_id: +b.dataset.rgx})); } catch (e) { toast(e.message, true); } }); };
   rpc('admin_rig', {p_token: S.token, p_action: 'list'}).then(drawRigs).catch(() => {});
@@ -2516,7 +2524,7 @@ function renderAdmin() {
 function adminGive(un) {
   const m = document.createElement('div'); m.className = 'modal';
   m.innerHTML = `<div class="box"><h2 style="margin-top:0">Give to ${esc(un)}</h2>
-    <h3>A card</h3><div class="row"><select class="field" id="gL" style="flex:1"><option value="">— none —</option><optgroup label="Levels">${S.levels.filter(l => l.rank).map(l => `<option value="${esc(l.key)}">#${l.rank} ${esc(l.name)}</option>`).join('')}</optgroup>${S.me.player_cards ? `<optgroup label="Player cards">${S.levels.filter(l => l.tier === 'player' && !l.info?.retired).map(l => `<option value="${esc(l.key)}">★ ${esc(l.name)} (${pInfo(l).rarity})</option>`).join('')}</optgroup>` : ''}<optgroup label="Unverified">${S.levels.filter(l => l.tier === 'unverified').map(l => `<option value="${esc(l.key)}">${esc(l.name)}</option>`).join('')}</optgroup><optgroup label="Vaulted">${S.levels.filter(l => !l.rank && !['player', 'unverified', 'uplayer'].includes(l.tier)).map(l => `<option value="${esc(l.key)}">${esc(l.name)}</option>`).join('')}</optgroup></select>
+    <h3>A card</h3><div class="row"><select class="field" id="gL" style="flex:1"><option value="">— none —</option><optgroup label="Levels">${S.levels.filter(l => l.rank).map(l => `<option value="${esc(l.key)}">#${l.rank} ${esc(l.name)}</option>`).join('')}</optgroup>${S.me.player_cards ? `<optgroup label="Player cards">${S.levels.filter(l => l.tier === 'player' && !l.info?.retired).map(l => `<option value="${esc(l.key)}">★ ${esc(l.name)} (${pInfo(l).rarity})</option>`).join('')}</optgroup>` : ''}<optgroup label="Unverified">${S.levels.filter(l => l.tier === 'unverified').map(l => `<option value="${esc(l.key)}">${esc(l.name)}</option>`).join('')}</optgroup>${evOptGroups(true)}<optgroup label="Vaulted">${S.levels.filter(l => !l.rank && !['player', 'unverified', 'uplayer', 'event', 'eventreward'].includes(l.tier)).map(l => `<option value="${esc(l.key)}">${esc(l.name)}</option>`).join('')}</optgroup></select>
       <label class="row" style="gap:4px"><input type="checkbox" id="gH"> holo</label>${S.me.golden_cards ? `<label class="row" style="gap:4px"><input type="checkbox" id="gG"> <span class="goldtxt">golden</span></label>` : ''}</div>
     <h3 style="margin-top:14px">Packs</h3><div class="row"><input class="field" id="gP" type="number" value="0" style="width:100px"><select class="field" id="gK"><option value="normal">normal packs</option><option value="bonus">bonus packs</option><option value="holo">holo packs</option><option value="player">player packs</option><option value="holo_player">holo player packs</option><option value="event">◆ event packs</option><option value="holo_event">◆ holo event packs</option><option value="creator_event">◆ creator packs</option><option value="holo_creator_event">◆ holo creator packs</option></select></div>
     <span class="muted" style="font-size:13px">Normal adds to their regular count (no "+bonus" label). Use a negative number to take packs away.</span>
