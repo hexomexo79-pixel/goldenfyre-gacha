@@ -477,6 +477,8 @@ footer{text-align:center;color:#6d6975;font-size:12px;padding:20px;line-height:1
 .card.t-player.pr-apex,.card.t-player.pr-mythic,.card.t-player.pr-legendary{--frame:linear-gradient(120deg,#99f6e4,var(--c2),#0e7490,var(--c2),#99f6e4)}.card.pr-apex{--c2:var(--apex)}.card.pr-mythic{--c2:var(--mythic)}.card.pr-legendary{--c2:var(--legendary)}
 .plv{display:flex;flex-wrap:wrap;gap:4px;margin:6px 0 10px}.plv span{font-size:12px;padding:2px 7px;border-radius:99px;border:1px solid var(--line);color:var(--muted)}.plv span.own{color:var(--text);border-color:#2dd4bf}
 .pgrid{display:flex;flex-wrap:wrap;gap:3px;margin-top:6px;max-width:100%}.pgrid span{min-width:22px;padding:2px 3px;text-align:center;font-size:10px;font-weight:800;border-radius:5px;background:#ffffff10;color:#ffffff40}.pgrid span.own{background:#2dd4bf33;color:#d9fffa;outline:1px solid #2dd4bf88}.pgrid span.own.holo{background:linear-gradient(135deg,#ff6b6b55,#ffd36b55,#6bff9c55,#6bd0ff55,#b46bff55)}.pgrid span.ver{text-decoration:underline}
+.pgrid span.own.golden{background:linear-gradient(135deg,#b7791f,#ffd36b,#fff1b8);color:#3a2500;outline-color:#ffd36b}
+.pgrid.evgrid span{padding:2px 5px;font-size:9.5px}
 .card.t-player .thumb img{object-fit:cover}
 .pimg{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:clamp(20px,30cqw,48px);color:#fff}
 .feeditem.t-player{--c:#2dd4bf}
@@ -622,6 +624,15 @@ function playerBoostOf(l, own, holo, maxed) {
   return Math.round(b * (typeof holo === 'number' ? holo : holo ? RULES.playerHoloMult : 1));
 }
 // little grid of a player's levels by rank: bright = you own it
+// event creator card: their levels in this event (yours lit up, holo/golden shown), hardest first
+function creatorGrid(cl, own) {
+  const name = cl.name.toLowerCase();
+  const ks = S.levels.filter(l => l.tier === 'event' && l.info?.event === cl.info?.event && l.info?.kind !== 'player' && evCreatorOf2(l).toLowerCase() === name)
+    .sort((a, b) => TIERS.indexOf(a.info?.rarity) - TIERS.indexOf(b.info?.rarity) || (a.info?.order ?? 0) - (b.info?.order ?? 0));
+  if (!ks.length) return '';
+  return `<div class="pgrid evgrid">${ks.map(l => { const o = own[l.key];
+    return `<span class="${o ? (o.golden ? 'own golden' : o.holo ? 'own holo' : 'own') : ''}" title="${esc(l.name)} · ${esc(l.info?.rarity || '')}${o ? (o.golden ? ' · golden' : o.holo ? ' · holo' : ' · owned') : ' · not owned'}">${esc(l.name.length > 12 ? l.name.slice(0, 11) + '…' : l.name)}</span>`; }).join('')}</div>`;
+}
 function playerGrid(l, own) {
   const p = pInfo(l), ks = [...new Set([...p.verified, ...p.beaten])].sort((a, b) => S.byKey[a].rank - S.byKey[b].rank);
   return `<div class="pgrid">${ks.map(k => `<span class="${own[k] ? (own[k].holo ? 'own holo' : 'own') : ''} ${p.verified.includes(k) ? 'ver' : ''}" title="#${S.byKey[k].rank} ${esc(S.byKey[k].name)}${p.verified.includes(k) ? ' (verified)' : ''}">#${S.byKey[k].rank}</span>`).join('')}</div>`;
@@ -1504,7 +1515,7 @@ function pickHints(lk, holo) {
     if (ckey((l.info?.desc || '').replace(/^By\s+/, '').split('·')[0]) === ckey(S.me.username)) hints.push(['mine', '★ Your level!']);
     if (!o) for (const st of S.evSets || []) if (st.keys.includes(lk)) { const miss = st.keys.filter(k => !own[k]).length;
       if (miss === 1) hints.push(['set', `Completes ${st.kind === 'creator' ? 'By ' : ''}${st.name}! +${fmtS(st.bonus)} ★`]); else if (miss === 2) hints.push(['set', `1 more for ${st.kind === 'creator' ? 'By ' : ''}${st.name}`]); }
-    return hints.map(([c, t]) => `<div class="hint ${c}">${esc(t)}</div>`).join('');
+    return hints.map(([c, t]) => `<div class="hint ${c}">${esc(t)}</div>`).join('') + (l.info?.kind === 'player' ? creatorGrid(l, own) : '');
   }
   if (S.me && creatorsOf(l).some(a => ckey(a) === ckey(S.me.username))) hints.push(['mine', '★ Your level!']);
   if (!o) {
