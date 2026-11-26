@@ -564,7 +564,7 @@ const MIRROR = {name: 'Mirror', who: 'You', desc: 'Worth as many points as your 
 const ABILITIES = new Proxy({}, {get: (_, k) => S.byKey[k] && S.byKey[k].tier === 'unverified' ? MIRROR : undefined});
 const RULES = {
   holoMult: 3,            // a holo level counts 3x
-  goldMult: 10,           // a golden level counts 10x (only one of each exists)
+  goldMult: 8,            // a golden level counts 8x (only one of each exists; was 10x)
   playerGoldMult: 4,      // a golden player card boosts 4x (holo: 2x)
   setMin: 500,            // set bonus = value of its levels, at least this
   creatorMinLevels: 2,    // creators need at least this many levels on the list to count
@@ -702,7 +702,7 @@ function ownership(cards) {
 }
 // owned map from leaderboard rows: [[key, holoAny, count]]
 function ownFromRows(rows) { const o = {}; for (const [k, h, n, g] of rows) o[k] = {count: n, holo: h ? 1 : 0, golden: g ? 1 : 0}; return o; }
-// level multiplier: golden 10x, holo 3x; player boost multiplier: golden 4x, holo 2x
+// level multiplier: golden 8x, holo 3x; player boost multiplier: golden 4x, holo 2x
 const lvMult = o => o?.golden ? RULES.goldMult : o?.holo ? RULES.holoMult : 1;
 const pMult = o => o?.golden ? RULES.playerGoldMult : o?.holo ? RULES.playerHoloMult : 1;
 // who owns the golden of a level (from the leaderboard data)
@@ -2590,7 +2590,8 @@ const CHANGELOG = [
     "First event: Non-Demon Week (7 days). Every rated non-demon on the server, plus ★ creator cards for the people who made them",
     "Event cards earn ★ Stars. Reach Star goals for 5 reward cards (Easy → Insane). You keep them forever, they count in your main score, and they make your event timers faster",
     "NEW: something wrong or a missing thumbnail? Open any card → ✎ Suggest an edit. An admin checks it before it goes in",
-    "NEW Unverified card: Lotus by Luna, to be verified by Miokii"
+    "NEW Unverified card: Lotus by Luna, to be verified by Miokii",
+    "Golden levels now count 8× (was 10×) in the main game"
   ]},
   {v: 11, flag: 'golden_cards', title: 'Update', items: [
     'NEW: ★ Golden cards. Only ONE golden of each card exists',
