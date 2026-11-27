@@ -575,6 +575,7 @@ const RULES = {
   playerBeat: 0.15,       // ...+15% of each owned level that player beat
   playerVerify: 0.25,     // ...+25% of each owned level that player verified (holo levels count at holo value)
   playerHoloMult: 2,      // a holo player card doubles all of that
+  uplayerPts: 10000,      // each secret Unverified player: flat points
   timerSecs: [600,570,540,510,480,450,435,420,360,300]   // pack timer by holo milestone (every 10 holos)
 };
 
@@ -763,10 +764,10 @@ function scoreInfo(own, claimed = [], cclaimed = []) {
     const l = S.byKey[k]; if (!l || l.tier !== 'player' || !S.me?.player_cards) continue;
     players++; playerBonus += playerBoostOf(l, own, pMult(own[k]));
   }
-  // secret Unverified players: each one is worth as much as your best player card (holo/golden included)
+  // secret Unverified players: flat points each (RULES.uplayerPts)
   let uplayers = 0, uplayerBonus = 0;
   for (const k of Object.keys(own)) { const l = S.byKey[k]; if (l && l.tier === 'uplayer') uplayers++; }
-  if (uplayers) { let best = 0; for (const k of Object.keys(own)) { const l = S.byKey[k]; if (l && l.tier === 'player') best = Math.max(best, playerBoostOf(l, own, pMult(own[k]))); } uplayerBonus = uplayers * best; }
+  if (uplayers) uplayerBonus = uplayers * RULES.uplayerPts;
   // player sets: points while you own every player in the set (and redeemed it)
   const psets = (S.me?.player_cards ? (S.psets || []) : []).map(ps => {
     const keys = ps.players.map(n => 'PLAYER_' + ckey(n)).filter(k => S.byKey[k]);
@@ -897,7 +898,7 @@ function cardHTML(l, o = {}) {
     ${o.mini ? '' : `<div class="codds">${cardOdds(l, o)}</div>`}
     <div class="nm">${esc(l.name)}</div>
     <div class="meta">${l.tier === 'event' || l.tier === 'eventreward' ? esc(l.info?.desc || '') : l.tier === 'uplayer' ? '<b class="abil">✦ ???</b> · Who is this?' : l.tier === 'player' ? `Beat ${pInfo(l).beaten.length} · Verified ${pInfo(l).verified.length}` : `${l.tier === 'unverified' ? (ABILITIES[l.key] ? `<b class="abil">✦ ${esc(ABILITIES[l.key].name)}</b> · ${esc(ABILITIES[l.key].desc)}` : 'Not verified yet') : `Verified by ${esc(l.verifier || '?')}`}<br>By ${esc(creatorsOf(l).join(', ') || '?')}`}</div>
-    <div class="pts">${l.tier === 'event' && l.info?.kind === 'player' ? (o.golden ? '★ boosts +200%' : o.holo ? '★ boosts +100%' : '★ boosts +50%') : l.tier === 'event' ? fmtS(l.points * evMult(l, o)) + ' ★' + (o.golden ? ' ★' : o.holo ? ' ✦' : '') : l.tier === 'eventreward' ? fmt(l.points) + ' + ' + Math.round(rewardShare(l) * 100) + '% of best' : l.tier === 'uplayer' ? '= your best player' : l.tier === 'player' ? (o.golden ? `★ boosts ×${RULES.playerGoldMult}` : o.holo ? '★ boosts ×2' : '★ boosts levels') : l.tier === 'unverified' ? '= your best card' : fmt(l.points * lvMult(o)) + ' pts' + (o.golden ? ' ★' : o.holo ? ' ✦' : '')}</div>
+    <div class="pts">${l.tier === 'event' && l.info?.kind === 'player' ? (o.golden ? '★ boosts +200%' : o.holo ? '★ boosts +100%' : '★ boosts +50%') : l.tier === 'event' ? fmtS(l.points * evMult(l, o)) + ' ★' + (o.golden ? ' ★' : o.holo ? ' ✦' : '') : l.tier === 'eventreward' ? fmt(l.points) + ' + ' + Math.round(rewardShare(l) * 100) + '% of best' : l.tier === 'uplayer' ? fmt(RULES.uplayerPts) : l.tier === 'player' ? (o.golden ? `★ boosts ×${RULES.playerGoldMult}` : o.holo ? '★ boosts ×2' : '★ boosts levels') : l.tier === 'unverified' ? '= your best card' : fmt(l.points * lvMult(o)) + ' pts' + (o.golden ? ' ★' : o.holo ? ' ✦' : '')}</div>
     ${o.golden ? '<div class="holotag goldtag">★ GOLDEN</div>' : o.holo && l.tier !== 'unverified' ? '<div class="holotag">✦ HOLO</div>' : ''}
   </div>`;
 }
@@ -1285,7 +1286,7 @@ function uplayerPanel() {
   const u = S.levels.filter(l => l.tier === 'uplayer'); if (!u.length) return '';
   const tot = S.me.uplayers_total || u.length, found = Math.max(S.me.uplayers_found || 0, u.length);
   return `<div class="panel"><div class="row between"><h2 style="margin:0">Unverified players??? · ${found}/${tot} discovered</h2></div>
-    <p class="muted" style="margin:6px 0 14px">Nobody knows who they are. Only one of each exists, and each is worth as much as its owner's best player card. They show up in player packs.</p>
+    <p class="muted" style="margin:6px 0 14px">Nobody knows who they are. Only one of each exists, and each is worth a flat ${fmt(RULES.uplayerPts)} points. They show up in player packs.</p>
     <div class="hscroll">${u.map(l => `<div style="flex:0 0 150px">${cardHTML(l)}<div class="owners">${unvOwner(l.key) ? 'Owned by ' + esc(unvOwner(l.key)) : 'Owner unknown'}</div></div>`).join('')}
       ${found < tot ? `<div style="flex:0 0 150px;display:grid;place-items:center;border:2px dashed #ffffff30;border-radius:11px;aspect-ratio:5/7;font-size:42px;font-weight:900;color:#ffffff40">?</div>` : ''}</div></div>`;
 }
@@ -1325,7 +1326,7 @@ function scoreTable(info) {
     ${info.holoSetBonus || info.holoCreatorBonus ? `<tr><td><b>✦ Holo set & creator bonuses</b></td><td class="muted">${info.holoSetsDone} sets, ${info.holoCreatorsDone} creators all in holo</td><td style="text-align:right">+${fmt(info.holoSetBonus + info.holoCreatorBonus)}</td></tr>` : ''}
     ${info.players ? `<tr><td><b>★ Player cards</b></td><td class="muted">${info.players} player${info.players > 1 ? 's' : ''}</td><td style="text-align:right">+${fmt(info.playerBonus)}</td></tr>` : ''}
     ${info.byTier.eventreward ? `<tr><td><b>◆ Event rewards</b></td><td class="muted">${info.byTier.eventreward.n} card${info.byTier.eventreward.n > 1 ? 's' : ''}</td><td style="text-align:right">+${fmt(info.byTier.eventreward.pts)}</td></tr>` : ''}
-    ${info.uplayers ? `<tr><td><span class="unvtxt">UNVERIFIED PLAYERS</span></td><td class="muted">${info.uplayers} × your best player</td><td style="text-align:right">+${fmt(info.uplayerBonus)}</td></tr>` : ''}
+    ${info.uplayers ? `<tr><td><span class="unvtxt">UNVERIFIED PLAYERS</span></td><td class="muted">${info.uplayers} × ${fmt(RULES.uplayerPts)}</td><td style="text-align:right">+${fmt(info.uplayerBonus)}</td></tr>` : ''}
     ${info.psetBonus ? `<tr><td><b>★ Player sets</b></td><td class="muted">${info.psets.filter(x => x.done && x.claimed).length} redeemed</td><td style="text-align:right">+${fmt(info.psetBonus)}</td></tr>` : ''}
     ${info.psetHoloBonus ? `<tr><td><b>✦ Holo player sets</b></td><td class="muted">${info.psets.filter(x => x.holoDone && x.holoClaimed).length} all in holo</td><td style="text-align:right">+${fmt(info.psetHoloBonus)}</td></tr>` : ''}
     <tr><td><b>Creator bonuses</b></td><td class="muted">${info.creatorsDone} collected · partial bonuses included</td><td style="text-align:right">+${fmt(info.creatorBonus)}</td></tr>
@@ -2608,7 +2609,8 @@ const CHANGELOG = [
     "Event cards earn ★ Stars. Reach Star goals for 5 reward cards (Easy → Insane). You keep them forever, they count in your main score, and they make your event timers faster",
     "NEW: something wrong or a missing thumbnail? Open any card → ✎ Suggest an edit. An admin checks it before it goes in",
     "NEW Unverified card: Lotus by Luna, to be verified by Miokii",
-    "Golden levels now count 8× (was 10×) in the main game"
+    "Golden levels now count 8× (was 10×) in the main game",
+    "Unverified players are now worth a flat 10,000 points each (they used to copy your best player card)"
   ]},
   {v: 11, flag: 'golden_cards', title: 'Update', items: [
     'NEW: ★ Golden cards. Only ONE golden of each card exists',
